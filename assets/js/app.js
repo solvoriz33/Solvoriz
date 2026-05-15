@@ -51,6 +51,18 @@ function setBtnLoading(btn, loading, label = '') {
   }
 }
 
+async function createNotification(userId, type, payload = {}) {
+  if (!userId) return;
+  const { error } = await window.sb.from('notifications').insert({
+    user_id: userId,
+    type,
+    payload: { ...payload, delivered: false }
+  });
+  if (error) {
+    console.warn('Notification insert failed', error);
+  }
+}
+
 // ── Skill Tag system ─────────────────────────────────────
 const SKILL_POOL = [
   'JavaScript','TypeScript','Python','Rust','Go','Java','C++','C#','Swift','Kotlin',
@@ -178,6 +190,7 @@ window.showToast = showToast;
 window.escHtml = escHtml;
 window.fmtDate = fmtDate;
 window.setBtnLoading = setBtnLoading;
+window.createNotification = createNotification;
 window.initSkillInput = initSkillInput;
 window.requireAuth = requireAuth;
 window.SKILL_POOL = SKILL_POOL;

@@ -34,6 +34,10 @@
       <button class="nav-item" data-section="add-project" onclick="showSection('add-project')">
         <span class="nav-icon">＋</span> Add Project
       </button>
+      <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
+        <span class="nav-icon">🔔</span> Notifications
+        <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+      </button>
     </nav>
 
     <div class="sidebar-user">
@@ -64,6 +68,13 @@
         <div class="overview-profile-card__meta">
           <span id="overview-location">📍 —</span>
           <span id="overview-availability" class="avail-badge avail-badge--grey">not set</span>
+        </div>
+        <div class="overview-profile-card__progress">
+          <div class="progress-label">Profile score</div>
+          <div class="progress-bar"><div id="overview-score-bar" class="progress-fill" style="width:0%"></div></div>
+        </div>
+        <div class="overview-profile-card__link">
+          <button class="btn btn--ghost btn--sm" id="public-profile-button" onclick="openPublicProfile()">View public profile</button>
         </div>
       </div>
 
@@ -101,6 +112,22 @@
 
       <div class="card animate-fade-up">
         <form id="profile-form" onsubmit="saveProfile(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="profile-handle">Public handle</label>
+              <input type="text" id="profile-handle" class="input" placeholder="yourname" maxlength="40">
+            </div>
+            <div class="form-group">
+              <label for="profile-age">Age</label>
+              <input type="number" id="profile-age" class="input" min="13" max="120" placeholder="e.g. 22">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="profile-avatar">Avatar image URL</label>
+            <input type="url" id="profile-avatar" class="input" placeholder="https://...">
+          </div>
+
           <div class="form-group">
             <label for="profile-headline">Headline</label>
             <input type="text" id="profile-headline" class="input" placeholder="Full-stack engineer building AI-powered dev tools" maxlength="120">
@@ -117,6 +144,16 @@
               <input type="text" id="profile-location" class="input" placeholder="San Francisco, CA / Remote">
             </div>
             <div class="form-group">
+              <label for="profile-visibility">Profile visibility</label>
+              <select id="profile-visibility" class="select input">
+                <option value="public">Public</option>
+                <option value="hidden">Hidden from recruiter search</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
               <label for="profile-availability">Availability</label>
               <select id="profile-availability" class="select input">
                 <option value="">Select status...</option>
@@ -124,6 +161,10 @@
                 <option value="open">👀 Open to offers</option>
                 <option value="busy">❌ Not available</option>
               </select>
+            </div>
+            <div class="form-group">
+              <label for="profile-github">GitHub username</label>
+              <input type="text" id="profile-github" class="input" placeholder="your-github" maxlength="80">
             </div>
           </div>
 
@@ -191,6 +232,30 @@
 
           <div class="form-row">
             <div class="form-group">
+              <label for="proj-type">Project type</label>
+              <select id="proj-type" class="select input">
+                <option value="Side Project">Side Project</option>
+                <option value="School Project">School Project</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Internship">Internship</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="proj-image">Project image URL</label>
+              <input type="url" id="proj-image" class="input" placeholder="https://...">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="proj-visible">Project visibility</label>
+            <select id="proj-visible" class="select input">
+              <option value="true">Visible to recruiter search</option>
+              <option value="false">Hidden/private</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
               <label for="proj-demo">Live demo URL</label>
               <input type="url" id="proj-demo" class="input" placeholder="https://myproject.vercel.app">
             </div>
@@ -204,7 +269,21 @@
             <button type="submit" class="btn btn--primary">Add project →</button>
             <button type="button" class="btn btn--ghost" onclick="showSection('projects')">Cancel</button>
           </div>
+          <p class="muted" id="project-limit-note" style="margin-top:14px"></p>
         </form>
+      </div>
+    </section>
+
+    <section class="dash-section" id="section-notifications">
+      <div class="section-header">
+        <h1 class="section-header__title">Notifications</h1>
+        <p class="section-header__sub">See contact requests, admin updates, and featured project activity.</p>
+      </div>
+      <div id="notifications-list" style="display:grid;gap:16px"></div>
+      <div class="empty-state hidden" id="notifications-empty" style="margin-top:20px">
+        <div class="empty-state__icon">🔔</div>
+        <div class="empty-state__title">No notifications yet</div>
+        <div class="empty-state__sub">Important updates will appear here as they come in.</div>
       </div>
     </section>
 
@@ -234,6 +313,28 @@
             <input type="text" id="edit-proj-skill-input" class="input-inline" placeholder="Add technologies...">
             <div class="skill-suggestions hidden" id="edit-proj-skill-suggest"></div>
           </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-proj-type">Project type</label>
+            <select id="edit-proj-type" class="select input">
+              <option value="Side Project">Side Project</option>
+              <option value="School Project">School Project</option>
+              <option value="Freelance">Freelance</option>
+              <option value="Internship">Internship</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-proj-image">Project image URL</label>
+            <input type="url" id="edit-proj-image" class="input" placeholder="https://...">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="edit-proj-visible">Project visibility</label>
+          <select id="edit-proj-visible" class="select input">
+            <option value="true">Visible to recruiter search</option>
+            <option value="false">Hidden/private</option>
+          </select>
         </div>
         <div class="form-row">
           <div class="form-group">

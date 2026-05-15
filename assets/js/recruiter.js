@@ -5,6 +5,7 @@
 let currentUser = null;
 let currentProfile = null;
 let allStudents = [];
+let myNotifications = [];
 let filterSkills = [];
 let shortlist = [];
 let filterSkillsInput = null;
@@ -23,6 +24,10 @@ async function initRecruiter() {
     .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
 
+  if (!currentProfile.verified_recruiter) {
+    showToast('Your recruiter account is pending verification. Contact an admin to unlock full access.', 'warn');
+  }
+
   filterSkillsInput = initSkillInput({
     wrapId: 'filter-skills-wrap',
     inputId: 'filter-skill-input',
@@ -32,7 +37,7 @@ async function initRecruiter() {
     onChange: () => applyFilters()
   });
 
-  await loadStudents();
+  await Promise.all([loadStudents(), loadNotifications()]);
   setupSearch();
   showSection('browse');
 }
@@ -67,6 +72,7 @@ async function loadStudents() {
     headline: sp.headline || '',
     bio: sp.bio || '',
     location: sp.location || '',
+    age: sp.age || null,
     availability: sp.availability || '',
     skills: sp.skills || [],
     joinedAt: sp.users?.created_at || '',
@@ -96,6 +102,7 @@ function renderStudents(students) {
         <div class="student-card__info">
           <h3 class="student-card__name">${escHtml(s.fullName)}</h3>
           <p class="student-card__headline">${escHtml(s.headline)}</p>
+          ${s.age ? `<span class="student-card__loc">🎂 Age ${escHtml(String(s.age))}</span>` : ''}
         </div>
         <button class="shortlist-btn ${shortlist.includes(s.userId) ? 'shortlisted' : ''}"
           onclick="event.stopPropagation();toggleShortlist('${s.userId}')"
@@ -173,7 +180,8 @@ function openStudentProfile(userId) {
       `).join('') : '<p class="muted">No projects yet</p>'}
     </div>
     <div class="student-modal__actions">
-      <a href="mailto:${escHtml(student.email)}" class="btn btn--primary">✉ Contact ${escHtml(student.fullName.split(' ')[0])}</a>
+      <textarea id="contact-message" class="textarea" placeholder="Write a short message to introduce yourself and why you'd like to connect." rows="4"></textarea>
+      <button class="btn btn--primary" onclick="sendContactRequest('${student.userId}')">✉ Send contact request</button>
       <button class="btn btn--outline" onclick="toggleShortlist('${student.userId}');updateShortlistBtn('${student.userId}',this)">
         ${shortlist.includes(student.userId) ? '★ Shortlisted' : '☆ Shortlist'}
       </button>
@@ -189,6 +197,39 @@ function updateShortlistBtn(userId, btn) {
 
 function closeStudentModal() {
   document.getElementById('student-modal').classList.add('hidden');
+}
+
+async function sendContactRequest(studentId) {
+  if (!currentProfile.verified_recruiter) {
+    showToast('You must be a verified recruiter to send contact requests.', 'error');
+    return;
+  }
+
+  const message = document.getElementById('contact-message')?.value.trim();
+  if (!message) {
+    showToast('Please write a short message before sending.', 'error');
+    return;
+  }
+
+  const { error } = await window.sb.from('contact_requests').insert({
+    recruiter_id: currentUser.id,
+    student_id: studentId,
+    message,
+  });
+
+  if (error) {
+    showToast('Failed to send contact request: ' + error.message, 'error');
+    return;
+  }
+
+  await createNotification(studentId, 'contact_request', {
+    recruiter_id: currentUser.id,
+    recruiter_name: currentProfile.full_name,
+    message
+  });
+
+  showToast('Contact request sent!', 'success');
+  closeStudentModal();
 }
 
 // ── SHORTLIST ─────────────────────────────────────────────
@@ -222,6 +263,7 @@ function renderShortlist() {
         <div class="student-card__info">
           <h3 class="student-card__name">${escHtml(s.fullName)}</h3>
           <p class="student-card__headline">${escHtml(s.headline)}</p>
+          ${s.age ? `<span class="student-card__loc">🎂 Age ${escHtml(String(s.age))}</span>` : ''}
         </div>
         <button class="shortlist-btn shortlisted" onclick="event.stopPropagation();toggleShortlist('${s.userId}')">★</button>
       </div>
@@ -235,6 +277,49 @@ function renderShortlist() {
   `).join('');
 }
 
+async function loadNotifications() {
+  const { data, error } = await window.sb
+    .from('notifications')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+  if (error) { showToast('Failed to load notifications', 'error'); return; }
+  myNotifications = data || [];
+  renderNotifications();
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifications-list');
+  const empty = document.getElementById('notifications-empty');
+  const count = document.getElementById('notification-count');
+  if (count) count.textContent = String(myNotifications.length || 0);
+  if (!list) return;
+  if (!myNotifications.length) {
+    list.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+  list.innerHTML = myNotifications.map(note => {
+    const title = note.type === 'contact_request'
+      ? 'New contact request'
+      : note.type === 'project_feature'
+        ? `Project ${note.payload?.featured ? 'featured' : 'updated'}`
+        : note.type === 'recruiter_verified'
+          ? 'Recruiter status updated'
+          : 'Notification';
+    const body = note.payload?.message || note.payload?.title || note.payload?.detail || 'You have a new update.';
+    return `
+      <div class="card notification-card animate-fade-up">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div><strong>${escHtml(title)}</strong><div class="muted" style="margin-top:6px">${escHtml(body)}</div></div>
+          <span class="role-badge role-badge--grey">${fmtDate(note.created_at)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 // ── SEARCH & FILTERS ──────────────────────────────────────
 function setupSearch() {
   const searchInput = document.getElementById('search-input');
@@ -245,17 +330,29 @@ function setupSearch() {
   if (locFilter) locFilter.addEventListener('input', () => applyFilters());
   const availFilter = document.getElementById('filter-availability');
   if (availFilter) availFilter.addEventListener('change', () => applyFilters());
+  const projectType = document.getElementById('filter-project-type');
+  if (projectType) projectType.addEventListener('change', () => applyFilters());
+  const ageMin = document.getElementById('filter-age-min');
+  const ageMax = document.getElementById('filter-age-max');
+  if (ageMin) ageMin.addEventListener('input', () => applyFilters());
+  if (ageMax) ageMax.addEventListener('input', () => applyFilters());
 }
 
 function getFilteredStudents() {
   const q = document.getElementById('search-input')?.value.trim().toLowerCase() || '';
   const loc = document.getElementById('filter-location')?.value || '';
   const avail = document.getElementById('filter-availability')?.value || '';
+  const type = document.getElementById('filter-project-type')?.value || '';
+  const minAge = parseInt(document.getElementById('filter-age-min')?.value, 10);
+  const maxAge = parseInt(document.getElementById('filter-age-max')?.value, 10);
 
   return allStudents.filter(s => {
     if (q && !s.fullName.toLowerCase().includes(q) && !s.headline.toLowerCase().includes(q) && !s.skills.some(sk => sk.toLowerCase().includes(q))) return false;
     if (loc && !s.location.toLowerCase().includes(loc.toLowerCase())) return false;
     if (avail && s.availability !== avail) return false;
+    if (type && !s.projects.some(p => p.project_type === type)) return false;
+    if (!Number.isNaN(minAge) && (s.age === null || s.age < minAge)) return false;
+    if (!Number.isNaN(maxAge) && (s.age === null || s.age > maxAge)) return false;
     if (filterSkills.length && !filterSkills.every(fs => s.skills.some(sk => sk.toLowerCase() === fs.toLowerCase()))) return false;
     return true;
   });
@@ -268,7 +365,10 @@ function applyFilters() {
 function clearFilters() {
   document.getElementById('search-input').value = '';
   document.getElementById('filter-location').value = '';
+  document.getElementById('filter-age-min').value = '';
+  document.getElementById('filter-age-max').value = '';
   document.getElementById('filter-availability').value = '';
+  document.getElementById('filter-project-type').value = '';
   filterSkills.length = 0;
   document.getElementById('filter-skills-wrap').querySelectorAll('.skill-tag').forEach(t => t.remove());
   renderStudents(allStudents);
@@ -282,6 +382,7 @@ function showSection(section) {
   document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active');
 
   if (section === 'shortlist') renderShortlist();
+  if (section === 'notifications') renderNotifications();
 }
 
 // ── LOGOUT ────────────────────────────────────────────────

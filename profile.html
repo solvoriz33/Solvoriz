@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvoriz — Builder Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <main class="page-shell">
+    <div class="page-header">
+      <a href="/index.html" class="page-back">← Back to home</a>
+      <div>
+        <h1 class="section-header__title">Builder profile</h1>
+        <p class="section-header__sub">View the public profile for this builder.</p>
+      </div>
+    </div>
+
+    <section class="card profile-card" id="profile-card">
+      <div class="profile-loading">
+        <div class="spinner"></div>
+        <p>Loading builder profile…</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/profile.js"></script>
+</body>
+</html>

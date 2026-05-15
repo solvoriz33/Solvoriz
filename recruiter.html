@@ -26,8 +26,10 @@
       <button class="nav-item" data-section="shortlist" onclick="showSection('shortlist')">
         <span class="nav-icon">★</span> Shortlist
         <span id="shortlist-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
-      </button>
-    </nav>
+      </button>      <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
+        <span class="nav-icon">🔔</span> Notifications
+        <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+      </button>    </nav>
 
     <div class="sidebar-user">
       <div class="sidebar-user__card">
@@ -76,12 +78,29 @@
           <input type="text" id="filter-location" class="input" placeholder="e.g. San Francisco" style="width:auto">
         </div>
         <div class="filter-group">
+          <label>Age</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" id="filter-age-min" class="input" min="13" max="120" placeholder="Min" style="width:86px">
+            <input type="number" id="filter-age-max" class="input" min="13" max="120" placeholder="Max" style="width:86px">
+          </div>
+        </div>
+        <div class="filter-group">
           <label>Availability</label>
           <select id="filter-availability" class="select input" style="width:auto">
             <option value="">Any</option>
             <option value="available">✅ Actively looking</option>
             <option value="open">👀 Open to offers</option>
             <option value="busy">❌ Not available</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Project type</label>
+          <select id="filter-project-type" class="select input" style="width:auto">
+            <option value="">Any</option>
+            <option value="Side Project">Side Project</option>
+            <option value="School Project">School Project</option>
+            <option value="Freelance">Freelance</option>
+            <option value="Internship">Internship</option>
           </select>
         </div>
       </div>
@@ -118,6 +137,19 @@
       </div>
 
       <div class="students-grid" id="shortlist-grid"></div>
+    </section>
+
+    <section class="dash-section" id="section-notifications">
+      <div class="section-header">
+        <h1 class="section-header__title">Notifications</h1>
+        <p class="section-header__sub">Keep track of recruiter status, contact activity, and platform updates.</p>
+      </div>
+      <div id="notifications-list" style="display:grid;gap:16px"></div>
+      <div class="empty-state hidden" id="notifications-empty" style="margin-top:20px">
+        <div class="empty-state__icon">🔔</div>
+        <div class="empty-state__title">No notifications yet</div>
+        <div class="empty-state__sub">Updates will appear here as soon as they arrive.</div>
+      </div>
     </section>
 
   </main>

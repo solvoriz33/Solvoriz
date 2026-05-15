@@ -118,6 +118,12 @@ WHERE email = 'your-admin@email.com';
 5. Deploy!
 
 No environment variables needed — credentials are in `supabase.js`.
+
+## New MVP features added
+- Student profiles now support public handles, visibility settings, avatar URLs, GitHub username, and profile scoring.
+- Projects now support project type, image URL, and visibility control.
+- Recruiters can send contact requests to students through the platform.
+- Admins can approve or revoke recruiter verification and manage featured student projects.
 *(For production, consider using Cloudflare Pages environment variables + a build step.)*
 
 ---

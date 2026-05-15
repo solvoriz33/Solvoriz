@@ -14,7 +14,7 @@ async function initAdmin() {
   currentAdmin = result.profile;
   document.getElementById('admin-name').textContent = currentAdmin.full_name || 'Admin';
 
-  await Promise.all([loadStats(), loadUsers(), loadAllProjects()]);
+  await Promise.all([loadStats(), loadUsers(), loadAllProjects(), loadModerationQueue()]);
   showSection('overview');
   document.addEventListener('click', event => {
     if (event.target?.id === 'admin-project-modal') closeAdminProjectModal();
@@ -68,11 +68,17 @@ function renderUsersTable(users) {
           </div>
         </div>
       </td>
-      <td><span class="role-badge role-badge--${u.role}">${u.role}</span></td>
+      <td>
+        <span class="role-badge role-badge--${u.role}">${u.role}</span>
+        ${u.role === 'recruiter' ? `<span class="role-badge role-badge--${u.verified_recruiter ? 'success' : 'grey'}" style="margin-left:8px">${u.verified_recruiter ? 'Verified' : 'Pending'}</span>` : ''}
+      </td>
       <td>${fmtDate(u.created_at)}</td>
-      <td>${u.id === currentAdmin.id ? '<span class="muted">You</span>' : `
-        <button class="btn btn--sm btn--danger" onclick="deleteUser('${u.id}','${escHtml(u.email)}')">Delete</button>
-      `}</td>
+      <td>
+        ${u.id === currentAdmin.id ? '<span class="muted">You</span>' : `
+          ${u.role === 'recruiter' ? `<button class="btn btn--sm btn--outline" onclick="toggleRecruiterVerification('${u.id}', ${u.verified_recruiter})">${u.verified_recruiter ? 'Revoke' : 'Approve'}</button>` : ''}
+          <button class="btn btn--sm btn--danger" onclick="deleteUser('${u.id}','${escHtml(u.email)}')">Delete</button>
+        `}
+      </td>
     </tr>
   `).join('');
 }
@@ -97,6 +103,19 @@ function filterByRole(role) {
 }
 
 // ── DELETE USER ───────────────────────────────────────────
+async function toggleRecruiterVerification(userId, currentValue) {
+  const nextValue = !Boolean(currentValue);
+  const { error } = await window.sb.from('users').update({ verified_recruiter: nextValue }).eq('id', userId);
+  if (error) { showToast('Failed to update recruiter verification: ' + error.message, 'error'); return; }
+  await createNotification(userId, 'recruiter_verified', {
+    detail: nextValue ? 'Your recruiter account has been verified.' : 'Your recruiter verification has been revoked.'
+  });
+  showToast(nextValue ? 'Recruiter verified' : 'Recruiter verification revoked', 'success');
+  allUsers = allUsers.map(u => u.id === userId ? { ...u, verified_recruiter: nextValue } : u);
+  renderUsersTable(allUsers);
+  await loadModerationQueue();
+}
+
 async function deleteUser(userId, email) {
   if (!confirm(`Delete user "${email}"? This is irreversible.`)) return;
 
@@ -122,6 +141,136 @@ async function loadAllProjects() {
   renderProjectsTable(allProjects);
 }
 
+async function loadModerationQueue() {
+  const [recruitersRes, projectsRes, profilesRes] = await Promise.all([
+    window.sb.from('users').select('*').eq('role', 'recruiter').eq('verified_recruiter', false),
+    window.sb.from('projects')
+      .select(`*, users:user_id (full_name, email)`)
+      .in('review_status', ['under review', 'flagged'])
+      .order('created_at', { ascending: false }),
+    window.sb.from('student_profiles')
+      .select(`*, users:user_id (full_name, email)`)
+      .order('updated_at', { ascending: false })
+      .limit(40)
+  ]);
+
+  const recruiters = recruitersRes.data || [];
+  const queuedProjects = projectsRes.data || [];
+  const profiles = profilesRes.data || [];
+
+  renderModerationRecruiters(recruiters);
+  renderModerationProjects(queuedProjects);
+  renderModerationProfiles(profiles);
+}
+
+function renderModerationRecruiters(recruiters) {
+  const container = document.getElementById('moderation-recruiters');
+  const empty = document.getElementById('moderation-recruiters-empty');
+  if (!container) return;
+
+  if (!recruiters.length) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = recruiters.map(u => `
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <strong>${escHtml(u.full_name || u.email)}</strong>
+          <div class="muted">${escHtml(u.email)}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn--primary btn--sm" onclick="toggleRecruiterVerification('${u.id}', ${u.verified_recruiter})">Approve recruiter</button>
+          <button class="btn btn--danger btn--sm" onclick="deleteUser('${u.id}','${escHtml(u.email)}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderModerationProjects(projects) {
+  const container = document.getElementById('moderation-projects');
+  const empty = document.getElementById('moderation-projects-empty');
+  if (!container) return;
+
+  if (!projects.length) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = projects.map(p => `
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <strong>${escHtml(p.title)}</strong>
+          <div class="muted">${escHtml(p.users?.full_name || p.users?.email || 'Unknown student')}</div>
+          <div class="muted">Status: ${escHtml(p.review_status)}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn--primary btn--sm" onclick="setProjectReviewStatus('${p.id}','active')">Approve</button>
+          <button class="btn btn--outline btn--sm" onclick="setProjectReviewStatus('${p.id}','flagged')">Flag</button>
+          <button class="btn btn--outline btn--sm" onclick="toggleFeature('${p.id}')">${p.featured ? 'Unfeature' : 'Feature'}</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderModerationProfiles(profiles) {
+  const container = document.getElementById('moderation-profiles');
+  const empty = document.getElementById('moderation-profiles-empty');
+  if (!container) return;
+
+  if (!profiles.length) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = profiles.map(p => `
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <strong>${escHtml(p.users?.full_name || p.users?.email || 'Student')}</strong>
+          <div class="muted">${escHtml(p.users?.email || '')}</div>
+          <div class="muted">Status: ${escHtml(p.review_status)}</div>
+          ${p.featured ? `<span class="role-badge role-badge--success">Featured</span>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn--primary btn--sm" onclick="setProfileReviewStatus('${p.id}','approved')">Approve</button>
+          <button class="btn btn--outline btn--sm" onclick="setProfileReviewStatus('${p.id}','flagged')">Flag</button>
+          <button class="btn btn--outline btn--sm" onclick="toggleProfileFeatured('${p.id}', ${p.featured})">${p.featured ? 'Unfeature' : 'Feature'}</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function setProjectReviewStatus(id, status) {
+  const { error } = await window.sb.from('projects').update({ review_status: status }).eq('id', id);
+  if (error) { showToast('Failed to update project review status: ' + error.message, 'error'); return; }
+  showToast('Project review status updated', 'success');
+  await loadModerationQueue();
+}
+
+async function setProfileReviewStatus(id, status) {
+  const { error } = await window.sb.from('student_profiles').update({ review_status: status }).eq('id', id);
+  if (error) { showToast('Failed to update profile review status: ' + error.message, 'error'); return; }
+  showToast('Profile review status updated', 'success');
+  await loadModerationQueue();
+}
+
+async function toggleProfileFeatured(id, currentValue) {
+  const nextValue = !currentValue;
+  const { error } = await window.sb.from('student_profiles').update({ featured: nextValue }).eq('id', id);
+  if (error) { showToast('Unable to update featured status: ' + error.message, 'error'); return; }
+  showToast(nextValue ? 'Profile featured' : 'Profile unfeatured', 'success');
+  await loadModerationQueue();
+}
+
 function renderProjectsTable(projects) {
   const tbody = document.getElementById('projects-tbody');
   if (!tbody) return;
@@ -137,6 +286,8 @@ function renderProjectsTable(projects) {
         <div style="display:flex;align-items:center;gap:8px">
           <strong>${escHtml(p.title)}</strong>
           ${p.featured ? `<span class="role-badge role-badge--success">Featured</span>` : ''}
+          <span class="role-badge role-badge--grey">${escHtml(p.project_type || 'Side Project')}</span>
+          ${p.visible ? '' : `<span class="role-badge role-badge--danger">Hidden</span>`}
         </div>
       </td>
       <td>${escHtml(p.users?.full_name || p.users?.email || '—')}</td>
@@ -173,8 +324,13 @@ function openProject(id) {
         <button class="btn btn--danger btn--sm" onclick="deleteProject('${project.id}')">Delete</button>
       </div>
     </div>
+    ${project.image_url ? `<div class="project-card__image" style="background-image:url('${escHtml(project.image_url)}');margin-top:16px;height:180px;background-size:cover;background-position:center;border-radius:12px"></div>` : ''}
     <div style="margin-top:18px">
       <p>${escHtml(project.description || 'No description provided.')}</p>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <span class="role-badge role-badge--${project.visible ? 'success' : 'danger'}">${project.visible ? 'Visible' : 'Hidden'}</span>
+      <span class="role-badge role-badge--grey">${escHtml(project.project_type || 'Side Project')}</span>
     </div>
     <div class="project-card__skills" style="margin-top:16px">
       ${(project.tech_stack || []).map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('')}
@@ -209,8 +365,17 @@ async function toggleFeature(id) {
   }
 
   project.featured = nextValue;
+  if (project.user_id) {
+    await createNotification(project.user_id, 'project_feature', {
+      project_id: project.id,
+      title: project.title,
+      featured: nextValue,
+      detail: nextValue ? 'Your project has been featured by an admin.' : 'Your project has been removed from featured projects.'
+    });
+  }
   showToast(nextValue ? 'Project featured' : 'Project unfeatured', 'success');
   renderProjectsTable(allProjects);
+  await loadModerationQueue();
   if (!document.getElementById('admin-project-modal')?.classList.contains('hidden')) {
     openProject(id);
   }

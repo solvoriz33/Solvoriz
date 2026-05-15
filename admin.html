@@ -43,6 +43,9 @@
       <button class="nav-item" data-section="projects" onclick="showSection('projects')">
         <span class="nav-icon">⌬</span> All Projects
       </button>
+      <button class="nav-item" data-section="moderation" onclick="showSection('moderation')">
+        <span class="nav-icon">⚖</span> Moderation
+      </button>
     </nav>
 
     <div class="sidebar-user">
@@ -132,6 +135,44 @@
             </td></tr>
           </tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- MODERATION SECTION -->
+    <section class="dash-section" id="section-moderation">
+      <div class="section-header">
+        <h1 class="section-header__title">Moderation queue</h1>
+        <p class="section-header__sub">Review recruiter approval requests, flagged projects, and student profiles.</p>
+      </div>
+
+      <div class="card animate-fade-up">
+        <div class="card__title">Recruiter approvals</div>
+        <div id="moderation-recruiters" style="display:grid;gap:12px;margin-top:16px"></div>
+        <div class="empty-state hidden" id="moderation-recruiters-empty">
+          <div class="empty-state__icon">🤝</div>
+          <div class="empty-state__title">No recruiter approvals pending</div>
+          <div class="empty-state__sub">Recruiter accounts will appear here when verification is needed.</div>
+        </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-top:20px">
+        <div class="card__title">Project moderation</div>
+        <div id="moderation-projects" style="display:grid;gap:12px;margin-top:16px"></div>
+        <div class="empty-state hidden" id="moderation-projects-empty">
+          <div class="empty-state__icon">🚩</div>
+          <div class="empty-state__title">No flagged or pending projects</div>
+          <div class="empty-state__sub">Flagged builds and under-review projects will surface here.</div>
+        </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-top:20px">
+        <div class="card__title">Student profile review</div>
+        <div id="moderation-profiles" style="display:grid;gap:12px;margin-top:16px"></div>
+        <div class="empty-state hidden" id="moderation-profiles-empty">
+          <div class="empty-state__icon">🧾</div>
+          <div class="empty-state__title">No student profiles in review</div>
+          <div class="empty-state__sub">Profiles pending approval or flagged by the system will appear here.</div>
+        </div>
       </div>
     </section>
 
