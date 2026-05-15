@@ -147,7 +147,11 @@ async function requireAuth(expectedRole, redirectTo = '/auth.html') {
   const session = await Auth.getSession();
   if (!session) { window.location.href = redirectTo; return null; }
 
-  const profile = await Auth.getUserProfile(session.user.id);
+  let profile = await Auth.getUserProfile(session.user.id);
+  if (!profile && session.user) {
+    profile = await Auth.createUserProfileFromSession(session.user);
+  }
+
   if (!profile) {
     // Profile row missing (e.g. email not yet confirmed or DB insert failed).
     // Sign out and send to auth so they can try again.

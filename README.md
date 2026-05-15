@@ -64,6 +64,8 @@ For faster local development:
 2. Toggle off **Enable email confirmations**
 3. *(Re-enable before going to production)*
 
+> If you see `Email rate limit exceeded` during signup, it usually means Supabase has blocked repeated confirmation email requests for the same address. Disable email confirmations for local testing, or wait a few minutes and try again with a fresh email.
+
 ---
 
 ## Step 5: Run Locally
