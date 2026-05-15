@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvoriz — Recruiter Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="dash-sidebar">
+    <div class="sidebar-logo">
+      <a href="/index.html">Solvoriz<span style="color:var(--accent-warm)">.</span></a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Discover</span>
+      <button class="nav-item active" data-section="browse" onclick="showSection('browse')">
+        <span class="nav-icon">🔍</span> Browse Talent
+      </button>
+      <button class="nav-item" data-section="shortlist" onclick="showSection('shortlist')">
+        <span class="nav-icon">★</span> Shortlist
+        <span id="shortlist-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="sidebar-user__card">
+        <div class="user-avatar-sm" id="user-avatar">RE</div>
+        <div style="min-width:0">
+          <div class="sidebar-user__name" id="user-name">Loading...</div>
+          <div class="sidebar-user__email" id="user-email"></div>
+        </div>
+      </div>
+      <button class="sidebar-user__logout" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="dash-main">
+
+    <!-- BROWSE SECTION -->
+    <section class="dash-section active" id="section-browse">
+      <div class="section-header">
+        <h1 class="section-header__title">Browse Talent</h1>
+        <p class="section-header__sub">
+          <span id="student-count">—</span> builder profiles. Filter by skill, location, or availability.
+        </p>
+      </div>
+
+      <!-- SEARCH BAR -->
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="input" placeholder="Search by name, headline, skill...">
+        </div>
+        <button class="btn btn--ghost btn--sm" onclick="clearFilters()">Clear filters</button>
+      </div>
+
+      <!-- FILTER ROW -->
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Skills</label>
+          <div class="skills-input-wrap" id="filter-skills-wrap" style="position:relative;min-height:40px">
+            <input type="text" id="filter-skill-input" class="input-inline" placeholder="Filter by skill...">
+            <div class="skill-suggestions hidden" id="filter-skill-suggest"></div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Location</label>
+          <input type="text" id="filter-location" class="input" placeholder="e.g. San Francisco" style="width:auto">
+        </div>
+        <div class="filter-group">
+          <label>Availability</label>
+          <select id="filter-availability" class="select input" style="width:auto">
+            <option value="">Any</option>
+            <option value="available">✅ Actively looking</option>
+            <option value="open">👀 Open to offers</option>
+            <option value="busy">❌ Not available</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LOADING -->
+      <div class="loading-state" id="students-loading">
+        <div class="spinner"></div>
+        <span>Loading builders...</span>
+      </div>
+
+      <!-- EMPTY -->
+      <div class="empty-state hidden" id="students-empty">
+        <div class="empty-state__icon">🔍</div>
+        <div class="empty-state__title">No students found</div>
+        <div class="empty-state__sub">Try adjusting your filters or check back later.</div>
+      </div>
+
+      <!-- GRID -->
+      <div class="students-grid" id="students-grid"></div>
+    </section>
+
+    <!-- SHORTLIST SECTION -->
+    <section class="dash-section" id="section-shortlist">
+      <div class="section-header">
+        <h1 class="section-header__title">Shortlist</h1>
+        <p class="section-header__sub">Your saved candidates. Contact them directly.</p>
+      </div>
+
+      <div class="empty-state hidden" id="shortlist-empty">
+        <div class="empty-state__icon">☆</div>
+        <div class="empty-state__title">No candidates shortlisted</div>
+        <div class="empty-state__sub">Star students while browsing to add them here.</div>
+        <button class="btn btn--primary" style="margin-top:16px" onclick="showSection('browse')">Browse talent →</button>
+      </div>
+
+      <div class="students-grid" id="shortlist-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- STUDENT PROFILE MODAL -->
+<div class="modal-overlay hidden" id="student-modal">
+  <div class="modal-box modal-box--lg">
+    <div class="modal-header">
+      <span class="modal-header__title">Builder Profile</span>
+      <button class="modal-close" onclick="closeStudentModal()">✕</button>
+    </div>
+    <div class="modal-body" id="student-modal-content">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/app.js"></script>
+<script src="/assets/js/auth.js"></script>
+<script src="/assets/js/recruiter.js"></script>
+<script>
+  document.getElementById('student-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeStudentModal();
+  });
+</script>
+</body>
+</html>

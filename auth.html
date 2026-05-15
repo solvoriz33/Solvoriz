@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvoriz — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="auth-page">
+  <!-- LEFT: Forms -->
+  <div class="auth-left">
+    <a class="auth-logo" href="/index.html">Solvoriz<span class="dot">.</span></a>
+
+    <!-- LOGIN FORM -->
+    <div id="login-panel">
+      <h1 class="auth-title">Welcome back 👋</h1>
+      <p class="auth-sub">Sign in to your Solvoriz account.</p>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" class="input" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" class="input" placeholder="••••••••" required>
+        </div>
+        <button type="submit" id="login-btn" class="btn btn--primary btn-full" style="margin-top:8px">
+          Sign in
+        </button>
+      </form>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <p class="auth-switch">
+        Don't have an account?
+        <a href="#" onclick="showPanel('signup')">Sign up for free →</a>
+      </p>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="signup-panel" class="hidden">
+      <h1 class="auth-title">Create account ✨</h1>
+      <p class="auth-sub">Join Solvoriz — it's free forever.</p>
+
+      <form id="signup-form" onsubmit="handleSignup(event)">
+        <!-- Role selector -->
+        <div style="margin-bottom:20px">
+          <label style="display:block;margin-bottom:10px;font-size:13px;font-weight:500;color:var(--ink-2)">I am a...</label>
+          <div class="role-select-group">
+            <div>
+              <input type="radio" name="role" id="role-student" value="student" class="role-option" checked>
+              <label for="role-student" class="role-option-label">
+                <span class="role-icon">🎓</span>
+                <span class="role-name">Student</span>
+              </label>
+            </div>
+            <div>
+              <input type="radio" name="role" id="role-recruiter" value="recruiter" class="role-option">
+              <label for="role-recruiter" class="role-option-label">
+                <span class="role-icon">🏢</span>
+                <span class="role-name">Recruiter</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-name">Full name</label>
+          <input type="text" id="signup-name" class="input" placeholder="Alex Kim" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" class="input" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" class="input" placeholder="Min. 6 characters" minlength="6" required>
+        </div>
+
+        <button type="submit" id="signup-btn" class="btn btn--primary btn-full" style="margin-top:8px">
+          Create account →
+        </button>
+      </form>
+
+      <p class="auth-switch" style="margin-top:16px">
+        Already have an account?
+        <a href="#" onclick="showPanel('login')">Sign in →</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- RIGHT: Marketing -->
+  <div class="auth-right">
+    <div class="auth-right-content">
+      <h2>Proof-of-work hiring starts here.</h2>
+      <p>Your projects speak louder than any resume. Showcase what you've built and get discovered by companies who care.</p>
+      <ul class="auth-feature-list">
+        <li><span>⚡</span><span>Project-first builder profiles</span></li>
+        <li><span>🔍</span><span>Skill-based recruiter search</span></li>
+        <li><span>🎯</span><span>Availability signals</span></li>
+        <li><span>📬</span><span>Direct recruiter contact</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/app.js"></script>
+<script src="/assets/js/auth.js"></script>
+<script>
+  // ── Panel switching ──
+  function showPanel(which) {
+    document.getElementById('login-panel').classList.toggle('hidden', which !== 'login');
+    document.getElementById('signup-panel').classList.toggle('hidden', which !== 'signup');
+  }
+
+  // Read URL params to pre-select panel / role
+  function initAuthPage() {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode') || 'login';
+    const role = params.get('role');
+    showPanel(mode);
+    if (role === 'recruiter') {
+      const r = document.getElementById('role-recruiter');
+      if (r) r.checked = true;
+    }
+  }
+
+  // ── Handle login ──
+  async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    setBtnLoading(btn, true, 'Signing in...');
+
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    const { data, error } = await Auth.signIn({ email, password });
+    if (error) {
+      setBtnLoading(btn, false);
+      showToast(error.message || 'Login failed', 'error');
+      return;
+    }
+
+    // Get role and redirect
+    const role = await Auth.getUserRole(data.user.id);
+    setBtnLoading(btn, false);
+    redirect(role);
+  }
+
+  // ── Handle signup ──
+  async function handleSignup(e) {
+    e.preventDefault();
+    const btn = document.getElementById('signup-btn');
+    setBtnLoading(btn, true, 'Creating account...');
+
+    const fullName = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const role = document.querySelector('input[name="role"]:checked').value;
+
+    const { data, error } = await Auth.signUp({ email, password, fullName, role });
+    setBtnLoading(btn, false);
+
+    if (error) {
+      showToast(error.message || 'Signup failed', 'error');
+      return;
+    }
+
+    showToast('Account created! Redirecting...', 'success');
+    setTimeout(() => redirect(role), 1200);
+  }
+
+  function redirect(role) {
+    const routes = { student: '/student.html', recruiter: '/recruiter.html', admin: '/admin.html' };
+    window.location.href = routes[role] || '/student.html';
+  }
+
+  // Check if already logged in
+  async function checkExistingSession() {
+    const session = await Auth.getSession();
+    if (session) {
+      const role = await Auth.getUserRole(session.user.id);
+      redirect(role);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initAuthPage();
+    checkExistingSession();
+  });
+</script>
+</body>
+</html>

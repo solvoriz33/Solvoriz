@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvoriz — Student Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="dash-sidebar">
+    <div class="sidebar-logo">
+      <a href="/index.html">Solvoriz<span style="color:var(--accent-warm)">.</span></a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Dashboard</span>
+      <button class="nav-item active" data-section="overview" onclick="showSection('overview')">
+        <span class="nav-icon">◈</span> Overview
+      </button>
+
+      <span class="nav-section-label">My Profile</span>
+      <button class="nav-item" data-section="profile" onclick="showSection('profile')">
+        <span class="nav-icon">✦</span> Edit Profile
+      </button>
+      <button class="nav-item" data-section="projects" onclick="showSection('projects')">
+        <span class="nav-icon">⌬</span> My Projects
+      </button>
+      <button class="nav-item" data-section="add-project" onclick="showSection('add-project')">
+        <span class="nav-icon">＋</span> Add Project
+      </button>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="sidebar-user__card">
+        <div class="user-avatar-sm" id="user-avatar">AK</div>
+        <div style="min-width:0">
+          <div class="sidebar-user__name" id="user-name">Loading...</div>
+          <div class="sidebar-user__email" id="user-email"></div>
+        </div>
+      </div>
+      <button class="sidebar-user__logout" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="dash-main">
+
+    <!-- OVERVIEW SECTION -->
+    <section class="dash-section active" id="section-overview">
+      <div class="section-header">
+        <h1 class="section-header__title">Overview</h1>
+        <p class="section-header__sub">Your builder profile at a glance.</p>
+      </div>
+
+      <div class="overview-profile-card animate-fade-up">
+        <div class="overview-profile-card__name" id="overview-name">—</div>
+        <div class="overview-profile-card__headline" id="overview-headline">Complete your profile below →</div>
+        <div class="overview-profile-card__meta">
+          <span id="overview-location">📍 —</span>
+          <span id="overview-availability" class="avail-badge avail-badge--grey">not set</span>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card animate-fade-up">
+          <div class="stat-card__label">Projects</div>
+          <div class="stat-card__value" id="project-count">0</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.06s">
+          <div class="stat-card__label">Skills</div>
+          <div class="stat-card__value" id="skills-count">0</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.12s">
+          <div class="stat-card__label">Visibility</div>
+          <div class="stat-card__value" id="visibility-status">Public</div>
+        </div>
+      </div>
+
+      <div class="prompt-banner animate-fade-up" id="profile-prompt">
+        <span class="prompt-banner__icon">💡</span>
+        <div class="prompt-banner__text">
+          <strong>Complete your profile to get discovered</strong>
+          <span>Add a headline, skills, and at least one project to appear in recruiter searches.</span>
+        </div>
+        <button class="btn btn--primary btn--sm" onclick="showSection('profile')">Complete →</button>
+      </div>
+    </section>
+
+    <!-- PROFILE SECTION -->
+    <section class="dash-section" id="section-profile">
+      <div class="section-header">
+        <h1 class="section-header__title">Edit Profile</h1>
+        <p class="section-header__sub">This is what recruiters see. Make it count.</p>
+      </div>
+
+      <div class="card animate-fade-up">
+        <form id="profile-form" onsubmit="saveProfile(event)">
+          <div class="form-group">
+            <label for="profile-headline">Headline</label>
+            <input type="text" id="profile-headline" class="input" placeholder="Full-stack engineer building AI-powered dev tools" maxlength="120">
+          </div>
+
+          <div class="form-group">
+            <label for="profile-bio">Bio</label>
+            <textarea id="profile-bio" class="textarea" placeholder="Tell recruiters what you're about, what you've built, and what you're looking for..." maxlength="600"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="profile-location">Location</label>
+              <input type="text" id="profile-location" class="input" placeholder="San Francisco, CA / Remote">
+            </div>
+            <div class="form-group">
+              <label for="profile-availability">Availability</label>
+              <select id="profile-availability" class="select input">
+                <option value="">Select status...</option>
+                <option value="available">✅ Actively looking</option>
+                <option value="open">👀 Open to offers</option>
+                <option value="busy">❌ Not available</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Skills <span style="color:var(--ink-3);font-weight:400">(type & press Enter)</span></label>
+            <div class="skills-input-wrap" id="profile-skills-wrap" style="position:relative">
+              <input type="text" id="profile-skill-input" class="input-inline" placeholder="e.g. React, Python, TypeScript...">
+              <div class="skill-suggestions hidden" id="profile-skill-suggest"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px">
+            <button type="submit" class="btn btn--primary">Save profile</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- PROJECTS SECTION -->
+    <section class="dash-section" id="section-projects">
+      <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 class="section-header__title">My Projects</h1>
+          <p class="section-header__sub">Your proof-of-work portfolio.</p>
+        </div>
+        <button class="btn btn--primary" onclick="showSection('add-project')">＋ Add project</button>
+      </div>
+
+      <div class="empty-state hidden" id="projects-empty">
+        <div class="empty-state__icon">⌬</div>
+        <div class="empty-state__title">No projects yet</div>
+        <div class="empty-state__sub">Add your first project to start getting discovered.</div>
+        <button class="btn btn--primary" style="margin-top:16px" onclick="showSection('add-project')">Add project →</button>
+      </div>
+
+      <div class="projects-grid" id="projects-grid"></div>
+    </section>
+
+    <!-- ADD PROJECT SECTION -->
+    <section class="dash-section" id="section-add-project">
+      <div class="section-header">
+        <h1 class="section-header__title">Add Project</h1>
+        <p class="section-header__sub">Show what you've built. Be specific — recruiters notice.</p>
+      </div>
+
+      <div class="card animate-fade-up">
+        <form id="add-project-form" onsubmit="addProject(event)">
+          <div class="form-group">
+            <label for="proj-title">Project title *</label>
+            <input type="text" id="proj-title" class="input" placeholder="e.g. AI-powered code reviewer" required maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="proj-desc">Description *</label>
+            <textarea id="proj-desc" class="textarea" placeholder="What does it do? What problem does it solve? What did you learn?" required maxlength="800"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Tech stack <span style="color:var(--ink-3);font-weight:400">(type & press Enter)</span></label>
+            <div class="skills-input-wrap" id="add-proj-skills-wrap" style="position:relative">
+              <input type="text" id="add-proj-skill-input" class="input-inline" placeholder="React, Node.js, PostgreSQL...">
+              <div class="skill-suggestions hidden" id="add-proj-skill-suggest"></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="proj-demo">Live demo URL</label>
+              <input type="url" id="proj-demo" class="input" placeholder="https://myproject.vercel.app">
+            </div>
+            <div class="form-group">
+              <label for="proj-github">GitHub URL</label>
+              <input type="url" id="proj-github" class="input" placeholder="https://github.com/you/repo">
+            </div>
+          </div>
+
+          <div style="margin-top:24px;display:flex;gap:10px">
+            <button type="submit" class="btn btn--primary">Add project →</button>
+            <button type="button" class="btn btn--ghost" onclick="showSection('projects')">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- EDIT PROJECT MODAL -->
+<div class="modal-overlay hidden" id="edit-project-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-header__title">Edit Project</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="edit-project-form" onsubmit="saveEditProject(event)">
+        <div class="form-group">
+          <label for="edit-proj-title">Project title</label>
+          <input type="text" id="edit-proj-title" class="input" required maxlength="100">
+        </div>
+        <div class="form-group">
+          <label for="edit-proj-desc">Description</label>
+          <textarea id="edit-proj-desc" class="textarea"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Tech stack</label>
+          <div class="skills-input-wrap" id="edit-proj-skills-wrap" style="position:relative">
+            <input type="text" id="edit-proj-skill-input" class="input-inline" placeholder="Add technologies...">
+            <div class="skill-suggestions hidden" id="edit-proj-skill-suggest"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-proj-demo">Demo URL</label>
+            <input type="url" id="edit-proj-demo" class="input">
+          </div>
+          <div class="form-group">
+            <label for="edit-proj-github">GitHub URL</label>
+            <input type="url" id="edit-proj-github" class="input">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button type="submit" class="btn btn--primary">Save changes</button>
+          <button type="button" class="btn btn--ghost" onclick="closeEditModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/app.js"></script>
+<script src="/assets/js/auth.js"></script>
+<script src="/assets/js/student.js"></script>
+<script>
+  // Set overview name after profile loads
+  document.addEventListener('DOMContentLoaded', () => {
+    // overview name will be set by initStudent after profile loads
+    setTimeout(() => {
+      const name = document.getElementById('user-name')?.textContent;
+      const ovName = document.getElementById('overview-name');
+      if (ovName && name) ovName.textContent = name;
+    }, 1500);
+  });
+
+  // Close modal on overlay click
+  document.getElementById('edit-project-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+</script>
+</body>
+</html>

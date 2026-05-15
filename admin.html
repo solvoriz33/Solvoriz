@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvoriz — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    /* Admin-specific overrides */
+    .admin-badge {
+      display: inline-block;
+      background: #fde8e8; color: var(--danger);
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 3px 10px; border-radius: 20px;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="dash-sidebar">
+    <div class="sidebar-logo">
+      <a href="/index.html">Solvoriz<span style="color:var(--accent-warm)">.</span></a>
+      <span class="admin-badge">Admin</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Platform</span>
+      <button class="nav-item active" data-section="overview" onclick="showSection('overview')">
+        <span class="nav-icon">◈</span> Overview
+      </button>
+
+      <span class="nav-section-label">Manage</span>
+      <button class="nav-item" data-section="users" onclick="showSection('users')">
+        <span class="nav-icon">👥</span> All Users
+      </button>
+      <button class="nav-item" data-section="projects" onclick="showSection('projects')">
+        <span class="nav-icon">⌬</span> All Projects
+      </button>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="sidebar-user__card">
+        <div class="user-avatar-sm" style="background:var(--danger)">AD</div>
+        <div style="min-width:0">
+          <div class="sidebar-user__name" id="admin-name">Admin</div>
+          <div class="sidebar-user__email">Administrator</div>
+        </div>
+      </div>
+      <button class="sidebar-user__logout" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="dash-main">
+
+    <!-- OVERVIEW -->
+    <section class="dash-section active" id="section-overview">
+      <div class="section-header">
+        <h1 class="section-header__title">Platform Overview</h1>
+        <p class="section-header__sub">Real-time stats across all users and content.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card animate-fade-up">
+          <div class="stat-card__label">Total Users</div>
+          <div class="stat-card__value" id="stat-total-users">—</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.06s">
+          <div class="stat-card__label">Students</div>
+          <div class="stat-card__value" id="stat-students">—</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.12s">
+          <div class="stat-card__label">Recruiters</div>
+          <div class="stat-card__value" id="stat-recruiters">—</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.18s">
+          <div class="stat-card__label">Projects</div>
+          <div class="stat-card__value" id="stat-projects">—</div>
+        </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-top:24px">
+        <div class="card__title">Quick Actions</div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn--outline" onclick="showSection('users')">👥 Manage Users</button>
+          <button class="btn btn--outline" onclick="showSection('projects')">⌬ Manage Projects</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- USERS SECTION -->
+    <section class="dash-section" id="section-users">
+      <div class="section-header">
+        <h1 class="section-header__title">All Users</h1>
+        <p class="section-header__sub">View, search, and manage all registered users.</p>
+      </div>
+
+      <!-- Controls -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <div class="search-input-wrap" style="flex:1;min-width:200px">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="input" placeholder="Search by name or email..." oninput="searchUsers(this.value)" style="padding-left:36px">
+        </div>
+        <select class="select input" onchange="filterByRole(this.value)" style="width:auto">
+          <option value="">All roles</option>
+          <option value="student">Students</option>
+          <option value="recruiter">Recruiters</option>
+          <option value="admin">Admins</option>
+        </select>
+      </div>
+
+      <div class="table-wrap animate-fade-up">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="4" class="table-empty">
+              <div class="spinner spinner--dark" style="display:inline-block"></div> Loading...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PROJECTS SECTION -->
+    <section class="dash-section" id="section-projects">
+      <div class="section-header">
+        <h1 class="section-header__title">All Projects</h1>
+        <p class="section-header__sub">Every project submitted by students on the platform.</p>
+      </div>
+
+      <div class="table-wrap animate-fade-up">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Student</th>
+              <th>Tech Stack</th>
+              <th>Added</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="projects-tbody">
+            <tr><td colspan="5" class="table-empty">
+              <div class="spinner spinner--dark" style="display:inline-block"></div> Loading...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/app.js"></script>
+<script src="/assets/js/auth.js"></script>
+<script src="/assets/js/admin.js"></script>
+</body>
+</html>
