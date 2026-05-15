@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.projects (
   title         TEXT NOT NULL,
   description   TEXT,
   tech_stack    TEXT[] DEFAULT '{}',
+  featured      BOOLEAN NOT NULL DEFAULT false,
   demo_link     TEXT,
   github_link   TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),

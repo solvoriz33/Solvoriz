@@ -167,6 +167,16 @@
 
 <div id="toast-container"></div>
 
+<div class="modal-overlay hidden" id="admin-project-modal">
+  <div class="modal-box modal-box--lg">
+    <div class="modal-header">
+      <span class="modal-header__title" id="admin-project-modal-title">Project details</span>
+      <button class="modal-close" onclick="closeAdminProjectModal()">✕</button>
+    </div>
+    <div class="modal-body" id="admin-project-modal-content"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/js/supabase.js"></script>
 <script src="/assets/js/app.js"></script>

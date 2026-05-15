@@ -16,6 +16,9 @@ async function initAdmin() {
 
   await Promise.all([loadStats(), loadUsers(), loadAllProjects()]);
   showSection('overview');
+  document.addEventListener('click', event => {
+    if (event.target?.id === 'admin-project-modal') closeAdminProjectModal();
+  });
 }
 
 // ── STATS ─────────────────────────────────────────────────
@@ -130,7 +133,12 @@ function renderProjectsTable(projects) {
 
   tbody.innerHTML = projects.map(p => `
     <tr>
-      <td><strong>${escHtml(p.title)}</strong></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <strong>${escHtml(p.title)}</strong>
+          ${p.featured ? `<span class="role-badge role-badge--success">Featured</span>` : ''}
+        </div>
+      </td>
       <td>${escHtml(p.users?.full_name || p.users?.email || '—')}</td>
       <td>
         <div class="skill-chips-row skill-chips-row--sm">
@@ -139,16 +147,80 @@ function renderProjectsTable(projects) {
       </td>
       <td>${fmtDate(p.created_at)}</td>
       <td>
+        <button class="btn btn--sm btn--ghost" onclick="openProject('${p.id}')">View</button>
+        <button class="btn btn--sm btn--outline" onclick="toggleFeature('${p.id}')">${p.featured ? 'Unfeature' : 'Feature'}</button>
         <button class="btn btn--sm btn--danger" onclick="deleteProject('${p.id}')">Delete</button>
       </td>
     </tr>
   `).join('');
 }
 
+function openProject(id) {
+  const project = allProjects.find(p => p.id === id);
+  if (!project) return;
+  const modal = document.getElementById('admin-project-modal');
+  const content = document.getElementById('admin-project-modal-content');
+  if (!modal || !content) return;
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <h2>${escHtml(project.title)}</h2>
+        <p class="muted">${escHtml(project.users?.full_name || project.users?.email || 'Unknown student')}</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn--primary btn--sm" onclick="toggleFeature('${project.id}')">${project.featured ? 'Unfeature' : 'Feature'}</button>
+        <button class="btn btn--danger btn--sm" onclick="deleteProject('${project.id}')">Delete</button>
+      </div>
+    </div>
+    <div style="margin-top:18px">
+      <p>${escHtml(project.description || 'No description provided.')}</p>
+    </div>
+    <div class="project-card__skills" style="margin-top:16px">
+      ${(project.tech_stack || []).map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('')}
+    </div>
+    <div class="project-card__links" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      ${project.demo_link ? `<a class="project-link" href="${escHtml(project.demo_link)}" target="_blank" rel="noopener">🔗 Live Demo</a>` : ''}
+      ${project.github_link ? `<a class="project-link" href="${escHtml(project.github_link)}" target="_blank" rel="noopener">⌥ GitHub</a>` : ''}
+    </div>
+    <div style="margin-top:18px;color:var(--ink-3);font-size:.95rem;display:grid;gap:6px">
+      <div><strong>Added:</strong> ${fmtDate(project.created_at)}</div>
+      <div><strong>Student email:</strong> ${escHtml(project.users?.email || '—')}</div>
+      <div><strong>Student role:</strong> ${escHtml(project.users?.role || '—')}</div>
+    </div>
+  `;
+
+  modal.classList.remove('hidden');
+}
+
+function closeAdminProjectModal() {
+  document.getElementById('admin-project-modal')?.classList.add('hidden');
+}
+
+async function toggleFeature(id) {
+  const project = allProjects.find(p => p.id === id);
+  if (!project) return;
+  const nextValue = !project.featured;
+
+  const { error } = await window.sb.from('projects').update({ featured: nextValue }).eq('id', id);
+  if (error) {
+    showToast('Unable to update featured status: ' + error.message, 'error');
+    return;
+  }
+
+  project.featured = nextValue;
+  showToast(nextValue ? 'Project featured' : 'Project unfeatured', 'success');
+  renderProjectsTable(allProjects);
+  if (!document.getElementById('admin-project-modal')?.classList.contains('hidden')) {
+    openProject(id);
+  }
+}
+
 async function deleteProject(id) {
   if (!confirm('Delete this project?')) return;
   const { error } = await window.sb.from('projects').delete().eq('id', id);
   if (error) { showToast('Failed: ' + error.message, 'error'); return; }
+  closeAdminProjectModal();
   showToast('Project deleted', 'warn');
   allProjects = allProjects.filter(p => p.id !== id);
   renderProjectsTable(allProjects);

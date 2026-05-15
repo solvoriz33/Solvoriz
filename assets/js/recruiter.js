@@ -112,6 +112,9 @@ function renderStudents(students) {
         <span class="avail-badge avail-badge--${availColor(s.availability)}">${s.availability || 'unknown'}</span>
         <span class="proj-count">${s.projects.length} project${s.projects.length !== 1 ? 's' : ''}</span>
       </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn--sm btn--ghost" onclick="event.stopPropagation();openStudentProfile('${s.userId}')">View profile</button>
+      </div>
     </div>
   `).join('');
 }
@@ -224,6 +227,9 @@ function renderShortlist() {
       </div>
       <div class="student-card__footer">
         <a href="mailto:${escHtml(s.email)}" class="btn btn--sm btn--primary" onclick="event.stopPropagation()">✉ Contact</a>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn--sm btn--ghost" onclick="event.stopPropagation();openStudentProfile('${s.userId}')">View profile</button>
       </div>
     </div>
   `).join('');
