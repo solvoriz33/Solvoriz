@@ -6,6 +6,7 @@ const Auth = (() => {
 
   // ── Sign Up ─────────────────────────────────────────────
   async function signUp({ email, password, fullName, role }) {
+    if (!window.sb || !window.sb.auth) return { data: null, error: new Error('Supabase client not initialized') };
     try {
       const { data, error } = await window.sb.auth.signUp({
         email,
@@ -39,6 +40,7 @@ const Auth = (() => {
 
   // ── Sign In ─────────────────────────────────────────────
   async function signIn({ email, password }) {
+    if (!window.sb || !window.sb.auth) return { data: null, error: new Error('Supabase client not initialized') };
     try {
       const { data, error } = await window.sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -50,18 +52,21 @@ const Auth = (() => {
 
   // ── Sign Out ────────────────────────────────────────────
   async function signOut() {
+    if (!window.sb || !window.sb.auth) return new Error('Supabase client not initialized');
     const { error } = await window.sb.auth.signOut();
     return error;
   }
 
   // ── Get current session ─────────────────────────────────
   async function getSession() {
+    if (!window.sb || !window.sb.auth) return null;
     const { data } = await window.sb.auth.getSession();
     return data?.session || null;
   }
 
   // ── Get user role from DB ───────────────────────────────
   async function getUserRole(userId) {
+    if (!window.sb) return null;
     const { data, error } = await window.sb
       .from('users')
       .select('role')
@@ -73,6 +78,7 @@ const Auth = (() => {
 
   // ── Get full user profile row ───────────────────────────
   async function getUserProfile(userId) {
+    if (!window.sb) return null;
     const { data, error } = await window.sb
       .from('users')
       .select('*')
@@ -84,6 +90,7 @@ const Auth = (() => {
 
   // ── Listen to auth state changes ────────────────────────
   function onAuthStateChange(callback) {
+    if (!window.sb || !window.sb.auth) return { data: null, error: new Error('Supabase client not initialized') };
     return window.sb.auth.onAuthStateChange(callback);
   }
 
