@@ -43,13 +43,16 @@ async function loadStudents() {
   const gridEl = document.getElementById('students-grid');
   if (loadingEl) loadingEl.classList.remove('hidden');
 
-  // Join student_profiles with users, plus their projects count
+  // Join student_profiles with users, plus their projects
+  // Projects are linked to users (not student_profiles), so we join via users
   const { data, error } = await window.sb
     .from('student_profiles')
     .select(`
       *,
-      users:user_id (id, full_name, email, created_at),
-      projects:user_id (id, title, tech_stack, demo_link, github_link, description, created_at)
+      users:user_id (
+        id, full_name, email, created_at,
+        projects (id, title, tech_stack, demo_link, github_link, description, created_at)
+      )
     `);
 
   if (loadingEl) loadingEl.classList.add('hidden');
@@ -67,7 +70,7 @@ async function loadStudents() {
     availability: sp.availability || '',
     skills: sp.skills || [],
     joinedAt: sp.users?.created_at || '',
-    projects: sp.projects || []
+    projects: sp.users?.projects || []
   }));
 
   document.getElementById('student-count').textContent = allStudents.length;
@@ -233,7 +236,7 @@ function setupSearch() {
     searchInput.addEventListener('input', () => applyFilters());
   }
   const locFilter = document.getElementById('filter-location');
-  if (locFilter) locFilter.addEventListener('change', () => applyFilters());
+  if (locFilter) locFilter.addEventListener('input', () => applyFilters());
   const availFilter = document.getElementById('filter-availability');
   if (availFilter) availFilter.addEventListener('change', () => applyFilters());
 }

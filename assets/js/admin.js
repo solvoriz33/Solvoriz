@@ -50,7 +50,7 @@ function renderUsersTable(users) {
   if (!tbody) return;
 
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="table-empty">No users found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="table-empty">No users found</td></tr>';
     return;
   }
 

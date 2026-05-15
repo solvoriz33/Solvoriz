@@ -24,9 +24,12 @@ async function initStudent() {
     .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
 
+  initForms();
   await loadStudentProfile();
   await loadProjects();
-  initForms();
+  // Set overview name reliably (not via setTimeout in HTML)
+  const ovName = document.getElementById('overview-name');
+  if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
   showSection('overview');
 }
 
@@ -66,12 +69,14 @@ function updateOverviewCard(profile) {
   const el = document.getElementById('overview-headline');
   if (el) el.textContent = profile.headline || 'No headline yet';
   const loc = document.getElementById('overview-location');
-  if (loc) loc.textContent = profile.location || '—';
+  if (loc) loc.textContent = profile.location ? `📍 ${profile.location}` : '📍 —';
   const avail = document.getElementById('overview-availability');
   if (avail) {
     avail.textContent = profile.availability || 'Not set';
     avail.className = `avail-badge ${profile.availability === 'available' ? 'avail-badge--green' : profile.availability === 'open' ? 'avail-badge--amber' : 'avail-badge--grey'}`;
   }
+  const skillsCount = document.getElementById('skills-count');
+  if (skillsCount) skillsCount.textContent = (profile.skills || []).length;
 }
 
 // ── LOAD PROJECTS ─────────────────────────────────────────

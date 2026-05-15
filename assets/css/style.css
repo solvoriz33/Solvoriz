@@ -392,7 +392,7 @@ label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
   font-size: 13px; font-weight: 700;
   flex-shrink: 0;
 }
-.sidebar-user__name { font-size: 13px; font-weight: 600; truncate; }
+.sidebar-user__name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-user__email { font-size: 11px; color: var(--ink-3); }
 .sidebar-user__logout {
   margin-top: 10px; width: 100%;

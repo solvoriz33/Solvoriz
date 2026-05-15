@@ -148,12 +148,21 @@ async function requireAuth(expectedRole, redirectTo = '/auth.html') {
   if (!session) { window.location.href = redirectTo; return null; }
 
   const profile = await Auth.getUserProfile(session.user.id);
-  if (!profile) { window.location.href = redirectTo; return null; }
+  if (!profile) {
+    // Profile row missing (e.g. email not yet confirmed or DB insert failed).
+    // Sign out and send to auth so they can try again.
+    await Auth.signOut();
+    window.location.href = redirectTo;
+    return null;
+  }
 
   if (expectedRole && profile.role !== expectedRole) {
-    // Redirect to appropriate dashboard
+    // Redirect to the correct dashboard — but only if we won't loop
     const routes = { student: '/student.html', recruiter: '/recruiter.html', admin: '/admin.html' };
-    window.location.href = routes[profile.role] || redirectTo;
+    const target = routes[profile.role];
+    if (target && window.location.pathname !== target) {
+      window.location.href = target;
+    }
     return null;
   }
 

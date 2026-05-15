@@ -16,15 +16,19 @@ const Auth = (() => {
       });
       if (error) throw error;
 
+      // data.user is non-null only when the user is immediately confirmed
+      // (email confirmation disabled). When confirmation is required,
+      // data.user exists but data.session is null — we still insert the row
+      // so the profile is ready once they confirm.
       if (data.user) {
-        // Insert into public users table
         const { error: dbErr } = await window.sb.from('users').insert({
           id: data.user.id,
           full_name: fullName,
           email,
           role
         });
-        if (dbErr) throw dbErr;
+        // Ignore duplicate-key errors (user already exists)
+        if (dbErr && dbErr.code !== '23505') throw dbErr;
       }
 
       return { data, error: null };
