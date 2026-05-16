@@ -1373,6 +1373,10 @@ label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
   margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
 }
+.prompt-banner__text {
+  flex: 1;
+  min-width: 0;
+}
 .prompt-banner--overview {
   min-height: 124px;
   border-radius: 22px;
@@ -1418,6 +1422,15 @@ label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
   .chat-bubble { max-width: 88%; }
   .page-shell { margin: 18px auto; padding: 0 16px 32px; }
   .page-header { flex-direction: column; align-items: flex-start; }
+  .prompt-banner,
+  .prompt-banner--overview {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .prompt-banner .btn,
+  .prompt-banner--overview .btn {
+    margin-left: 56px;
+  }
   .landing-hero { padding: 60px 24px 48px; }
   .landing-nav { padding: 0 20px; }
   .landing-features, .landing-roles { padding: 48px 24px; }
