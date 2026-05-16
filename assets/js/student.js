@@ -501,8 +501,54 @@ async function openConversation(convId) {
     badge.textContent = conv.threadType === 'creator' ? `Creator discussion · ${getThreadStatus(conv)}` : `Recruiter thread · ${getThreadStatus(conv)}`;
     badge.className = 'thread-status-badge thread-status-badge--ok';
   }
+  renderStudentChatActions(conv);
   await loadConversationMessages(convId);
   document.getElementById('chat-send-btn').onclick = sendStudentMessage;
+}
+
+function renderStudentChatActions(conv) {
+  const container = document.getElementById('chat-actions-top');
+  if (!container) return;
+  if (!conv) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let partnerId = null;
+  if (conv.threadType === 'creator') {
+    partnerId = conv.creator_one_id === currentUser.id ? conv.creator_two_id : conv.creator_one_id;
+  } else {
+    partnerId = conv.recruiter?.id;
+  }
+
+  container.innerHTML = `
+    <button class="btn btn--outline btn--sm" onclick="studentReportConversation('${conv.id}','${partnerId}')">Report user</button>
+    <button class="btn btn--danger btn--sm" onclick="studentBlockConversationPartner('${partnerId}')">Block user</button>
+  `;
+}
+
+async function studentReportConversation(conversationId, reportedUserId) {
+  if (!reportedUserId) return;
+  const reason = prompt('Please tell us why you are reporting this user:');
+  const { error } = await window.sb.from('moderation_reports').insert({
+    reporter_id: currentUser.id,
+    reported_user_id: reportedUserId,
+    conversation_id: conversationId,
+    reason_detail: reason || null,
+    reason_category: 'Other'
+  });
+  if (error) { showToast('Failed to submit report: ' + error.message, 'error'); return; }
+  showToast('Report submitted. Thank you.', 'success');
+}
+
+async function studentBlockConversationPartner(blockedUserId) {
+  if (!blockedUserId) return;
+  if (!confirm('Block this user and stop further messages?')) return;
+  const { error } = await window.sb.from('blocked_users').insert({ blocker_id: currentUser.id, blocked_id: blockedUserId });
+  if (error) { showToast('Failed to block user: ' + error.message, 'error'); return; }
+  showToast('User blocked.', 'warn');
+  await loadConversations();
+  document.getElementById('chat-actions-top').innerHTML = '';
 }
 
 async function loadConversationMessages(convId) {
@@ -530,10 +576,6 @@ async function loadConversationMessages(convId) {
       <div class="chat-bubble ${m.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
         <div class="chat-bubble__text">${escHtml(m.body)}</div>
         <div class="chat-bubble__meta">${fmtTime(m.created_at)}</div>
-        <div class="chat-bubble__actions">
-          ${m.sender_id === currentUser.id ? '' : `<button class="btn btn--tiny" onclick="studentReportMessage('${m.id}','${convId}','${m.sender_id}')">Report</button>`}
-          ${m.sender_id === currentUser.id ? '' : `<button class="btn btn--tiny btn--danger" onclick="studentBlockUser('${m.sender_id}')">Block user</button>`}
-        </div>
       </div>
     </div>
   `).join('');
@@ -829,14 +871,13 @@ function renderActivity() {
 // Trust & Safety UI helpers for student
 async function studentReportMessage(messageId, conversationId, reportedUserId) {
   const reason = prompt('Why are you reporting this message? (optional)') || '';
-  const context = `conversation:${conversationId} message:${messageId}`;
   const { error } = await window.sb.from('moderation_reports').insert({
     reporter_id: currentUser.id,
     reported_user_id: reportedUserId,
-    message_id: messageId,
+    reported_message_id: messageId,
     conversation_id: conversationId,
-    reason,
-    context
+    reason_detail: reason || null,
+    reason_category: 'Other'
   });
   if (error) { showToast('Failed to submit report: ' + error.message, 'error'); return; }
   showToast('Report submitted. Thank you.', 'success');

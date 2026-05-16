@@ -338,11 +338,16 @@
 
         <section id="chat-panel" class="chat-panel">
           <div id="chat-header" class="chat-panel__header">
-            <div>
-              <div id="chat-title">Select a thread</div>
-              <div id="chat-meta" class="muted"></div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <div>
+                <div id="chat-title">Select a thread</div>
+                <div id="chat-meta" class="muted"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <div id="chat-trust-badge" class="thread-status-badge thread-status-badge--ok">Protected inbox</div>
+                <div id="chat-actions-top" style="display:flex;gap:8px"></div>
+              </div>
             </div>
-            <div id="chat-trust-badge" class="thread-status-badge thread-status-badge--ok">Protected inbox</div>
           </div>
           <div id="chat-messages" class="chat-messages"></div>
           <div id="chat-input-row" class="chat-composer">
