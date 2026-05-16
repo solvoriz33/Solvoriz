@@ -186,7 +186,7 @@ async function loadAllProjects() {
 }
 
 async function loadModerationQueue() {
-  const [recruitersRes, projectsRes, profilesRes] = await Promise.all([
+  const [recruitersRes, projectsRes, profilesRes, reportsRes] = await Promise.all([
     window.sb.from('users').select('*').eq('role', 'recruiter').eq('verified_recruiter', false),
     window.sb.from('projects')
       .select(`*, users:user_id (full_name, email)`)
@@ -196,6 +196,8 @@ async function loadModerationQueue() {
       .select(`*, users:user_id (full_name, email)`)
       .order('updated_at', { ascending: false })
       .limit(40)
+    // moderation reports (recent)
+    window.sb.from('moderation_reports').select(`*, reporter:reporter_id (full_name, email), reported:reported_user_id (full_name, email)`).order('created_at', { ascending: false }).limit(60)
   ]);
 
   const recruiters = recruitersRes.data || [];
@@ -205,6 +207,7 @@ async function loadModerationQueue() {
   renderModerationRecruiters(recruiters);
   renderModerationProjects(queuedProjects);
   renderModerationProfiles(profiles);
+  renderModerationReports((reportsRes && reportsRes.data) || []);
   renderOverviewQueues(recruiters, queuedProjects, profiles);
 }
 
@@ -336,6 +339,67 @@ function renderModerationProfiles(profiles) {
       </div>
     </div>
   `).join('');
+}
+
+function renderModerationReports(reports) {
+  const container = document.getElementById('moderation-reports');
+  if (!container) return;
+  if (!reports.length) {
+    container.innerHTML = '<div class="muted">No recent reports</div>';
+    return;
+  }
+
+  container.innerHTML = reports.map(r => {
+    const reporterName = r.reporter?.full_name || r.reporter?.email || 'Reporter';
+    const reportedName = r.reported?.full_name || r.reported?.email || 'Reported user';
+    return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <strong>${escHtml(reporterName)} reported ${escHtml(reportedName)}</strong>
+            <div class="muted">Reason: ${escHtml(r.reason || '—')}</div>
+            <div class="muted">Context: ${escHtml(r.context || '')}</div>
+            <div class="muted">Created: ${fmtDate(r.created_at)}</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn--primary btn--sm" onclick="reviewReport('${r.id}','resolve')">Resolve</button>
+            <button class="btn btn--outline btn--sm" onclick="reviewReport('${r.id}','dismiss')">Dismiss</button>
+            <button class="btn btn--danger btn--sm" onclick="reviewReport('${r.id}','suspend')">Suspend User</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function reviewReport(reportId, action) {
+  if (!reportId) return;
+  const note = prompt('Optional review note (internal):') || '';
+
+  // Update report status
+  const status = action === 'resolve' ? 'resolved' : action === 'dismiss' ? 'dismissed' : 'in_review';
+  const { error: updateErr } = await window.sb.from('moderation_reports').update({ status, reviewed_by: currentAdmin.id, review_notes: note }).eq('id', reportId);
+  if (updateErr) { showToast('Failed to update report: ' + updateErr.message, 'error'); return; }
+
+  // If suspending, ask for duration and insert account_suspensions
+  if (action === 'suspend') {
+    const days = parseInt(prompt('Suspend for how many days? (e.g. 7)'), 10) || 7;
+    const until = new Date(Date.now() + (days * 24 * 60 * 60 * 1000)).toISOString();
+    // find reported_user_id
+    const { data: reportRows } = await window.sb.from('moderation_reports').select('reported_user_id').eq('id', reportId).single();
+    if (reportRows && reportRows.reported_user_id) {
+      const { error: suspendErr } = await window.sb.from('account_suspensions').insert([{ user_id: reportRows.reported_user_id, suspended_by: currentAdmin.id, suspended_until: until, reason: note }]);
+      if (suspendErr) { showToast('Failed to suspend user: ' + suspendErr.message, 'error'); }
+      else showToast('User suspended', 'warn');
+    }
+  }
+
+  // record moderation action audit
+  const { error: auditErr } = await window.sb.from('moderation_actions').insert([{ report_id: reportId, action, performed_by: currentAdmin.id, notes: note }]);
+  if (auditErr) console.warn('Failed to log moderation action', auditErr.message);
+
+  await loadModerationQueue();
+  await loadStats();
 }
 
 async function setProjectReviewStatus(id, status) {

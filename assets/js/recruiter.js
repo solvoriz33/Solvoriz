@@ -571,6 +571,10 @@ async function loadConversationMessages(convId) {
         <div class="chat-bubble ${mine ? 'chat-bubble--mine' : ''}">
           <div class="chat-bubble__text">${escHtml(message.body)}</div>
           <div class="chat-bubble__meta">${fmtTime(message.created_at)}</div>
+          <div class="chat-bubble__actions">
+            ${mine ? '' : `<button class="btn btn--tiny" onclick="reportMessage('${message.id}','${convId}','${message.sender_id}')">Report</button>`}
+            ${mine ? '' : `<button class="btn btn--tiny btn--danger" onclick="blockUser('${message.sender_id}')">Block user</button>`}
+          </div>
         </div>
       </div>
     `;
@@ -585,6 +589,32 @@ async function loadConversationMessages(convId) {
   }
   renderConversations();
   updateDashboardStats();
+}
+
+// --- Trust & Safety UI helpers
+async function reportMessage(messageId, conversationId, reportedUserId) {
+  const reason = prompt('Why are you reporting this message? (optional)') || '';
+  const context = `conversation:${conversationId} message:${messageId}`;
+  const { error } = await window.sb.from('moderation_reports').insert({
+    reporter_id: currentUser.id,
+    reported_user_id: reportedUserId,
+    message_id: messageId,
+    conversation_id: conversationId,
+    reason,
+    context
+  });
+  if (error) { showToast('Failed to submit report: ' + error.message, 'error'); return; }
+  showToast('Report submitted. Thank you.', 'success');
+}
+
+async function blockUser(blockedUserId) {
+  if (!confirm('Block this user? You will no longer receive messages from them.')) return;
+  const { error } = await window.sb.from('blocked_users').insert({ blocker_id: currentUser.id, blocked_id: blockedUserId });
+  if (error) { showToast('Failed to block user: ' + error.message, 'error'); return; }
+  showToast('User blocked', 'warn');
+  // refresh conversations to reflect block
+  await loadConversations(true);
+  await renderConversations();
 }
 
 async function sendRecruiterMessage() {

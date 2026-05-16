@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /student.html
+Disallow: /recruiter.html
+Disallow: /auth.html
+Disallow: /profile.html
+Disallow: /admin.html
+Sitemap: https://solvoriz.com/sitemap.xml

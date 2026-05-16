@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Solvoriz — Admin Panel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -212,6 +213,11 @@
           <div class="empty-state__title">No student profiles in review</div>
           <div class="empty-state__sub">Profiles pending approval or flagged by the system will appear here.</div>
         </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-top:20px">
+        <div class="card__title">Reported messages & user reports</div>
+        <div id="moderation-reports" style="display:grid;gap:12px;margin-top:16px"></div>
       </div>
     </section>
 

@@ -16,15 +16,20 @@ CREATE TABLE IF NOT EXISTS public.users (
   role               TEXT NOT NULL DEFAULT 'student'
                      CHECK (role IN ('student', 'recruiter', 'admin')),
   verified_recruiter BOOLEAN NOT NULL DEFAULT false,
+  accepted_recruiter_conduct BOOLEAN NOT NULL DEFAULT false,
+  suspended_until    TIMESTAMPTZ,
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.users
-  ADD COLUMN IF NOT EXISTS verified_recruiter BOOLEAN NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS verified_recruiter BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS accepted_recruiter_conduct BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ;
 
 -- Index for fast role lookups
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
 CREATE INDEX IF NOT EXISTS idx_users_verified_recruiter ON public.users(verified_recruiter);
+CREATE INDEX IF NOT EXISTS idx_users_suspended_until ON public.users(suspended_until);
 
 
 -- ────────────────────────────────────────────────────────────
@@ -138,48 +143,393 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
 
 CREATE TABLE IF NOT EXISTS public.conversations (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  recruiter_id  UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  student_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  project_id    UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recruiter_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (recruiter_id, student_id, project_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.messages (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id  UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
-  sender_id        UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  body             TEXT NOT NULL,
-  read             BOOLEAN NOT NULL DEFAULT false,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  sender_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  body text NOT NULL,
+  read boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversations_recruiter_student ON public.conversations(recruiter_id, student_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON public.messages(conversation_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS public.creator_conversations (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_one_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  creator_two_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  initiator_id   UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  project_id     UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_one_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  creator_two_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  initiator_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
   CHECK (creator_one_id <> creator_two_id AND creator_one_id::text < creator_two_id::text),
   UNIQUE (creator_one_id, creator_two_id, project_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.creator_messages (
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_conversation_id UUID NOT NULL REFERENCES public.creator_conversations(id) ON DELETE CASCADE,
-  sender_id               UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  body                    TEXT NOT NULL,
-  read                    BOOLEAN NOT NULL DEFAULT false,
-  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_conversation_id uuid NOT NULL REFERENCES public.creator_conversations(id) ON DELETE CASCADE,
+  sender_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  body text NOT NULL,
+  read boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_creator_conversations_pair ON public.creator_conversations(creator_one_id, creator_two_id);
 CREATE INDEX IF NOT EXISTS idx_creator_messages_conversation_created ON public.creator_messages(creator_conversation_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.blocked_users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  blocker_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  blocked_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  UNIQUE (blocker_id, blocked_id),
+  CHECK (blocker_id <> blocked_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.moderation_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  reported_user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  conversation_id uuid REFERENCES public.conversations(id) ON DELETE SET NULL,
+  project_id uuid REFERENCES public.projects(id) ON DELETE SET NULL,
+  reported_message_id uuid REFERENCES public.messages(id) ON DELETE SET NULL,
+  reason_category text NOT NULL CHECK (reason_category IN ('Harassment', 'Spam', 'Contact sharing', 'Inappropriate request', 'Suspicious grooming', 'False identity', 'Other')),
+  reason_detail text,
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_review', 'resolved', 'dismissed')),
+  reviewed_by uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  review_notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_moderation_reports_reporter ON public.moderation_reports(reporter_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_reports_reported ON public.moderation_reports(reported_user_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_reports_status ON public.moderation_reports(status);
+
+CREATE TABLE IF NOT EXISTS public.moderation_actions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id uuid NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+  action_type text NOT NULL CHECK (action_type IN ('report_reviewed', 'user_blocked', 'user_unblocked', 'user_suspended', 'user_unsuspended', 'recruiter_verified', 'content_removed', 'conversation_flagged', 'policy_updated')),
+  target_type text NOT NULL,
+  target_id uuid,
+  details jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_moderation_actions_admin ON public.moderation_actions(admin_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_actions_target ON public.moderation_actions(target_type, target_id);
+
+CREATE TABLE IF NOT EXISTS public.message_rate_limit_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recruiter_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  window_start timestamptz NOT NULL,
+  message_count int NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  UNIQUE (recruiter_id, window_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_message_rate_limit_logs_recruiter ON public.message_rate_limit_logs(recruiter_id, window_start);
+
+CREATE TABLE IF NOT EXISTS public.conversation_flags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  flagged_by uuid NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+  reason text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversation_flags_conversation ON public.conversation_flags(conversation_id);
+
+CREATE TABLE IF NOT EXISTS public.account_suspensions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  admin_id uuid NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+  reason text,
+  suspended_until timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_account_suspensions_user ON public.account_suspensions(user_id);
+
+CREATE TABLE IF NOT EXISTS public.recruiter_verification_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recruiter_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  admin_id uuid NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+  verified boolean NOT NULL,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_recruiter_verification_events_recruiter ON public.recruiter_verification_events(recruiter_id);
+
+CREATE TABLE IF NOT EXISTS public.moderation_comment_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id uuid NOT NULL REFERENCES public.moderation_reports(id) ON DELETE CASCADE,
+  author_id uuid NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+  comment text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_moderation_comment_log_report ON public.moderation_comment_log(report_id);
+
+CREATE TABLE IF NOT EXISTS public.audit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  event_type text NOT NULL,
+  event_source text NOT NULL,
+  target_type text,
+  target_id uuid,
+  details jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON public.audit_log(actor_id);
+
+CREATE TABLE IF NOT EXISTS public.policy_violations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid REFERENCES public.conversations(id) ON DELETE SET NULL,
+  message_id uuid REFERENCES public.messages(id) ON DELETE SET NULL,
+  user_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  violation_type text NOT NULL CHECK (violation_type IN ('contact_sharing', 'profanity', 'grooming', 'harassment', 'other')),
+  details jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_policy_violations_user ON public.policy_violations(user_id);
+
+CREATE TABLE IF NOT EXISTS public.safety_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  message text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_safety_notifications_user ON public.safety_notifications(user_id);
+
+CREATE TABLE IF NOT EXISTS public.recruiter_onboarding_acceptances (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recruiter_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  accepted_on timestamptz NOT NULL DEFAULT NOW(),
+  ip_address text
+);
+
+CREATE INDEX IF NOT EXISTS idx_recruiter_onboarding_acceptances ON public.recruiter_onboarding_acceptances(recruiter_id);
+
+CREATE TABLE IF NOT EXISTS public.contact_sharing_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  conversation_id uuid REFERENCES public.conversations(id) ON DELETE SET NULL,
+  message_body text,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_sharing_attempts_sender ON public.contact_sharing_attempts(sender_id);
+
+CREATE TABLE IF NOT EXISTS public.blocked_message_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  conversation_id uuid REFERENCES public.conversations(id) ON DELETE SET NULL,
+  message_body text,
+  reason text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_blocked_message_attempts_sender ON public.blocked_message_attempts(sender_id);
+
+CREATE TABLE IF NOT EXISTS public.user_conduct_violations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  violation_type text NOT NULL CHECK (violation_type IN ('unpaid_work_pressure', 'personal_data_request', 'harassment', 'off_platform_contact', 'other')),
+  details text,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_conduct_violations_user ON public.user_conduct_violations(user_id);
+
+CREATE TABLE IF NOT EXISTS public.youth_protection_flags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  flagged_by uuid NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+  reason text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_youth_protection_flags_user ON public.youth_protection_flags(user_id);
+
+CREATE TABLE IF NOT EXISTS public.conversation_audit_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  event text NOT NULL,
+  details jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversation_audit_events_conversation ON public.conversation_audit_events(conversation_id);
+
+CREATE OR REPLACE FUNCTION public.is_restricted_contact(text)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN $1 ~* '\\b(?:whatsapp|wa\\.me|telegram|discord(?:app)?\\.com|discordtag|snapchat|snap\\.chat|instagram|insta|tiktok|mailto:|[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}|\+?[0-9][0-9 .()-]{6,}|#\d{4})\\b';
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+CREATE OR REPLACE FUNCTION public.get_blocked_user_relation(uid uuid, other uuid)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.blocked_users
+    WHERE (blocker_id = uid AND blocked_id = other)
+       OR (blocker_id = other AND blocked_id = uid)
+  );
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+CREATE OR REPLACE FUNCTION public.prevent_blocked_or_restricted_message()
+RETURNS TRIGGER AS $$
+DECLARE
+  conv record;
+  user_role text;
+  recent_count int;
+  other_user uuid;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    SELECT * INTO conv FROM public.conversations WHERE id = NEW.conversation_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Conversation does not exist';
+    END IF;
+    other_user := CASE WHEN NEW.sender_id = conv.recruiter_id THEN conv.student_id ELSE conv.recruiter_id END;
+    IF public.get_blocked_user_relation(NEW.sender_id, other_user) THEN
+      RAISE EXCEPTION 'Messaging is blocked between these users.';
+    END IF;
+    IF public.is_restricted_contact(NEW.body) THEN
+      INSERT INTO public.blocked_message_attempts(sender_id, conversation_id, message_body, reason)
+      VALUES (NEW.sender_id, NEW.conversation_id, NEW.body, 'restricted_contact_shared');
+      RAISE EXCEPTION 'For safety and platform trust, direct personal contact sharing is restricted.';
+    END IF;
+    SELECT role INTO user_role FROM public.users WHERE id = NEW.sender_id;
+    IF user_role = 'recruiter' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = NEW.sender_id AND verified_recruiter) THEN
+        RAISE EXCEPTION 'Recruiter must be verified before messaging.';
+      END IF;
+      SELECT count(*) INTO recent_count FROM public.messages
+      WHERE sender_id = NEW.sender_id
+        AND created_at >= NOW() - INTERVAL '60 seconds';
+      IF recent_count >= 3 THEN
+        RAISE EXCEPTION 'Please wait before sending another message. This helps prevent spam.';
+      END IF;
+      SELECT count(*) INTO recent_count FROM public.messages
+      WHERE sender_id = NEW.sender_id
+        AND created_at >= NOW() - INTERVAL '24 hours';
+      IF recent_count >= 30 THEN
+        RAISE EXCEPTION 'Free recruiters are limited to 30 messages per 24 hours. Contact support for expanded access.';
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.prevent_blocked_or_restricted_creator_message()
+RETURNS TRIGGER AS $$
+DECLARE
+  conv record;
+  other_id uuid;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    SELECT * INTO conv FROM public.creator_conversations WHERE id = NEW.creator_conversation_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Creator conversation does not exist';
+    END IF;
+    other_id := CASE WHEN NEW.sender_id = conv.creator_one_id THEN conv.creator_two_id ELSE conv.creator_one_id END;
+    IF public.get_blocked_user_relation(NEW.sender_id, other_id) THEN
+      RAISE EXCEPTION 'Messaging is blocked between these users.';
+    END IF;
+    IF public.is_restricted_contact(NEW.body) THEN
+      INSERT INTO public.blocked_message_attempts(sender_id, conversation_id, message_body, reason)
+      VALUES (NEW.sender_id, NULL, NEW.body, 'restricted_contact_shared');
+      RAISE EXCEPTION 'For safety and platform trust, direct personal contact sharing is restricted.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.prevent_blocked_conversation_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF public.get_blocked_user_relation(NEW.recruiter_id, NEW.student_id) THEN
+      RAISE EXCEPTION 'A block exists between these users and prevents creating a conversation.';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = NEW.recruiter_id AND verified_recruiter) THEN
+      RAISE EXCEPTION 'Recruiter must be verified before creating a student conversation.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.update_timestamp_on_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_message_body_change ON public.messages;
+CREATE TRIGGER trg_prevent_message_body_change
+  BEFORE INSERT OR UPDATE ON public.messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_blocked_or_restricted_message();
+
+DROP TRIGGER IF EXISTS trg_prevent_creator_message_body_change ON public.creator_messages;
+CREATE TRIGGER trg_prevent_creator_message_body_change
+  BEFORE INSERT OR UPDATE ON public.creator_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_blocked_or_restricted_creator_message();
+
+DROP TRIGGER IF EXISTS trg_prevent_blocked_conversation_insert ON public.conversations;
+CREATE TRIGGER trg_prevent_blocked_conversation_insert
+  BEFORE INSERT ON public.conversations
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_blocked_conversation_insert();
+
+DROP TRIGGER IF EXISTS set_updated_at_moderation_reports ON public.moderation_reports;
+CREATE TRIGGER set_updated_at_moderation_reports
+  BEFORE UPDATE ON public.moderation_reports
+  FOR EACH ROW EXECUTE FUNCTION public.update_timestamp_on_change();
+
+DROP TRIGGER IF EXISTS set_updated_at_policy_violations ON public.policy_violations;
+CREATE TRIGGER set_updated_at_policy_violations
+  BEFORE UPDATE ON public.policy_violations
+  FOR EACH ROW EXECUTE FUNCTION public.update_timestamp_on_change();
+
+CREATE OR REPLACE FUNCTION public.log_audit_event(actor uuid, event_type text, target_type text, target_id uuid, details jsonb)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO public.audit_log (actor_id, event_type, event_source, target_type, target_id, details)
+  VALUES (actor, event_type, 'platform', target_type, target_id, details);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.log_recruiter_policy_acceptance(recruiter uuid, ip_address text)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO public.recruiter_onboarding_acceptances (recruiter_id, ip_address)
+  VALUES (recruiter, ip_address);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 
 -- ────────────────────────────────────────────────────────────
@@ -555,6 +905,85 @@ CREATE TRIGGER trg_prevent_creator_message_body_change
   BEFORE UPDATE ON public.creator_messages
   FOR EACH ROW
   EXECUTE FUNCTION public.prevent_creator_message_body_change();
+
+-- ── RLS: Trust & Safety tables (basic policies) ─────────────────────────────
+
+-- blocked_users: participants and admins can view; users can insert/delete their own blocks
+DROP POLICY IF EXISTS "blocked_users_select" ON public.blocked_users;
+CREATE POLICY "blocked_users_select" ON public.blocked_users FOR SELECT
+  TO authenticated
+  USING (blocker_id = auth.uid() OR blocked_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "blocked_users_insert" ON public.blocked_users;
+CREATE POLICY "blocked_users_insert" ON public.blocked_users FOR INSERT
+  TO authenticated
+  WITH CHECK (blocker_id = auth.uid() AND blocker_id <> blocked_id);
+
+DROP POLICY IF EXISTS "blocked_users_delete" ON public.blocked_users;
+CREATE POLICY "blocked_users_delete" ON public.blocked_users FOR DELETE
+  TO authenticated
+  USING (blocker_id = auth.uid() OR public.get_my_role() = 'admin');
+
+-- moderation_reports: reporter or admin can view/insert; admins review/update
+DROP POLICY IF EXISTS "moderation_reports_select" ON public.moderation_reports;
+CREATE POLICY "moderation_reports_select" ON public.moderation_reports FOR SELECT
+  TO authenticated
+  USING (reporter_id = auth.uid() OR reported_user_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "moderation_reports_insert" ON public.moderation_reports;
+CREATE POLICY "moderation_reports_insert" ON public.moderation_reports FOR INSERT
+  TO authenticated
+  WITH CHECK (reporter_id = auth.uid());
+
+DROP POLICY IF EXISTS "moderation_reports_update" ON public.moderation_reports;
+CREATE POLICY "moderation_reports_update" ON public.moderation_reports FOR UPDATE
+  TO authenticated
+  USING (public.get_my_role() = 'admin' OR reporter_id = auth.uid())
+  WITH CHECK (public.get_my_role() = 'admin' OR reporter_id = auth.uid());
+
+-- blocked_message_attempts: allow actors to see their own attempts and admins
+DROP POLICY IF EXISTS "blocked_message_attempts_select" ON public.blocked_message_attempts;
+CREATE POLICY "blocked_message_attempts_select" ON public.blocked_message_attempts FOR SELECT
+  TO authenticated
+  USING (sender_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "blocked_message_attempts_insert" ON public.blocked_message_attempts;
+CREATE POLICY "blocked_message_attempts_insert" ON public.blocked_message_attempts FOR INSERT
+  TO authenticated
+  WITH CHECK (sender_id = auth.uid());
+
+-- policy_violations: admin-only operations (insert/select/update)
+DROP POLICY IF EXISTS "policy_violations_admin_select" ON public.policy_violations;
+CREATE POLICY "policy_violations_admin_select" ON public.policy_violations FOR SELECT
+  TO authenticated
+  USING (public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "policy_violations_admin_insert" ON public.policy_violations;
+CREATE POLICY "policy_violations_admin_insert" ON public.policy_violations FOR INSERT
+  TO authenticated
+  WITH CHECK (public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "policy_violations_admin_update" ON public.policy_violations;
+CREATE POLICY "policy_violations_admin_update" ON public.policy_violations FOR UPDATE
+  TO authenticated
+  USING (public.get_my_role() = 'admin')
+  WITH CHECK (public.get_my_role() = 'admin');
+
+-- account_suspensions: admin-only
+DROP POLICY IF EXISTS "account_suspensions_admin" ON public.account_suspensions;
+CREATE POLICY "account_suspensions_admin" ON public.account_suspensions FOR ALL
+  TO authenticated
+  USING (public.get_my_role() = 'admin')
+  WITH CHECK (public.get_my_role() = 'admin');
+
+-- basic safety: allow recruiters and students to view their own notifications/warnings
+DROP POLICY IF EXISTS "blocked_message_attempts_update" ON public.blocked_message_attempts;
+CREATE POLICY "blocked_message_attempts_update" ON public.blocked_message_attempts FOR UPDATE
+  TO authenticated
+  USING (sender_id = auth.uid() OR public.get_my_role() = 'admin')
+  WITH CHECK (sender_id = auth.uid() OR public.get_my_role() = 'admin');
+
+-- End trust & safety RLS additions
 
 
 -- ────────────────────────────────────────────────────────────
