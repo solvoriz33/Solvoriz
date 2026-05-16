@@ -101,7 +101,14 @@ function updateOverviewCard(profile) {
   if (skillsCount) skillsCount.textContent = (profile.skills || []).length;
 
   const visibility = document.getElementById('visibility-status');
-  if (visibility) visibility.textContent = profile.discoverable ? 'Discoverable' : profile.visibility === 'hidden' ? 'Hidden' : 'Private';
+  if (visibility) {
+    visibility.textContent = profile.discoverable ? 'Live' : profile.visibility === 'hidden' ? 'Hidden' : 'Private';
+    visibility.title = profile.discoverable
+      ? 'Discoverable in recruiter search'
+      : profile.visibility === 'hidden'
+        ? 'Hidden from recruiter search'
+        : 'Profile is public but not discoverable yet';
+  }
 
   const score = calculateProfileScore(profile);
   const scoreBar = document.getElementById('overview-score-bar');
