@@ -3,19 +3,20 @@
 
 create table if not exists conversations (
   id uuid primary key default gen_random_uuid(),
-  recruiter_id uuid references users(id) on delete cascade,
-  student_id uuid references users(id) on delete cascade,
-  project_id uuid references projects(id) on delete set null,
-  created_at timestamptz default now()
+  recruiter_id uuid not null references users(id) on delete cascade,
+  student_id uuid not null references users(id) on delete cascade,
+  project_id uuid not null references projects(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique(recruiter_id, student_id, project_id)
 );
 
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),
-  conversation_id uuid references conversations(id) on delete cascade,
-  sender_id uuid references users(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  sender_id uuid not null references users(id) on delete cascade,
   body text not null,
-  created_at timestamptz default now(),
-  read boolean default false
+  created_at timestamptz not null default now(),
+  read boolean not null default false
 );
 
 create table if not exists creator_conversations (
@@ -39,11 +40,12 @@ create table if not exists creator_messages (
 );
 
 -- Indexes for fast lookups
-create index if not exists idx_conversations_recruiter_student on conversations (recruiter_id, student_id);
+create index if not exists idx_conversations_recruiter_student_project on conversations (recruiter_id, student_id, project_id);
 create index if not exists idx_messages_conversation_created on messages (conversation_id, created_at desc);
 create index if not exists idx_creator_conversations_pair on creator_conversations (creator_one_id, creator_two_id);
 create index if not exists idx_creator_messages_conversation_created on creator_messages (creator_conversation_id, created_at desc);
 
+<<<<<<< HEAD
 alter table conversations enable row level security;
 alter table messages enable row level security;
 alter table creator_conversations enable row level security;
@@ -153,3 +155,58 @@ create policy "creator_messages_update_participant"
         and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
     )
   );
+
+-- RLS policies (example; review in Supabase UI before enabling)
+-- Conversations and messages are always project-scoped.
+-- Only participants or admins may read a conversation or its messages.
+
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.creator_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.creator_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "conversations_select_participant" ON public.conversations;
+CREATE POLICY "conversations_select_participant"
+  ON public.conversations FOR SELECT
+  TO authenticated
+  USING (
+    recruiter_id = auth.uid()
+    OR student_id = auth.uid()
+    OR public.get_my_role() = 'admin'
+  );
+
+DROP POLICY IF EXISTS "conversations_insert_participant" ON public.conversations;
+CREATE POLICY "conversations_insert_participant"
+  ON public.conversations FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    (recruiter_id = auth.uid() OR student_id = auth.uid())
+    AND project_id IS NOT NULL
+  );
+
+DROP POLICY IF EXISTS "messages_select_participant" ON public.messages;
+CREATE POLICY "messages_select_participant"
+  ON public.messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.conversations c
+      WHERE c.id = conversation_id
+        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid() OR public.get_my_role() = 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS "messages_insert_participant" ON public.messages;
+CREATE POLICY "messages_insert_participant"
+  ON public.messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    sender_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.conversations c
+      WHERE c.id = conversation_id
+        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+    )
+  );
+
+-- To support strict project-thread messaging, all conversation records must include a project_id.

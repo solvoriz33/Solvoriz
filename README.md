@@ -1,5 +1,26 @@
 # Solvoriz — Setup Guide
 
+## Core Product Definition
+
+Solvoriz is a project-based hiring and discovery system. The platform is intentionally narrow:
+- Students are creators and build portfolios from real projects.
+- Recruiters discover candidates through projects, not through resumes or feeds.
+- Admins manage verification, reviews, and platform integrity.
+
+Solvoriz is NOT:
+- a general social network
+- a standalone chat platform
+- a freelancing marketplace
+- a feature-heavy SaaS experiment
+
+Solvoriz is ONLY:
+- project-based hiring + discovery
+- recruiter-to-student project messaging
+- shortlist-driven candidate evaluation
+- activity tracking for meaningful engagement
+
+---
+
 ## File Structure
 
 ```

@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.contact_requests (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recruiter_id  UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   student_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  project_id    UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  project_id    UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   message       TEXT NOT NULL,
   status        TEXT NOT NULL DEFAULT 'pending'
                  CHECK (status IN ('pending', 'accepted', 'rejected')),
