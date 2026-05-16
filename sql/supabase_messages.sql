@@ -45,117 +45,6 @@ create index if not exists idx_messages_conversation_created on messages (conver
 create index if not exists idx_creator_conversations_pair on creator_conversations (creator_one_id, creator_two_id);
 create index if not exists idx_creator_messages_conversation_created on creator_messages (creator_conversation_id, created_at desc);
 
-<<<<<<< HEAD
-alter table conversations enable row level security;
-alter table messages enable row level security;
-alter table creator_conversations enable row level security;
-alter table creator_messages enable row level security;
-
-drop policy if exists "conversations_select_participant" on conversations;
-create policy "conversations_select_participant"
-  on conversations for select
-  to authenticated
-  using (recruiter_id = auth.uid() or student_id = auth.uid());
-
-drop policy if exists "conversations_insert_recruiter_or_student" on conversations;
-create policy "conversations_insert_recruiter_or_student"
-  on conversations for insert
-  to authenticated
-  with check (
-    recruiter_id <> student_id
-    and (
-      recruiter_id = auth.uid()
-      or student_id = auth.uid()
-    )
-  );
-
-drop policy if exists "messages_select_participant" on messages;
-create policy "messages_select_participant"
-  on messages for select
-  to authenticated
-  using (
-    exists (
-      select 1 from conversations c
-      where c.id = conversation_id
-        and (c.recruiter_id = auth.uid() or c.student_id = auth.uid())
-    )
-  );
-
-drop policy if exists "messages_insert_sender_participant" on messages;
-create policy "messages_insert_sender_participant"
-  on messages for insert
-  to authenticated
-  with check (
-    sender_id = auth.uid()
-    and exists (
-      select 1 from conversations c
-      where c.id = conversation_id
-        and (c.recruiter_id = auth.uid() or c.student_id = auth.uid())
-        and c.recruiter_id <> c.student_id
-    )
-  );
-
-drop policy if exists "creator_conversations_select_participant" on creator_conversations;
-create policy "creator_conversations_select_participant"
-  on creator_conversations for select
-  to authenticated
-  using (creator_one_id = auth.uid() or creator_two_id = auth.uid());
-
-drop policy if exists "creator_conversations_insert_creator" on creator_conversations;
-create policy "creator_conversations_insert_creator"
-  on creator_conversations for insert
-  to authenticated
-  with check (
-    initiator_id = auth.uid()
-    and (creator_one_id = auth.uid() or creator_two_id = auth.uid())
-    and creator_one_id <> creator_two_id
-  );
-
-drop policy if exists "creator_messages_select_participant" on creator_messages;
-create policy "creator_messages_select_participant"
-  on creator_messages for select
-  to authenticated
-  using (
-    exists (
-      select 1 from creator_conversations c
-      where c.id = creator_conversation_id
-        and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
-    )
-  );
-
-drop policy if exists "creator_messages_insert_participant" on creator_messages;
-create policy "creator_messages_insert_participant"
-  on creator_messages for insert
-  to authenticated
-  with check (
-    sender_id = auth.uid()
-    and exists (
-      select 1 from creator_conversations c
-      where c.id = creator_conversation_id
-        and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
-        and c.creator_one_id <> c.creator_two_id
-    )
-  );
-
-drop policy if exists "creator_messages_update_participant" on creator_messages;
-create policy "creator_messages_update_participant"
-  on creator_messages for update
-  to authenticated
-  using (
-    exists (
-      select 1 from creator_conversations c
-      where c.id = creator_conversation_id
-        and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
-    )
-  )
-  with check (
-    exists (
-      select 1 from creator_conversations c
-      where c.id = creator_conversation_id
-        and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
-    )
-  );
-
 -- RLS policies (example; review in Supabase UI before enabling)
 -- Conversations and messages are always project-scoped.
 -- Only participants or admins may read a conversation or its messages.
@@ -180,7 +69,8 @@ CREATE POLICY "conversations_insert_participant"
   ON public.conversations FOR INSERT
   TO authenticated
   WITH CHECK (
-    (recruiter_id = auth.uid() OR student_id = auth.uid())
+    recruiter_id <> student_id
+    AND (recruiter_id = auth.uid() OR student_id = auth.uid())
     AND project_id IS NOT NULL
   );
 
@@ -206,6 +96,71 @@ CREATE POLICY "messages_insert_participant"
       SELECT 1 FROM public.conversations c
       WHERE c.id = conversation_id
         AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "creator_conversations_select_participant" ON public.creator_conversations;
+CREATE POLICY "creator_conversations_select_participant"
+  ON public.creator_conversations FOR SELECT
+  TO authenticated
+  USING (
+    creator_one_id = auth.uid()
+    OR creator_two_id = auth.uid()
+    OR public.get_my_role() = 'admin'
+  );
+
+DROP POLICY IF EXISTS "creator_conversations_insert_creator" ON public.creator_conversations;
+CREATE POLICY "creator_conversations_insert_creator"
+  ON public.creator_conversations FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    initiator_id = auth.uid()
+    AND (creator_one_id = auth.uid() OR creator_two_id = auth.uid())
+    AND creator_one_id <> creator_two_id
+    AND project_id IS NOT NULL
+  );
+
+DROP POLICY IF EXISTS "creator_messages_select_participant" ON public.creator_messages;
+CREATE POLICY "creator_messages_select_participant"
+  ON public.creator_messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid() OR public.get_my_role() = 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS "creator_messages_insert_participant" ON public.creator_messages;
+CREATE POLICY "creator_messages_insert_participant"
+  ON public.creator_messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    sender_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "creator_messages_update_participant" ON public.creator_messages;
+CREATE POLICY "creator_messages_update_participant"
+  ON public.creator_messages FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
     )
   );
 
