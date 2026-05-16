@@ -23,17 +23,59 @@ async function initAdmin() {
 
 // ── STATS ─────────────────────────────────────────────────
 async function loadStats() {
-  const [usersRes, studentsRes, recruitersRes, projectsRes] = await Promise.all([
+  const [usersRes, studentsRes, recruitersRes, projectsRes, discoverableRes, pendingRecruitersRes, moderationProjectsRes, moderationProfilesRes, featuredProfilesRes] = await Promise.all([
     window.sb.from('users').select('id', { count: 'exact', head: true }),
     window.sb.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student'),
     window.sb.from('users').select('id', { count: 'exact', head: true }).eq('role', 'recruiter'),
-    window.sb.from('projects').select('id', { count: 'exact', head: true })
+    window.sb.from('projects').select('id', { count: 'exact', head: true }),
+    window.sb.from('student_profiles').select('id', { count: 'exact', head: true }).eq('discoverable', true),
+    window.sb.from('users').select('id', { count: 'exact', head: true }).eq('role', 'recruiter').eq('verified_recruiter', false),
+    window.sb.from('projects').select('id', { count: 'exact', head: true }).in('review_status', ['under review', 'flagged']),
+    window.sb.from('student_profiles').select('id', { count: 'exact', head: true }).neq('review_status', 'approved'),
+    window.sb.from('student_profiles').select('id', { count: 'exact', head: true }).eq('featured', true)
   ]);
 
   document.getElementById('stat-total-users').textContent = usersRes.count || 0;
   document.getElementById('stat-students').textContent = studentsRes.count || 0;
   document.getElementById('stat-recruiters').textContent = recruitersRes.count || 0;
   document.getElementById('stat-projects').textContent = projectsRes.count || 0;
+  document.getElementById('stat-discoverable').textContent = discoverableRes.count || 0;
+  document.getElementById('stat-pending-recruiters').textContent = pendingRecruitersRes.count || 0;
+  document.getElementById('stat-moderation-items').textContent = (moderationProjectsRes.count || 0) + (moderationProfilesRes.count || 0);
+  document.getElementById('stat-featured-profiles').textContent = featuredProfilesRes.count || 0;
+
+  renderOpsSnapshot({
+    discoverable: discoverableRes.count || 0,
+    pendingRecruiters: pendingRecruitersRes.count || 0,
+    moderationItems: (moderationProjectsRes.count || 0) + (moderationProfilesRes.count || 0),
+    featuredProfiles: featuredProfilesRes.count || 0,
+    totalStudents: studentsRes.count || 0,
+    totalProjects: projectsRes.count || 0
+  });
+}
+
+function renderOpsSnapshot(stats) {
+  const container = document.getElementById('ops-snapshot');
+  if (!container) return;
+  const discoverableRate = stats.totalStudents ? Math.round((stats.discoverable / stats.totalStudents) * 100) : 0;
+  container.innerHTML = `
+    <div class="notification-card">
+      <strong>Discoverability health</strong>
+      <div class="muted notification-card__body">${stats.discoverable} of ${stats.totalStudents} students are currently discoverable (${discoverableRate}%).</div>
+    </div>
+    <div class="notification-card">
+      <strong>Trust and approval queue</strong>
+      <div class="muted notification-card__body">${stats.pendingRecruiters} recruiter accounts still need admin approval.</div>
+    </div>
+    <div class="notification-card">
+      <strong>Moderation workload</strong>
+      <div class="muted notification-card__body">${stats.moderationItems} items are waiting for review across profiles and projects.</div>
+    </div>
+    <div class="notification-card">
+      <strong>Editorial curation</strong>
+      <div class="muted notification-card__body">${stats.featuredProfiles} student profiles are currently featured, with ${stats.totalProjects} total projects live on the platform.</div>
+    </div>
+  `;
 }
 
 // ── LOAD USERS ────────────────────────────────────────────
@@ -114,6 +156,7 @@ async function toggleRecruiterVerification(userId, currentValue) {
   allUsers = allUsers.map(u => u.id === userId ? { ...u, verified_recruiter: nextValue } : u);
   renderUsersTable(allUsers);
   await loadModerationQueue();
+  await loadStats();
 }
 
 async function deleteUser(userId, email) {
@@ -127,6 +170,7 @@ async function deleteUser(userId, email) {
   allUsers = allUsers.filter(u => u.id !== userId);
   renderUsersTable(allUsers);
   await loadStats();
+  await loadModerationQueue();
 }
 
 // ── ALL PROJECTS ──────────────────────────────────────────
@@ -254,6 +298,7 @@ async function setProjectReviewStatus(id, status) {
   if (error) { showToast('Failed to update project review status: ' + error.message, 'error'); return; }
   showToast('Project review status updated', 'success');
   await loadModerationQueue();
+  await loadStats();
 }
 
 async function setProfileReviewStatus(id, status) {
@@ -261,6 +306,7 @@ async function setProfileReviewStatus(id, status) {
   if (error) { showToast('Failed to update profile review status: ' + error.message, 'error'); return; }
   showToast('Profile review status updated', 'success');
   await loadModerationQueue();
+  await loadStats();
 }
 
 async function toggleProfileFeatured(id, currentValue) {
@@ -269,6 +315,7 @@ async function toggleProfileFeatured(id, currentValue) {
   if (error) { showToast('Unable to update featured status: ' + error.message, 'error'); return; }
   showToast(nextValue ? 'Profile featured' : 'Profile unfeatured', 'success');
   await loadModerationQueue();
+  await loadStats();
 }
 
 function renderProjectsTable(projects) {
@@ -376,6 +423,7 @@ async function toggleFeature(id) {
   showToast(nextValue ? 'Project featured' : 'Project unfeatured', 'success');
   renderProjectsTable(allProjects);
   await loadModerationQueue();
+  await loadStats();
   if (!document.getElementById('admin-project-modal')?.classList.contains('hidden')) {
     openProject(id);
   }
@@ -390,6 +438,7 @@ async function deleteProject(id) {
   allProjects = allProjects.filter(p => p.id !== id);
   renderProjectsTable(allProjects);
   await loadStats();
+  await loadModerationQueue();
 }
 
 // ── SECTION NAV ───────────────────────────────────────────

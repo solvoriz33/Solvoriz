@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solvoriz — Complete Product Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --ink-2: #3a3831;
+    --ink-3: #6b6860;
+    --surface: #faf9f7;
+    --surface-2: #f2f0ec;
+    --surface-3: #e8e5df;
+    --accent: #1a4fff;
+    --accent-warm: #ff5c1a;
+    --accent-green: #0d7a4e;
+    --accent-amber: #c97a00;
+    --border: #ddd9d0;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; width: 260px; height: 100vh;
+    background: var(--ink);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 28px 0 28px;
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    padding: 0 24px 24px;
+    letter-spacing: -0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 16px;
+  }
+  .nav-logo span { color: var(--accent-warm); }
+  nav a {
+    display: block;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    font-size: 12.5px;
+    padding: 6px 24px;
+    transition: all 0.15s;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+  nav a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  nav .nav-section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.3);
+    padding: 16px 24px 4px;
+    font-weight: 600;
+  }
+
+  /* MAIN */
+  main { margin-left: 260px; padding: 0; }
+
+  /* HERO */
+  .hero {
+    background: var(--ink);
+    color: #fff;
+    padding: 80px 72px 72px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: 'S';
+    font-family: 'Syne', sans-serif;
+    font-size: 400px;
+    font-weight: 800;
+    position: absolute;
+    right: -40px;
+    top: -60px;
+    color: rgba(255,255,255,0.04);
+    line-height: 1;
+  }
+  .hero-tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent-warm);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+    max-width: 600px;
+  }
+  .hero h1 em { color: var(--accent-warm); font-style: normal; }
+  .hero p {
+    color: rgba(255,255,255,0.65);
+    font-size: 17px;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 32px;
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  .hero-meta-item { font-size: 13px; color: rgba(255,255,255,0.45); }
+  .hero-meta-item strong { color: #fff; display: block; font-size: 15px; font-weight: 500; }
+
+  /* SECTIONS */
+  section {
+    padding: 72px;
+    border-bottom: 1px solid var(--border);
+  }
+  section:nth-child(even) { background: #fff; }
+
+  .section-tag {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    line-height: 1.15;
+  }
+  .section-intro {
+    color: var(--ink-3);
+    font-size: 15px;
+    margin-bottom: 40px;
+    max-width: 600px;
+  }
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 12px;
+    margin-top: 32px;
+    color: var(--ink);
+  }
+  h3:first-child { margin-top: 0; }
+  h4 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+    margin-top: 24px;
+  }
+  p { margin-bottom: 12px; color: var(--ink-2); }
+  p:last-child { margin-bottom: 0; }
+
+  /* CARDS */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+  }
+  .card.accent-blue { border-left: 3px solid var(--accent); }
+  .card.accent-orange { border-left: 3px solid var(--accent-warm); }
+  .card.accent-green { border-left: 3px solid var(--accent-green); }
+  .card.accent-amber { border-left: 3px solid var(--accent-amber); }
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .card-icon.blue { background: #e8effe; color: var(--accent); }
+  .card-icon.orange { background: #fff0ea; color: var(--accent-warm); }
+  .card-icon.green { background: #e4f5ed; color: var(--accent-green); }
+  .card h4 { margin-top: 0; text-transform: none; font-size: 14px; letter-spacing: 0; color: var(--ink); }
+  .card p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
+
+  /* POSITIONING LIST */
+  .positioning-list { counter-reset: pos; list-style: none; }
+  .positioning-list li {
+    counter-increment: pos;
+    padding: 14px 20px 14px 56px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+    color: var(--ink-2);
+  }
+  .positioning-list li::before {
+    content: counter(pos, decimal-leading-zero);
+    position: absolute;
+    left: 20px;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-weight: 600;
+    top: 16px;
+  }
+  .positioning-list li.winner {
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--radius);
+    margin: 12px 0;
+    border: none;
+  }
+  .positioning-list li.winner::before { color: var(--accent-warm); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  th {
+    background: var(--ink);
+    color: #fff;
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  th:first-child { border-radius: 8px 0 0 0; }
+  th:last-child { border-radius: 0 8px 0 0; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-2); }
+
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+  .badge-must { background: #e8effe; color: #1a4fff; }
+  .badge-nice { background: #e4f5ed; color: #0d7a4e; }
+  .badge-no { background: #fde8e8; color: #c92f2f; }
+  .badge-p1 { background: #fff0ea; color: #c05400; }
+  .badge-p2 { background: #fffbe6; color: #946c00; }
+  .badge-p3 { background: #f0f0f0; color: #555; }
+
+  /* FEATURE LIST */
+  .feature-group { margin-bottom: 32px; }
+  .feature-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .feature-row:last-child { border-bottom: none; }
+  .feature-row .feat-name { flex: 1; color: var(--ink); font-weight: 500; }
+  .feature-row .feat-desc { flex: 2; color: var(--ink-3); font-size: 13px; }
+
+  /* USER CARD */
+  .user-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
+  .user-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .user-card-header {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .user-card-header.student { background: #e8effe; }
+  .user-card-header.recruiter { background: #fff0ea; }
+  .user-card-header.admin { background: #e4f5ed; }
+  .user-card-header .role-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .user-card-header.student .role-label { color: var(--accent); }
+  .user-card-header.recruiter .role-label { color: var(--accent-warm); }
+  .user-card-header.admin .role-label { color: var(--accent-green); }
+  .user-card-header h3 { font-size: 17px; margin: 0; }
+  .user-card-body { padding: 16px 20px; background: #fff; }
+  .user-card-body .uc-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--ink-3);
+    margin: 12px 0 4px;
+  }
+  .user-card-body .uc-label:first-child { margin-top: 0; }
+  .user-card-body p { font-size: 13px; margin: 0; color: var(--ink-2); }
+
+  /* CODE BLOCK */
+  pre {
+    background: #1a1917;
+    color: #e8e4da;
+    padding: 20px 24px;
+    border-radius: var(--radius);
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-family: 'DM Mono', 'Fira Code', monospace;
+  }
+  code { font-family: 'DM Mono', 'Fira Code', monospace; font-size: 12.5px; }
+  .code-key { color: #7fa8ff; }
+  .code-str { color: #98dd82; }
+  .code-bool { color: #ff9f5c; }
+  .code-num { color: #f9c86c; }
+  .code-comment { color: #666; }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 20px 0; }
+  .kpi-card {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .kpi-desc { font-size: 12px; color: var(--ink-3); }
+
+  /* WIREFRAME */
+  .wireframe {
+    background: var(--surface-2);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 20px 0;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .wf-bar {
+    background: var(--ink);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .wf-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .wf-block {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    flex: 1;
+    font-size: 12px;
+    min-height: 60px;
+  }
+  .wf-block.tall { min-height: 120px; }
+  .wf-block.hero-block { background: var(--ink); color: rgba(255,255,255,0.7); min-height: 100px; }
+  .wf-block b { display: block; color: var(--ink); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .wf-block.hero-block b { color: rgba(255,255,255,0.9); }
+  .wf-sidebar { width: 180px; flex-shrink: 0; background: var(--ink); border-radius: 8px; padding: 12px; }
+  .wf-sidebar .wf-nav-item { color: rgba(255,255,255,0.5); font-size: 11px; padding: 5px 8px; border-radius: 4px; margin-bottom: 2px; }
+  .wf-sidebar .wf-nav-item.active { color: #fff; background: rgba(255,255,255,0.1); }
+  .wf-content { flex: 1; }
+
+  /* FLOW */
+  .flow-steps { counter-reset: step; list-style: none; position: relative; padding-left: 28px; }
+  .flow-steps::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+  .flow-steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 24px 20px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .flow-steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: -28px;
+    width: 20px; height: 20px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 1px;
+  }
+  .flow-steps li strong { display: block; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
+
+  /* PHASE */
+  .phase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
+  .phase-card { border-radius: var(--radius-lg); padding: 24px; }
+  .phase-card.p1 { background: #e8effe; border: 1.5px solid #c0d0ff; }
+  .phase-card.p2 { background: #fff0ea; border: 1.5px solid #ffc9aa; }
+  .phase-card.p3 { background: #e4f5ed; border: 1.5px solid #a8dec8; }
+  .phase-card h3 { font-size: 15px; margin: 0 0 4px; }
+  .phase-card.p1 h3 { color: #1a4fff; }
+  .phase-card.p2 h3 { color: #c05400; }
+  .phase-card.p3 h3 { color: #0d7a4e; }
+  .phase-card .phase-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 12px; }
+  .phase-card.p1 .phase-label { color: #7a8fff; }
+  .phase-card.p2 .phase-label { color: #e88a4a; }
+  .phase-card.p3 .phase-label { color: #4aaa80; }
+  .phase-feat { font-size: 13px; color: var(--ink-2); padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .phase-feat:last-child { border-bottom: none; }
+
+  /* MONO LIST */
+  ul.clean { list-style: none; }
+  ul.clean li {
+    padding: 6px 0 6px 18px;
+    position: relative;
+    font-size: 14px;
+    color: var(--ink-2);
+    border-bottom: 1px solid var(--border);
+  }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  /* CALLOUT */
+  .callout {
+    background: #fff8e8;
+    border: 1px solid #f5d87a;
+    border-left: 4px solid var(--accent-amber);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: #6b4900;
+  }
+  .callout.blue {
+    background: #eef3ff;
+    border-color: #b5c8ff;
+    border-left-color: var(--accent);
+    color: #0d2a7a;
+  }
+  .callout.red {
+    background: #fff2f2;
+    border-color: #ffc7c7;
+    border-left-color: #c92f2f;
+    color: #6b0000;
+  }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* UX COPY BLOCK */
+  .copy-block {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .copy-block .copy-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: var(--ink-3); margin-bottom: 8px; }
+  .copy-block .copy-text { font-size: 18px; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .copy-block .copy-sub { font-size: 14px; color: var(--ink-2); }
+
+  /* FOOTER */
+  .footer {
+    background: var(--ink);
+    color: rgba(255,255,255,0.5);
+    padding: 48px 72px;
+    font-size: 13px;
+    margin-left: 0;
+  }
+  .footer strong { color: #fff; }
+
+  @media print { nav { display: none; } main { margin-left: 0; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Solvo<span>riz</span></div>
+  <div class="nav-section-label">Overview</div>
+  <a href="#s1">S1 — Positioning</a>
+  <a href="#s2">S2 — Product Vision</a>
+  <a href="#s3">S3 — User Types</a>
+  <div class="nav-section-label">Features</div>
+  <a href="#s4">S4 — MVP Features</a>
+  <a href="#s4a">S4A — Current Build Status</a>
+  <a href="#s5">S5 — Student Dashboard</a>
+  <a href="#s6">S6 — Recruiter Dashboard</a>
+  <a href="#s7">S7 — Admin Dashboard</a>
+  <div class="nav-section-label">Architecture</div>
+  <a href="#s8">S8 — Data Model</a>
+  <a href="#s9">S9 — User Flows</a>
+  <a href="#s10">S10 — Roadmap</a>
+  <div class="nav-section-label">Business</div>
+  <a href="#s11">S11 — Monetization</a>
+  <a href="#s12">S12 — KPI System</a>
+  <div class="nav-section-label">Design</div>
+  <a href="#s13">S13 — Wireframes</a>
+  <a href="#s14">S14 — UX Copy</a>
+  <div class="nav-section-label">Strategy</div>
+  <a href="#s15">S15 — Guardrails</a>
+  <a href="#s16">S16 — Final Rec</a>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">Complete Product Blueprint · v1.0</div>
+  <h1>Solvoriz<br><em>Builder</em></h1>
+  <p>The complete startup-grade product blueprint for building Solvoriz — the student talent discovery platform where projects are the signal.</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item"><strong>16 Sections</strong>Fully structured</div>
+    <div class="hero-meta-item"><strong>3 Dashboards</strong>Student · Recruiter · Admin</div>
+    <div class="hero-meta-item"><strong>MVP-Ready</strong>Ship in 30–60 days</div>
+    <div class="hero-meta-item"><strong>Ages 15–21</strong>Core audience</div>
+  </div>
+</div>
+
+<!-- S1 -->
+<section id="s1">
+  <div class="section-tag">Section 1</div>
+  <h2>One-Line Positioning</h2>
+  <p class="section-intro">10 sharp positioning statements crafted for investors, cold emails, and landing pages. One winner selected.</p>
+
+  <ol class="positioning-list">
+    <li>Solvoriz is where recruiters discover students through what they've built, not what they've studied.</li>
+    <li>The talent discovery platform for the 15–21 generation — project-first, resume-free.</li>
+    <li>Recruiters find verified student builders in under 60 seconds. Students get found by doing real work.</li>
+    <li>Solvoriz replaces the resume with proof. Real projects, real students, real hiring signal.</li>
+    <li>Where student talent is discovered through projects, not pedigree.</li>
+    <li class="winner">Solvoriz helps companies discover young talent aged 15–21 through the projects they actually build. — <strong style="color:var(--accent-warm)">★ WINNER</strong></li>
+    <li>The fastest way for recruiters to find student builders — filtered by skill, project type, and age.</li>
+    <li>Solvoriz is the talent layer for Gen Z creators — search by what they've made, not where they've studied.</li>
+    <li>For students: a profile that shows your work. For companies: a talent pool you can't find on LinkedIn.</li>
+    <li>Student discovery by project. Not resume. Not grades. Just proof of work.</li>
+  </ol>
+
+  <div class="callout blue">
+    <strong>Why the winner works:</strong>
+    It names the exact audience (companies), describes the exact action (discover), specifies the exact user segment (15–21), and anchors the core differentiation (projects). Investor-intelligible in under 10 seconds.
+  </div>
+</section>
+
+<!-- S2 -->
+<section id="s2">
+  <div class="section-tag">Section 2</div>
+  <h2>Product Vision</h2>
+  <p class="section-intro">What Solvoriz is, who it serves, and why narrow focus is the strategic advantage.</p>
+
+  <h3>What Solvoriz Is</h3>
+  <p>Solvoriz is a curated talent discovery platform for students aged 15–21. Students build proof-of-work profiles anchored by real projects. Recruiters search, filter, and discover talent based on what students have actually built — not their GPA, school name, or internship history.</p>
+  <p>The core unit of value is the <strong>Project</strong>, not the resume. A student's profile is only as strong as the projects they add. This makes Solvoriz honest, skill-signal-dense, and impossible to fake with buzzwords.</p>
+
+  <div class="card-grid">
+    <div class="card accent-blue">
+      <div class="card-icon blue">👤</div>
+      <h4>For Students</h4>
+      <p>A simple profile builder where every project is a proof point. Create a public portfolio that speaks louder than a resume.</p>
+    </div>
+    <div class="card accent-orange">
+      <div class="card-icon orange">🔍</div>
+      <h4>For Recruiters</h4>
+      <p>A fast, filter-driven talent browser with a pool recruiters can't access anywhere else — young, active builders, pre-verified.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">⚡</div>
+      <h4>Core Engine</h4>
+      <p>Search filters across skill, location, project type, and age. Student cards that show the work first. Fast contact flow.</p>
+    </div>
+  </div>
+
+  <h3>The Problem It Solves</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Who</th><th>Problem</th><th>What exists</th><th>How Solvoriz fixes it</th></tr></thead>
+      <tbody>
+        <tr><td>Students 15–21</td><td>No professional platform for young, pre-experience talent</td><td>LinkedIn (too corporate), GitHub (too niche)</td><td>A profile built for doers, not degree-holders</td></tr>
+        <tr><td>Recruiters</td><td>Can't find skilled young talent before they're "hireable"</td><td>Job boards, campus fairs</td><td>Direct discovery by skill and project evidence</td></tr>
+        <tr><td>Companies</td><td>Expensive and slow early-talent pipelines</td><td>Internship programs, campus recruitment</td><td>On-demand search with instant shortlisting</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What Solvoriz Is NOT</h3>
+  <ul class="clean">
+    <li>Not a job board — there are no job postings in v1</li>
+    <li>Not a LinkedIn clone — no feed, no connections, no social graph</li>
+    <li>Not an ATS — no application tracking or HR workflow</li>
+    <li>Not a portfolio hosting tool — projects are signals, not showcases</li>
+    <li>Not a learning platform — no courses, no certificates, no paths</li>
+    <li>Not a full-age platform — strictly 15–21, the strategic moat</li>
+  </ul>
+
+  <h3>Why Narrow Focus Is Smart</h3>
+  <p>The 15–21 talent pool is massive, underserved, and growing faster than traditional platforms can capture it. By going narrow early, Solvoriz wins a category that LinkedIn has ignored (too young, no work history), GitHub has missed (non-technical creators), and job boards can't serve (no formal employment history yet). The narrow focus is the moat.</p>
+</section>
+
+<!-- S3 -->
+<section id="s3">
+  <div class="section-tag">Section 3</div>
+  <h2>User Types</h2>
+  <p class="section-intro">Three roles, three jobs-to-be-done, three distinct success moments.</p>
+
+  <div class="user-cards">
+    <div class="user-card">
+      <div class="user-card-header student">
+        <div class="role-label">Role 01</div>
+        <h3>The Student</h3>
+      </div>
+      <div class="user-card-body">
+        <div class="uc-label">Goal</div>
+        <p>Get discovered by companies and internship programs before graduating. Build a verifiable track record of real work.</p>
+        <div class="uc-label">Main Actions</div>
+        <p>Create profile → Add projects → Set visibility → Get contacted</p>
+        <div class="uc-label">Pain Points</div>
+        <p>No professional platform for their age. Resume doesn't reflect what they can actually do. Zero discoverability.</p>
+        <div class="uc-label">Success Moment</div>
+        <p>"A recruiter from [company] messaged me about my project."</p>
+      </div>
+    </div>
+    <div class="user-card">
+      <div class="user-card-header recruiter">
+        <div class="role-label">Role 02</div>
+        <h3>The Recruiter</h3>
+      </div>
+      <div class="user-card-body">
+        <div class="uc-label">Goal</div>
+        <p>Find skilled young talent fast, before competitors do. Build an early-talent pipeline with less effort.</p>
+        <div class="uc-label">Main Actions</div>
+        <p>Set filters → Browse students → View profiles → Shortlist → Contact</p>
+        <div class="uc-label">Pain Points</div>
+        <p>Campus hiring is expensive and slow. LinkedIn has no pre-experience talent. No way to evaluate young builders.</p>
+        <div class="uc-label">Success Moment</div>
+        <p>"I found 3 students with exactly the right skills in 10 minutes."</p>
+      </div>
+    </div>
+    <div class="user-card">
+      <div class="user-card-header admin">
+        <div class="role-label">Role 03</div>
+        <h3>The Admin/Founder</h3>
+      </div>
+      <div class="user-card-body">
+        <div class="uc-label">Goal</div>
+        <p>Grow a high-quality supply (students) and monetizable demand (recruiters). Maintain trust and curate quality.</p>
+        <div class="uc-label">Main Actions</div>
+        <p>Monitor KPIs → Verify students → Feature profiles → Manage moderation → Track revenue</p>
+        <div class="uc-label">Pain Points</div>
+        <p>Low-quality profiles kill recruiter trust. Need traction signals fast. Monetization requires supply-demand balance.</p>
+        <div class="uc-label">Success Moment</div>
+        <p>"Recruiter paid for premium access because they found a hire on Solvoriz."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S4 -->
+<section id="s4">
+  <div class="section-tag">Section 4</div>
+  <h2>Exact MVP Features</h2>
+  <p class="section-intro">Every feature classified by priority. Build the must-haves. Queue the nice-to-haves. Ban the rest.</p>
+
+  <h3>A. Student Side</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Feature</th><th>Priority</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Email + OAuth signup (Google)</td><td><span class="badge badge-must">Must v1</span></td><td>Lowest friction entry. Age verification question at signup.</td></tr>
+        <tr><td>Basic profile (name, bio, age, location, skills)</td><td><span class="badge badge-must">Must v1</span></td><td>Keep fields minimal. Skills as tags, max 10.</td></tr>
+        <tr><td>Project creation (title, desc, tags, link, image)</td><td><span class="badge badge-must">Must v1</span></td><td>The core product. 1 image upload per project.</td></tr>
+        <tr><td>Profile visibility toggle (public / hidden)</td><td><span class="badge badge-must">Must v1</span></td><td>Students must control discoverability.</td></tr>
+        <tr><td>Profile completion progress bar</td><td><span class="badge badge-must">Must v1</span></td><td>Drives quality. Unlock "Discoverable" status at 80%.</td></tr>
+        <tr><td>Public profile URL (solvoriz.com/u/handle)</td><td><span class="badge badge-must">Must v1</span></td><td>Students share their own link. Organic growth lever.</td></tr>
+        <tr><td>Contact request notification (email)</td><td><span class="badge badge-must">Must v1</span></td><td>When recruiter initiates contact, student gets email alert.</td></tr>
+        <tr><td>Project ordering / pinning</td><td><span class="badge badge-nice">Nice later</span></td><td>Let students pin best project to top.</td></tr>
+        <tr><td>Resume upload / parse</td><td><span class="badge badge-no">Do not build</span></td><td>Against core product philosophy. Projects are the signal.</td></tr>
+        <tr><td>Social feed / followers</td><td><span class="badge badge-no">Do not build</span></td><td>Scope creep. Not a social network.</td></tr>
+        <tr><td>Skill endorsements</td><td><span class="badge badge-no">Do not build</span></td><td>LinkedIn feature. Avoid.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>B. Recruiter Side</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Feature</th><th>Priority</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Recruiter account creation + verification</td><td><span class="badge badge-must">Must v1</span></td><td>Company email required. Manual admin approval in v1.</td></tr>
+        <tr><td>Student browse + filter (skills, age, location, project type)</td><td><span class="badge badge-must">Must v1</span></td><td>The core recruiter product. Must be fast.</td></tr>
+        <tr><td>Student card view in browse</td><td><span class="badge badge-must">Must v1</span></td><td>Photo, name, top skills, latest project thumbnail.</td></tr>
+        <tr><td>Full student profile view</td><td><span class="badge badge-must">Must v1</span></td><td>All projects, bio, skills, contact button.</td></tr>
+        <tr><td>Shortlist / save student</td><td><span class="badge badge-must">Must v1</span></td><td>Simple saved list. No folders needed in v1.</td></tr>
+        <tr><td>Contact request flow</td><td><span class="badge badge-must">Must v1</span></td><td>Recruiter sends message → Student gets notified. No direct email reveal in v1.</td></tr>
+        <tr><td>Saved search filters</td><td><span class="badge badge-nice">Nice later</span></td><td>Save a search config and get notified of new matches.</td></tr>
+        <tr><td>Team seats / shared shortlist</td><td><span class="badge badge-nice">Nice later</span></td><td>Phase 2 for team plans.</td></tr>
+        <tr><td>Job posting / applications</td><td><span class="badge badge-no">Do not build</span></td><td>Not a job board. Don't add complexity.</td></tr>
+        <tr><td>ATS integration</td><td><span class="badge badge-no">Do not build</span></td><td>Phase 3+. Way too early.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>C. Admin Side</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Feature</th><th>Priority</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>User overview (signups, DAU, WAU)</td><td><span class="badge badge-must">Must v1</span></td><td>Know what's happening daily.</td></tr>
+        <tr><td>Student profile review + approve/flag</td><td><span class="badge badge-must">Must v1</span></td><td>Manual curation is the quality lever in v1.</td></tr>
+        <tr><td>Recruiter verification queue</td><td><span class="badge badge-must">Must v1</span></td><td>Approve recruiters manually before they access students.</td></tr>
+        <tr><td>Feature a student/project (toggle)</td><td><span class="badge badge-must">Must v1</span></td><td>Boosts visibility. Used to reward quality.</td></tr>
+        <tr><td>Revenue tracking (plan upgrades, contact credits)</td><td><span class="badge badge-must">Must v1</span></td><td>Basic Stripe dashboard link is fine in v1.</td></tr>
+        <tr><td>Automated spam/bot detection</td><td><span class="badge badge-nice">Nice later</span></td><td>Manual review first. Automate after patterns emerge.</td></tr>
+        <tr><td>Multi-tenant college portal</td><td><span class="badge badge-nice">Nice later</span></td><td>Phase 2 when college partnerships start.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S4A -->
+<section id="s4a">
+  <div class="section-tag">Section 4A</div>
+  <h2>Current Build Status</h2>
+  <p class="section-intro">This section reflects what the live Solvoriz product has already achieved in the codebase today, and what is only partially complete so the next build priorities stay obvious.</p>
+
+  <h3>What We Have Achieved</h3>
+  <div class="card-grid">
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Role Structure Is Live</h4>
+      <p>Student auth, recruiter auth, and admin role structure are already implemented in the app.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Student Profile Editing</h4>
+      <p>Students can edit headline, bio, skills, location, age, avatar, GitHub username, visibility, and availability.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Project CRUD</h4>
+      <p>Students can add, edit, hide, and delete projects, with the current cap aligned to the project-first MVP direction.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Recruiter Browse + Filters</h4>
+      <p>Recruiters can browse projects and filter by skills, location, age, availability, and project type.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Shortlist / Save</h4>
+      <p>Recruiters can shortlist creators and revisit saved talent later from a dedicated shortlist view.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Recruiter Verification State</h4>
+      <p>Recruiter verification state exists, and message sending is gated so unverified recruiters cannot contact creators.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Internal Messaging</h4>
+      <p>Recruiter-to-creator messaging is already much stronger than the original contact-request-only concept, with inbox and thread UI in place.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Activity + Notifications</h4>
+      <p>Students already have activity and notification surfaces for recruiter views, shortlist events, and message-related updates.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon green">✓</div>
+      <h4>Admin Basics</h4>
+      <p>Admin foundations already exist in the repo, even though the dashboard is not yet at the full operational depth planned in this blueprint.</p>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <strong>Status summary:</strong>
+    Solvoriz already has the core product shell working: role-based auth, creator profiles, project management, recruiter discovery, shortlist flow, verification-gated messaging, and basic admin foundations.
+  </div>
+
+  <h3>What Is Partially Achieved</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Current State</th>
+          <th>What Still Needs To Be Done</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Profile Completion</strong></td>
+          <td>Profile completion and progress UI already exist.</td>
+          <td>Add a stronger discoverable gate, clearer unlock logic, and a more explicit profile-quality system tied to recruiter visibility.</td>
+        </tr>
+        <tr>
+          <td><strong>Public Profile Preview</strong></td>
+          <td>Public profile preview exists and is usable.</td>
+          <td>Polish the final public profile presentation and add stronger verification / featured trust treatment so it feels premium and recruiter-ready.</td>
+        </tr>
+        <tr>
+          <td><strong>Messaging Status</strong></td>
+          <td>Inbox and thread messaging are live.</td>
+          <td>Finish blueprint-level states like <em>Sent → Seen → Replied</em>, plus stronger trust and response-state feedback.</td>
+        </tr>
+        <tr>
+          <td><strong>Admin Console</strong></td>
+          <td>Admin pages and basic admin controls already exist.</td>
+          <td>Expand into the full moderation / ops console: recruiter approval queue, richer moderation queue, analytics, and stronger founder controls.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>What this means for the next phase:</strong>
+    The product is no longer at the idea stage. The right move now is not broad feature expansion. The right move is finishing the partially achieved systems until Solvoriz feels fully trustworthy, production-grade, and launch-ready.
+  </div>
+</section>
+
+<!-- S5 -->
+<section id="s5">
+  <div class="section-tag">Section 5</div>
+  <h2>Student Dashboard</h2>
+  <p class="section-intro">Every page, component, and flow the student experiences from signup to fully discoverable profile.</p>
+
+  <h3>Pages</h3>
+  <div class="card-grid">
+    <div class="card"><h4>Dashboard Home</h4><p>Profile score, projects list, recruiter views, notification center, "Complete your profile" CTA.</p></div>
+    <div class="card"><h4>Edit Profile</h4><p>Name, bio, age, location, skills (tag picker), avatar upload, social links (GitHub, Behance, Dribbble).</p></div>
+    <div class="card"><h4>My Projects</h4><p>Project cards in grid. Add New button. Edit/Delete each project. Toggle project visibility.</p></div>
+    <div class="card"><h4>Add / Edit Project</h4><p>Title, description, skills used (tags), project URL, 1 image, project type (side project / school / work).</p></div>
+    <div class="card"><h4>Public Profile Preview</h4><p>"See how recruiters see you" — renders the actual public profile in a preview pane.</p></div>
+    <div class="card"><h4>Notifications</h4><p>Contact requests from recruiters. Profile view notifications (aggregated, not per-view). System alerts.</p></div>
+  </div>
+
+  <h3>Profile Completion Logic</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Field</th><th>Points</th><th>Required?</th></tr></thead>
+      <tbody>
+        <tr><td>Profile photo</td><td>15</td><td>No, but shown in recruiter browse</td></tr>
+        <tr><td>Name + handle</td><td>10</td><td>Yes</td></tr>
+        <tr><td>Bio (min 40 chars)</td><td>10</td><td>No</td></tr>
+        <tr><td>Location (city)</td><td>10</td><td>No</td></tr>
+        <tr><td>Skills (min 3)</td><td>15</td><td>Yes for discoverability</td></tr>
+        <tr><td>First project added</td><td>20</td><td>Yes for discoverability</td></tr>
+        <tr><td>Second project added</td><td>10</td><td>No</td></tr>
+        <tr><td>Email verified</td><td>10</td><td>Yes</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>Unlock rule:</strong> Students only appear in recruiter search results when their profile score reaches 70+. This is the quality gate. Show it clearly on dashboard.
+  </div>
+
+  <h3>Post-Signup Student Flow</h3>
+  <ol class="flow-steps">
+    <li><strong>Email verification</strong> Verify via link in email. Unverified profiles are not discoverable.</li>
+    <li><strong>Onboarding splash</strong> "Solvoriz helps you get found by real companies through your projects. Let's build your profile." — 2 screen max.</li>
+    <li><strong>Basic info prompt</strong> Name, age (15–21 gate), location, skills. Must complete before proceeding.</li>
+    <li><strong>First project prompt</strong> "Add your best project" modal appears. Cannot skip the first one — it's the product's core value.</li>
+    <li><strong>Profile preview shown</strong> Student sees their public profile. Celebrates with "You're discoverable!" if score ≥ 70.</li>
+    <li><strong>Dashboard home</strong> Profile score bar, projects list, "Add another project" nudge, share profile link button.</li>
+  </ol>
+
+  <h3>How Projects Should Be Added</h3>
+  <ul class="clean">
+    <li>Single-page form: title (required), description (200 char max), skills used (tag select, max 5), project link (URL), image upload (1 image, max 2MB), project type radio (Side Project / School Project / Freelance / Internship)</li>
+    <li>Auto-save draft so students don't lose progress</li>
+    <li>Projects default to visible=true when added</li>
+    <li>Admin can flag a project — student sees a "Project under review" label</li>
+    <li>Max 8 projects in v1 (prevents vanity bloat, keeps quality high)</li>
+  </ul>
+
+  <h3>What Appears on Public Student Profile</h3>
+  <div class="card-grid">
+    <div class="card accent-blue"><h4>Above Fold</h4><p>Photo, name, age, location, top 5 skills as chips, bio, "Available / Open to opportunities" badge.</p></div>
+    <div class="card accent-orange"><h4>Projects Section</h4><p>Cards with thumbnail, project name, skills used, project type label, link to project. Ordered by pinned first, then most recent.</p></div>
+    <div class="card accent-green"><h4>Contact CTA</h4><p>Visible only to logged-in verified recruiters. Shows "Contact [Name]" button. Hidden from other students.</p></div>
+  </div>
+
+  <h3>Empty States</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>State</th><th>Copy</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>No projects yet</td><td>"Your profile is invisible without projects. Add your first one — it takes 2 minutes."</td><td>"Add Project" button</td></tr>
+        <tr><td>No notifications</td><td>"When a recruiter views your profile or reaches out, you'll see it here."</td><td>—</td></tr>
+        <tr><td>Profile not discoverable</td><td>"Complete your profile to start appearing in recruiter searches."</td><td>Progress bar + next step</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S6 -->
+<section id="s6">
+  <div class="section-tag">Section 6</div>
+  <h2>Recruiter Dashboard</h2>
+  <p class="section-intro">The recruiter experience must be fast, filter-driven, and immediately valuable on first session.</p>
+
+  <h3>Pages</h3>
+  <div class="card-grid">
+    <div class="card"><h4>Browse / Discover</h4><p>Main page. Filter panel left. Student card grid right. This is where 80% of time is spent.</p></div>
+    <div class="card"><h4>Student Profile View</h4><p>Full profile, all projects, skills, bio, contact button. Opens from browse grid.</p></div>
+    <div class="card"><h4>Shortlist</h4><p>All saved/favorited students. Simple list. Notes field per student (v2). Batch contact action.</p></div>
+    <div class="card"><h4>Contact History</h4><p>All contact requests sent. Status (pending / seen / responded). Students' responses.</p></div>
+    <div class="card"><h4>Account / Billing</h4><p>Plan status, contact credits remaining, upgrade CTA, company profile (name, logo, description).</p></div>
+  </div>
+
+  <h3>Filter Panel Design</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Filter</th><th>Type</th><th>Values</th></tr></thead>
+      <tbody>
+        <tr><td>Skills</td><td>Multi-select tag search</td><td>Free-form from student skill pool</td></tr>
+        <tr><td>Age</td><td>Range slider</td><td>15–21</td></tr>
+        <tr><td>Location</td><td>City / Country text + dropdown</td><td>All, Remote-friendly</td></tr>
+        <tr><td>Project Type</td><td>Checkbox</td><td>Side Project, School Project, Freelance, Internship</td></tr>
+        <tr><td>Availability</td><td>Toggle</td><td>Open to opportunities only</td></tr>
+        <tr><td>Featured</td><td>Toggle</td><td>Admin-verified featured profiles only</td></tr>
+        <tr><td>Profile completeness</td><td>Hidden</td><td>Always filter to 70%+ (quality gate, not shown to recruiter)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Student Card Design (Browse Grid)</h3>
+  <ul class="clean">
+    <li>Avatar photo (initials fallback) + Name + Age + Location</li>
+    <li>Top 3 skill chips (colored tags)</li>
+    <li>Latest project thumbnail image (or placeholder pattern)</li>
+    <li>Latest project name below thumbnail</li>
+    <li>Shortlist (heart) button top-right of card</li>
+    <li>Featured badge (gold dot) if admin-featured</li>
+    <li>Click card → opens full student profile</li>
+  </ul>
+
+  <h3>Contact Flow</h3>
+  <ol class="flow-steps">
+    <li><strong>Recruiter clicks "Contact [Student]"</strong> on full profile page.</li>
+    <li><strong>Message composer modal</strong> Pre-filled with company name. Recruiter writes brief message (280 char max). Uses 1 contact credit.</li>
+    <li><strong>Student gets email notification</strong> "[Company] wants to connect with you on Solvoriz. Click to see their message."</li>
+    <li><strong>Student responds in dashboard</strong> Simple reply thread (2-message max in v1). After that, both sides exchange real emails.</li>
+    <li><strong>Recruiter sees status</strong> in Contact History: Sent → Seen → Replied.</li>
+  </ol>
+
+  <h3>Recruiter Onboarding</h3>
+  <ol class="flow-steps">
+    <li><strong>Signup with company email</strong> Must be corporate domain. Personal Gmail rejected.</li>
+    <li><strong>Company profile</strong> Company name, industry, role title, website.</li>
+    <li><strong>Pending verification</strong> Admin approves within 24h. Email sent on approval.</li>
+    <li><strong>First browse session</strong> Guided tour: filter panel → student card → profile view → contact button.</li>
+    <li><strong>Free trial</strong> 5 contact credits included free. Upgrade to paid plan for more.</li>
+  </ol>
+
+  <h3>Metrics Recruiters Should See</h3>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Students Viewed</div><div class="kpi-value">—</div><div class="kpi-desc">This session / all time</div></div>
+    <div class="kpi-card"><div class="kpi-label">Shortlisted</div><div class="kpi-value">—</div><div class="kpi-desc">Total saved students</div></div>
+    <div class="kpi-card"><div class="kpi-label">Contacts Sent</div><div class="kpi-value">—</div><div class="kpi-desc">Response rate shown</div></div>
+    <div class="kpi-card"><div class="kpi-label">Credits Left</div><div class="kpi-value">—</div><div class="kpi-desc">With upgrade prompt at &lt;3</div></div>
+  </div>
+
+  <h3>Empty States</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>State</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>No results for filter</td><td>"No students match these exact filters. Try broadening your skills search or removing the location filter."</td></tr>
+        <tr><td>Empty shortlist</td><td>"Save students you want to revisit by clicking the heart icon on any profile."</td></tr>
+        <tr><td>Pending verification</td><td>"Your account is being reviewed. You'll get access within 24 hours — we verify all recruiters to protect students."</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S7 -->
+<section id="s7">
+  <div class="section-tag">Section 7</div>
+  <h2>Admin / Founder Dashboard</h2>
+  <p class="section-intro">Your full operational command center. Monitor quality, moderate content, drive growth, track revenue.</p>
+
+  <h3>Main Dashboard Overview (Daily View)</h3>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">New Students Today</div><div class="kpi-value" style="color:var(--accent)">—</div><div class="kpi-desc">vs yesterday</div></div>
+    <div class="kpi-card"><div class="kpi-label">New Recruiters Today</div><div class="kpi-value" style="color:var(--accent-warm)">—</div><div class="kpi-desc">pending approval count</div></div>
+    <div class="kpi-card"><div class="kpi-label">Profiles Discoverable</div><div class="kpi-value" style="color:var(--accent-green)">—</div><div class="kpi-desc">70%+ completion</div></div>
+    <div class="kpi-card"><div class="kpi-label">Revenue MTD</div><div class="kpi-value" style="color:var(--accent-amber)">—</div><div class="kpi-desc">vs last month</div></div>
+    <div class="kpi-card"><div class="kpi-label">Contact Requests</div><div class="kpi-value">—</div><div class="kpi-desc">Last 7 days</div></div>
+    <div class="kpi-card"><div class="kpi-label">Flagged Items</div><div class="kpi-value" style="color:#c92f2f">—</div><div class="kpi-desc">Needs review</div></div>
+  </div>
+
+  <h3>Full Admin Module Map</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Module</th><th>Key Actions</th><th>V1 Manual or Auto?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>User Growth</strong></td><td>Daily/weekly signups by role, DAU chart, retention cohorts</td><td>Auto (charts)</td></tr>
+        <tr><td><strong>Student Queue</strong></td><td>Review new profiles, approve/flag/remove, view completion score</td><td>Manual in v1</td></tr>
+        <tr><td><strong>Recruiter Queue</strong></td><td>Approve/reject new recruiter accounts, view company domain, log reason</td><td>Manual in v1</td></tr>
+        <tr><td><strong>Project Moderation</strong></td><td>Review flagged projects, remove inappropriate content, add verification badge</td><td>Manual in v1</td></tr>
+        <tr><td><strong>Feature Controls</strong></td><td>Toggle "Featured" on student/project, set featured order, set expiry</td><td>Manual always</td></tr>
+        <tr><td><strong>Revenue Tracker</strong></td><td>MRR, plan breakdown, contact credit purchases, Stripe dashboard link</td><td>Auto (Stripe)</td></tr>
+        <tr><td><strong>College/Community Onboarding</strong></td><td>Create college invite link, track signups by institution, flag college domain</td><td>Manual in v1</td></tr>
+        <tr><td><strong>Search &amp; Filter</strong></td><td>Search any user by name/email/school/skill, filter by status/plan</td><td>Auto</td></tr>
+        <tr><td><strong>Notification Center</strong></td><td>Send system announcements, user-specific alerts, email broadcasts</td><td>Manual in v1</td></tr>
+        <tr><td><strong>Support Panel</strong></td><td>View reported issues, respond to user tickets (Crisp/Intercom embed), close tickets</td><td>Manual</td></tr>
+        <tr><td><strong>Export / Reports</strong></td><td>Export user CSVs, project lists, revenue reports, contact activity</td><td>Manual trigger</td></tr>
+        <tr><td><strong>Settings</strong></td><td>Platform feature flags, age gate settings, max project count, contact credit limits</td><td>Manual</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Fraud / Spam Detection Ideas (v1: Manual Rules)</h3>
+  <ul class="clean">
+    <li>Flag profiles with identical bio text (copy-paste detection)</li>
+    <li>Flag projects with stock image links or placeholder URLs</li>
+    <li>Flag recruiters signing up with free email providers (Gmail, Yahoo, Outlook)</li>
+    <li>Flag students under 15 or over 21 based on self-reported age</li>
+    <li>Flag profiles with 0 project activity for 14+ days after signup</li>
+    <li>Rate-limit contact requests per recruiter (max 20/day in v1)</li>
+  </ul>
+
+  <h3>Metrics Timeline</h3>
+  <div class="callout blue">
+    <strong>First 30 Days — What matters most:</strong>
+    Total students discoverable (quality supply), recruiter approval count, contact requests sent (demand signal), profile completion rate, and daily signups. These tell you if the core loop works.
+  </div>
+  <div class="callout">
+    <strong>After Product-Market Fit:</strong>
+    Recruiter retention rate, contact-to-response rate, time-to-hire signal (survey), revenue per recruiter, referral rate (student and recruiter), NPS.
+  </div>
+</section>
+
+<!-- S8 -->
+<section id="s8">
+  <div class="section-tag">Section 8</div>
+  <h2>Database / Data Model</h2>
+  <p class="section-intro">Clean, lean, not over-engineered. Only what you need to ship v1 and scale to v2.</p>
+
+  <h3>StudentProfile</h3>
+  <p>The core supply-side entity. Every recruiter discovery starts here.</p>
+  <pre><span class="code-comment">// StudentProfile</span>
+{
+  <span class="code-key">"id"</span>: <span class="code-str">"sp_01HX..."</span>,          <span class="code-comment">// ULID, required</span>
+  <span class="code-key">"handle"</span>: <span class="code-str">"aryan-mehta"</span>,      <span class="code-comment">// unique slug, required</span>
+  <span class="code-key">"email"</span>: <span class="code-str">"aryan@gmail.com"</span>,   <span class="code-comment">// required, private</span>
+  <span class="code-key">"name"</span>: <span class="code-str">"Aryan Mehta"</span>,        <span class="code-comment">// required, public</span>
+  <span class="code-key">"age"</span>: <span class="code-num">17</span>,                    <span class="code-comment">// required, 15–21 gate</span>
+  <span class="code-key">"location"</span>: <span class="code-str">"Mumbai, India"</span>, <span class="code-comment">// optional, public</span>
+  <span class="code-key">"bio"</span>: <span class="code-str">"Building things..."</span>,  <span class="code-comment">// optional, 200 char max</span>
+  <span class="code-key">"avatar_url"</span>: <span class="code-str">"..."</span>,          <span class="code-comment">// optional</span>
+  <span class="code-key">"skills"</span>: [<span class="code-str">"React"</span>, <span class="code-str">"Python"</span>], <span class="code-comment">// required, max 10 tags</span>
+  <span class="code-key">"social_links"</span>: {               <span class="code-comment">// optional</span>
+    <span class="code-key">"github"</span>: <span class="code-str">"https://..."</span>,
+    <span class="code-key">"behance"</span>: <span class="code-str">"https://..."</span>
+  },
+  <span class="code-key">"is_open"</span>: <span class="code-bool">true</span>,               <span class="code-comment">// "open to opportunities" flag</span>
+  <span class="code-key">"is_visible"</span>: <span class="code-bool">true</span>,             <span class="code-comment">// student controls discoverability</span>
+  <span class="code-key">"is_featured"</span>: <span class="code-bool">false</span>,           <span class="code-comment">// admin sets this</span>
+  <span class="code-key">"completion_score"</span>: <span class="code-num">85</span>,         <span class="code-comment">// computed, 0–100</span>
+  <span class="code-key">"is_verified_email"</span>: <span class="code-bool">true</span>,      <span class="code-comment">// required for discoverability</span>
+  <span class="code-key">"status"</span>: <span class="code-str">"active"</span>,             <span class="code-comment">// active | flagged | suspended</span>
+  <span class="code-key">"created_at"</span>: <span class="code-str">"2025-06-01T..."</span>,
+  <span class="code-key">"updated_at"</span>: <span class="code-str">"2025-06-10T..."</span>
+}</pre>
+
+  <h3>Project</h3>
+  <p>The core signal unit. Each student can have up to 8. Recruiter filters are partially based on project metadata.</p>
+  <pre><span class="code-comment">// Project</span>
+{
+  <span class="code-key">"id"</span>: <span class="code-str">"pr_01HX..."</span>,
+  <span class="code-key">"student_id"</span>: <span class="code-str">"sp_01HX..."</span>,   <span class="code-comment">// FK to StudentProfile</span>
+  <span class="code-key">"title"</span>: <span class="code-str">"AI Resume Screener"</span>, <span class="code-comment">// required</span>
+  <span class="code-key">"description"</span>: <span class="code-str">"Built a..."</span>,    <span class="code-comment">// optional, 400 char max</span>
+  <span class="code-key">"skills_used"</span>: [<span class="code-str">"Python"</span>],     <span class="code-comment">// required, max 5</span>
+  <span class="code-key">"project_url"</span>: <span class="code-str">"https://..."</span>,  <span class="code-comment">// optional</span>
+  <span class="code-key">"image_url"</span>: <span class="code-str">"https://..."</span>,    <span class="code-comment">// optional, 1 image</span>
+  <span class="code-key">"project_type"</span>: <span class="code-str">"side_project"</span>,<span class="code-comment">// side_project|school|freelance|internship</span>
+  <span class="code-key">"is_visible"</span>: <span class="code-bool">true</span>,
+  <span class="code-key">"is_featured"</span>: <span class="code-bool">false</span>,          <span class="code-comment">// admin toggle</span>
+  <span class="code-key">"is_pinned"</span>: <span class="code-bool">false</span>,            <span class="code-comment">// student sets one pinned project</span>
+  <span class="code-key">"status"</span>: <span class="code-str">"active"</span>,             <span class="code-comment">// active | under_review | removed</span>
+  <span class="code-key">"created_at"</span>: <span class="code-str">"2025-06-01T..."</span>
+}</pre>
+
+  <h3>RecruiterAccount</h3>
+  <pre><span class="code-comment">// RecruiterAccount</span>
+{
+  <span class="code-key">"id"</span>: <span class="code-str">"ra_01HX..."</span>,
+  <span class="code-key">"email"</span>: <span class="code-str">"hr@company.com"</span>,     <span class="code-comment">// company email required</span>
+  <span class="code-key">"name"</span>: <span class="code-str">"Priya Sharma"</span>,
+  <span class="code-key">"company_name"</span>: <span class="code-str">"Zepto"</span>,
+  <span class="code-key">"company_website"</span>: <span class="code-str">"https://..."</span>,
+  <span class="code-key">"role_title"</span>: <span class="code-str">"Talent Manager"</span>,
+  <span class="code-key">"status"</span>: <span class="code-str">"verified"</span>,           <span class="code-comment">// pending | verified | rejected</span>
+  <span class="code-key">"plan"</span>: <span class="code-str">"starter"</span>,             <span class="code-comment">// free | starter | growth</span>
+  <span class="code-key">"contact_credits"</span>: <span class="code-num">15</span>,        <span class="code-comment">// consumed per contact request</span>
+  <span class="code-key">"credits_used_total"</span>: <span class="code-num">8</span>,
+  <span class="code-key">"created_at"</span>: <span class="code-str">"2025-06-01T..."</span>
+}</pre>
+
+  <h3>RecruiterSearchFilter</h3>
+  <pre><span class="code-comment">// RecruiterSearchFilter (saved searches)</span>
+{
+  <span class="code-key">"id"</span>: <span class="code-str">"rf_01HX..."</span>,
+  <span class="code-key">"recruiter_id"</span>: <span class="code-str">"ra_01HX..."</span>,
+  <span class="code-key">"name"</span>: <span class="code-str">"React devs Mumbai 16-18"</span>, <span class="code-comment">// optional label</span>
+  <span class="code-key">"filters"</span>: {
+    <span class="code-key">"skills"</span>: [<span class="code-str">"React"</span>, <span class="code-str">"Tailwind"</span>],
+    <span class="code-key">"age_min"</span>: <span class="code-num">16</span>,
+    <span class="code-key">"age_max"</span>: <span class="code-num">18</span>,
+    <span class="code-key">"location"</span>: <span class="code-str">"Mumbai"</span>,
+    <span class="code-key">"project_types"</span>: [<span class="code-str">"side_project"</span>],
+    <span class="code-key">"open_only"</span>: <span class="code-bool">true</span>,
+    <span class="code-key">"featured_only"</span>: <span class="code-bool">false</span>
+  },
+  <span class="code-key">"notify_on_new"</span>: <span class="code-bool">false</span>,        <span class="code-comment">// v2 feature</span>
+  <span class="code-key">"created_at"</span>: <span class="code-str">"2025-06-05T..."</span>
+}</pre>
+
+  <h3>Supporting Entities Summary</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Entity</th><th>Purpose</th><th>Key Fields</th></tr></thead>
+      <tbody>
+        <tr><td>ContactRequest</td><td>Recruiter-to-student outreach</td><td>recruiter_id, student_id, message, status (sent/seen/replied), credits_used, created_at</td></tr>
+        <tr><td>Shortlist</td><td>Recruiter's saved students</td><td>recruiter_id, student_id, note (optional), created_at</td></tr>
+        <tr><td>AdminActionLog</td><td>Audit trail for all admin actions</td><td>admin_id, action_type, target_type, target_id, reason, created_at</td></tr>
+        <tr><td>VerificationRecord</td><td>Track admin verifications</td><td>target_type, target_id, verified_by, method (manual/email), created_at</td></tr>
+        <tr><td>RevenueTransaction</td><td>Track paid events</td><td>recruiter_id, amount, currency, plan, stripe_payment_id, created_at</td></tr>
+        <tr><td>FeatureFlag</td><td>Kill switches for platform features</td><td>flag_name, is_enabled, description, updated_at</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S9 -->
+<section id="s9">
+  <div class="section-tag">Section 9</div>
+  <h2>User Flows</h2>
+  <p class="section-intro">Detailed step-by-step flows for every critical action in v1.</p>
+
+  <h3>Flow 1 — Student Signup to Completed Profile</h3>
+  <ol class="flow-steps">
+    <li><strong>Land on homepage</strong> Clicks "Join as Student" CTA.</li>
+    <li><strong>Signup</strong> Google OAuth or email/password. Age gate question: "How old are you?" — rejects &lt;15 and &gt;21.</li>
+    <li><strong>Email verification</strong> Verification link sent. Must verify to proceed.</li>
+    <li><strong>Onboarding step 1</strong> Name, handle (auto-suggested), location (city).</li>
+    <li><strong>Onboarding step 2</strong> Add skills (tag picker, min 3 to proceed).</li>
+    <li><strong>First project prompt</strong> Modal: "Add your first project — this is what companies will see." Required to proceed.</li>
+    <li><strong>Profile complete</strong> Score shown. If ≥70: "You're discoverable!" If &lt;70: checklist of what's missing.</li>
+    <li><strong>Dashboard home</strong> Share profile link nudge. "Add your second project" card.</li>
+  </ol>
+
+  <h3>Flow 2 — Student Adding First Project</h3>
+  <ol class="flow-steps">
+    <li><strong>Click "Add Project"</strong> from dashboard or onboarding modal.</li>
+    <li><strong>Project form appears</strong> Single-page form. Fields: title, description, skills used (tag select), project URL, image upload, project type.</li>
+    <li><strong>Auto-save draft</strong> Every 30 seconds. Prevents data loss.</li>
+    <li><strong>Submit</strong> Project goes live instantly (status: active). No approval needed in v1.</li>
+    <li><strong>Profile score updates</strong> +20 points. Progress bar animates up.</li>
+    <li><strong>Confirmation</strong> "Project added! It's now visible on your profile." with link to public profile.</li>
+  </ol>
+
+  <h3>Flow 3 — Recruiter Signup to First Search</h3>
+  <ol class="flow-steps">
+    <li><strong>Land on homepage</strong> Clicks "Find Student Talent" CTA.</li>
+    <li><strong>Signup form</strong> Name, work email (company domain required), company, role title, website.</li>
+    <li><strong>Pending screen</strong> "We're verifying your account — usually takes under 24 hours."</li>
+    <li><strong>Admin approves</strong> Triggers automated email: "You're in. Start discovering students."</li>
+    <li><strong>First login</strong> Onboarding tooltip: "Use filters left → browse cards right → click card to view full profile."</li>
+    <li><strong>First filter applied</strong> Select a skill. Results appear. Browse begins.</li>
+    <li><strong>5 free credits shown</strong> Banner: "You have 5 free contact credits. Use them wisely."</li>
+  </ol>
+
+  <h3>Flow 4 — Recruiter Finding and Contacting a Student</h3>
+  <ol class="flow-steps">
+    <li><strong>Apply filters</strong> Skills: "Figma, UI design". Age: 17–19. Location: Delhi.</li>
+    <li><strong>Browse results</strong> 12 student cards appear. Scroll through. Notice a student with a strong project thumbnail.</li>
+    <li><strong>Click card</strong> Full profile opens. Read bio, browse projects, click project link.</li>
+    <li><strong>Decide to contact</strong> Click "Contact Aryan" button.</li>
+    <li><strong>Message modal</strong> Write message (280 char max). Click "Send" — uses 1 credit.</li>
+    <li><strong>Confirmation</strong> "Message sent! Aryan will be notified by email."</li>
+    <li><strong>Contact history updated</strong> Shows "Sent — Pending response."</li>
+  </ol>
+
+  <h3>Flow 5 — Admin Reviewing a Flagged Profile/Project</h3>
+  <ol class="flow-steps">
+    <li><strong>Flagged item appears</strong> in admin moderation queue with reason (auto-flagged or user-reported).</li>
+    <li><strong>Admin reviews</strong> Sees full student profile + projects. Reads flag reason.</li>
+    <li><strong>Decision</strong> Options: Approve (remove flag), Edit (fix minor issue), Suspend (hide from search), Remove (delete with reason).</li>
+    <li><strong>Action logged</strong> AdminActionLog records action + reason + admin ID.</li>
+    <li><strong>Student notified</strong> If suspended/removed: email sent with reason and appeal option.</li>
+  </ol>
+
+  <h3>Flow 6 — Admin Featuring a Student/Project</h3>
+  <ol class="flow-steps">
+    <li><strong>Find student</strong> via search in admin panel. View their profile.</li>
+    <li><strong>Toggle "Featured"</strong> On StudentProfile or specific Project. Set expiry date (optional).</li>
+    <li><strong>Student notified</strong> "Your profile has been featured on Solvoriz! 🎉"</li>
+    <li><strong>Recruiter browse</strong> Student appears with Featured badge. Sorted higher in results.</li>
+  </ol>
+
+  <h3>Flow 7 — College/Community Onboarding</h3>
+  <ol class="flow-steps">
+    <li><strong>Admin creates invite</strong> Generates unique signup link: solvoriz.com/join/iit-bombay</li>
+    <li><strong>Shared with college</strong> POC at college shares link in WhatsApp group, email blast, notice board.</li>
+    <li><strong>Students signup via link</strong> Institution tag auto-applied to all profiles from this link.</li>
+    <li><strong>Admin tracks</strong> "IIT Bombay — 47 signups, 31 discoverable profiles."</li>
+    <li><strong>College cohort visible to recruiters</strong> Optional: filter by institution (Phase 2 feature).</li>
+  </ol>
+</section>
+
+<!-- S10 -->
+<section id="s10">
+  <div class="section-tag">Section 10</div>
+  <h2>Feature Prioritization Roadmap</h2>
+  <p class="section-intro">Three phases. Clear sequencing. Each feature justified by timing, not just value.</p>
+
+  <div class="phase-grid">
+    <div class="phase-card p1">
+      <div class="phase-label">Phase 1 · Days 1–60</div>
+      <h3>MVP Launch</h3>
+      <div class="phase-feat">Student signup + profile builder</div>
+      <div class="phase-feat">Project creation (up to 8)</div>
+      <div class="phase-feat">Recruiter signup + manual verification</div>
+      <div class="phase-feat">Browse + filter (skills, age, location)</div>
+      <div class="phase-feat">Student card + full profile view</div>
+      <div class="phase-feat">Contact request + credit system</div>
+      <div class="phase-feat">Shortlist / save</div>
+      <div class="phase-feat">Admin moderation queue</div>
+      <div class="phase-feat">Featured profile toggle</div>
+      <div class="phase-feat">Stripe basic plan billing</div>
+      <div class="phase-feat">College invite links</div>
+      <div class="phase-feat">Email notifications</div>
+    </div>
+    <div class="phase-card p2">
+      <div class="phase-label">Phase 2 · Days 60–180</div>
+      <h3>Monetization + Trust</h3>
+      <div class="phase-feat">Saved search alerts</div>
+      <div class="phase-feat">Recruiter team seats</div>
+      <div class="phase-feat">Student premium (profile boost)</div>
+      <div class="phase-feat">Verification badge system</div>
+      <div class="phase-feat">College dashboard / admin</div>
+      <div class="phase-feat">Project pinning + ordering</div>
+      <div class="phase-feat">Recruiter analytics dashboard</div>
+      <div class="phase-feat">NPS + feedback collection</div>
+      <div class="phase-feat">Referral system (students)</div>
+      <div class="phase-feat">Basic fraud automation</div>
+    </div>
+    <div class="phase-card p3">
+      <div class="phase-label">Phase 3 · Days 180+</div>
+      <h3>Scale</h3>
+      <div class="phase-feat">API access for ATS partners</div>
+      <div class="phase-feat">Skill assessment / test layer</div>
+      <div class="phase-feat">AI-powered student matching</div>
+      <div class="phase-feat">Recruiter CRM lite</div>
+      <div class="phase-feat">Multi-country expansion</div>
+      <div class="phase-feat">Video project demos</div>
+      <div class="phase-feat">Community events / hackathons</div>
+      <div class="phase-feat">Enterprise college contracts</div>
+    </div>
+  </div>
+
+  <h3>Risk Table</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Feature</th><th>Risk if Added Too Early</th></tr></thead>
+      <tbody>
+        <tr><td>AI matching</td><td>Needs 1000+ profiles to be useful. Shipping it empty kills credibility.</td></tr>
+        <tr><td>Job postings</td><td>Pulls focus away from discovery UX. Students start gaming the system for "applications".</td></tr>
+        <tr><td>Student messaging / inbox</td><td>Turns product into a chat app. Legal risk around minors. Huge moderation burden.</td></tr>
+        <tr><td>Social feed / follows</td><td>Requires content volume that doesn't exist. Creates empty feed problem immediately.</td></tr>
+        <tr><td>Skill assessments</td><td>Adds friction to student signup. Reduces supply-side growth in critical first 60 days.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S11 -->
+<section id="s11">
+  <div class="section-tag">Section 11</div>
+  <h2>Monetization</h2>
+  <p class="section-intro">Charge recruiters. Keep students free. Make the first dollar in the first 30 days.</p>
+
+  <h3>Recruiter Pricing (Primary Revenue)</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Plan</th><th>Price</th><th>Credits</th><th>Key Features</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Free Trial</strong></td><td>₹0 / $0</td><td>5 credits</td><td>Browse + filter, 5 contacts, no shortlist save</td></tr>
+        <tr><td><strong>Starter</strong></td><td>₹2,999/mo · $39/mo</td><td>25 credits/mo</td><td>Full browse, save shortlist, contact history</td></tr>
+        <tr><td><strong>Growth</strong></td><td>₹7,999/mo · $99/mo</td><td>75 credits/mo + rollover</td><td>All Starter + saved searches, 2 team seats</td></tr>
+        <tr><td><strong>Credit Top-up</strong></td><td>₹999 / $13 per 10</td><td>Add-on</td><td>Buy extra credits on any plan</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Student Premium (Secondary Revenue)</h3>
+  <div class="card-grid">
+    <div class="card accent-blue">
+      <h4>Profile Boost — ₹299/mo</h4>
+      <p>"Appear higher in recruiter search results for 30 days." Simple, valuable, no gaming.</p>
+    </div>
+    <div class="card accent-orange">
+      <h4>Featured Badge — ₹199/mo</h4>
+      <p>"Get the Featured badge on your profile." Admin curates who gets this — premium reserves the option.</p>
+    </div>
+  </div>
+  <div class="callout red">
+    <strong>Warning:</strong> Student premium should be secondary. Charging students ages 15–21 has PR and ethical sensitivity. Keep it cheap and optional. Never gate discoverability behind a paywall for students — that kills supply.
+  </div>
+
+  <h3>College / Community Pricing</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tier</th><th>Price</th><th>What they get</th></tr></thead>
+      <tbody>
+        <tr><td>College Basic</td><td>Free (Phase 1)</td><td>Invite link + cohort tracking. You get free supply.</td></tr>
+        <tr><td>College Partner</td><td>₹9,999/mo (Phase 2)</td><td>Branded college page, dedicated support, analytics on student activity.</td></tr>
+        <tr><td>Enterprise College</td><td>₹49,999/yr (Phase 3)</td><td>API access, placement tracking, recruiter referrals, SLA.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Revenue Experiments — First 30 Days</h3>
+  <ol class="flow-steps">
+    <li><strong>Manual recruiter outreach</strong> Email 20 HR managers directly. Offer "Founding Partner" plan at 50% off for 6 months. Goal: 3 paid users.</li>
+    <li><strong>Featured profile as premium product</strong> Tell 5 strong students they can be featured for ₹299. Tests willingness to pay.</li>
+    <li><strong>College deal</strong> Approach 1 college with a "we'll feature your students to our recruiter network" pitch. Get a letter of support.</li>
+    <li><strong>Credit-first pricing</strong> Launch with credits model only (no monthly plans). Lower commitment. Easier first sale.</li>
+  </ol>
+
+  <h3>Best Low-Friction Way to Make First Money</h3>
+  <div class="callout blue">
+    <strong>Do this:</strong> Cold email 10 startup HR teams (use LinkedIn). Offer: "Try our platform free for 2 weeks. 5 contact credits included. No card needed. If you find 1 good candidate, you'll upgrade." This turns discovery into revenue naturally. First charge happens when they run out of free credits.
+  </div>
+</section>
+
+<!-- S12 -->
+<section id="s12">
+  <div class="section-tag">Section 12</div>
+  <h2>Admin KPI System</h2>
+  <p class="section-intro">The complete measurement framework for Solvoriz v1. Know what's working before you scale.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Category</th><th>Metric</th><th>Formula</th><th>Target (Day 30)</th><th>Owner</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="2"><strong>Acquisition</strong></td><td>Student signups/week</td><td>Count(new StudentProfiles, 7d)</td><td>50+/week</td><td>Admin daily</td></tr>
+        <tr><td>Recruiter signups/week</td><td>Count(new RecruiterAccounts, 7d)</td><td>5+/week</td><td>Admin daily</td></tr>
+        <tr><td rowspan="2"><strong>Activation</strong></td><td>Student activation rate</td><td>% students with ≥1 project AND verified email</td><td>&gt;60%</td><td>Admin weekly</td></tr>
+        <tr><td>Recruiter activation rate</td><td>% approved recruiters who run ≥1 search</td><td>&gt;80%</td><td>Admin weekly</td></tr>
+        <tr><td rowspan="2"><strong>Engagement</strong></td><td>Projects per active student</td><td>Total projects / total active students</td><td>&gt;1.8</td><td>Admin weekly</td></tr>
+        <tr><td>Recruiter sessions/week</td><td>Avg sessions per recruiter per week</td><td>&gt;2</td><td>Admin weekly</td></tr>
+        <tr><td rowspan="2"><strong>Quality</strong></td><td>Discoverable profile rate</td><td>% students with completion_score ≥70</td><td>&gt;55%</td><td>Admin daily</td></tr>
+        <tr><td>Flag rate</td><td>Flagged profiles / total profiles</td><td>&lt;3%</td><td>Admin weekly</td></tr>
+        <tr><td rowspan="2"><strong>Conversion</strong></td><td>Contact request rate</td><td>Recruiters who sent ≥1 contact / all verified recruiters</td><td>&gt;50%</td><td>Admin weekly</td></tr>
+        <tr><td>Free→Paid conversion</td><td>Recruiters on paid plan / total verified</td><td>&gt;20%</td><td>Admin monthly</td></tr>
+        <tr><td rowspan="2"><strong>Revenue</strong></td><td>MRR</td><td>Sum of monthly recurring revenue</td><td>₹15,000 by day 60</td><td>Admin monthly</td></tr>
+        <tr><td>ARPU (recruiter)</td><td>MRR / paid recruiters</td><td>₹3,000–₹8,000</td><td>Admin monthly</td></tr>
+        <tr><td rowspan="2"><strong>Trust/Safety</strong></td><td>Recruiter verification rate</td><td>Approved / total applied</td><td>Monitor, no target</td><td>Admin daily</td></tr>
+        <tr><td>Student complaint rate</td><td>Abuse reports / contact requests</td><td>&lt;1%</td><td>Admin weekly</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S13 -->
+<section id="s13">
+  <div class="section-tag">Section 13</div>
+  <h2>Dashboard Wireframe Ideas</h2>
+  <p class="section-intro">Block-based layout descriptions for all five key screens.</p>
+
+  <h3>Student Dashboard Home</h3>
+  <div class="wireframe">
+    <div class="wf-bar">
+      <span>Solvoriz</span> <span style="opacity:.4">|</span>
+      <span>Dashboard</span> <span>Projects</span> <span>Preview</span> <span>Notifications</span>
+      <span style="margin-left:auto; opacity:.5">Aryan M.</span>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block" style="flex:2">
+        <b>Profile Score</b>
+        Progress bar · 85/100 · "You're discoverable" · 3 things to improve
+      </div>
+      <div class="wf-block" style="flex:1">
+        <b>Views This Week</b>
+        Big number · Recruiter views on your profile
+      </div>
+      <div class="wf-block" style="flex:1">
+        <b>Contact Requests</b>
+        Count · "1 new" badge · Link to notifications
+      </div>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block tall" style="flex:3">
+        <b>My Projects (3)</b>
+        Project cards in a 2-col grid · Each: thumbnail, title, skills chips, edit icon
+        · "+ Add Project" card at the end
+      </div>
+      <div class="wf-block tall" style="flex:1">
+        <b>Share Your Profile</b>
+        Your public link · Copy button · Share to WhatsApp · "Open in new tab"
+      </div>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block">
+        <b>Notifications</b>
+        Last 3 notifications · "Recruiter from Zepto viewed your profile" · Mark all read
+      </div>
+    </div>
+  </div>
+
+  <h3>Recruiter Dashboard Home (Browse)</h3>
+  <div class="wireframe">
+    <div class="wf-bar">
+      <span>Solvoriz</span> <span style="opacity:.4">|</span>
+      <span>Browse</span> <span>Shortlist (4)</span> <span>Contacts</span> <span>Account</span>
+      <span style="margin-left:auto; opacity:.5">Priya S. · 15 credits</span>
+    </div>
+    <div class="wf-row">
+      <div class="wf-sidebar">
+        <div class="wf-nav-item active">Filters</div>
+        <div class="wf-nav-item" style="color:rgba(255,255,255,0.3); font-size:10px; margin-top:8px">SKILLS</div>
+        <div class="wf-nav-item">Tag search input</div>
+        <div class="wf-nav-item" style="color:rgba(255,255,255,0.3); font-size:10px; margin-top:8px">AGE</div>
+        <div class="wf-nav-item">15 ——●—— 21</div>
+        <div class="wf-nav-item" style="color:rgba(255,255,255,0.3); font-size:10px; margin-top:8px">LOCATION</div>
+        <div class="wf-nav-item">City input</div>
+        <div class="wf-nav-item" style="color:rgba(255,255,255,0.3); font-size:10px; margin-top:8px">TYPE</div>
+        <div class="wf-nav-item">☑ Side Project</div>
+        <div class="wf-nav-item">☑ Freelance</div>
+        <div class="wf-nav-item">☐ School</div>
+      </div>
+      <div class="wf-content">
+        <div style="font-size:12px; color:var(--ink-3); margin-bottom:10px">24 students match · Sorted by: Most recent project</div>
+        <div class="wf-row" style="flex-wrap:wrap; gap:10px">
+          <div class="wf-block" style="flex:none;width:140px;min-height:160px"><b>Student Card</b>Photo · Name · Age · City<br>Skill chips × 3<br>Project thumbnail<br>Project name<br>♡ Save</div>
+          <div class="wf-block" style="flex:none;width:140px;min-height:160px"><b>Student Card</b>Photo · Name · Age · City<br>Skill chips × 3<br>Project thumbnail<br>Project name<br>♡ Save</div>
+          <div class="wf-block" style="flex:none;width:140px;min-height:160px;border:2px solid var(--accent-amber)"><b>★ Featured</b>Photo · Name · Age · City<br>Skill chips × 3<br>Project thumbnail<br>Project name<br>♡ Save</div>
+          <div class="wf-block" style="flex:none;width:140px;min-height:160px"><b>Student Card</b>Photo · Name · Age · City<br>Skill chips × 3<br>Project thumbnail<br>Project name<br>♡ Save</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Admin Dashboard Home</h3>
+  <div class="wireframe">
+    <div class="wf-bar">
+      <span>Solvoriz Admin</span> <span style="opacity:.4">|</span>
+      <span>Overview</span> <span>Students</span> <span>Recruiters</span> <span>Moderation</span> <span>Revenue</span> <span>Settings</span>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block"><b>Students Today</b>+12 · Total: 238</div>
+      <div class="wf-block"><b>Recruiters Today</b>+2 · Pending: 4</div>
+      <div class="wf-block"><b>Discoverable</b>54% · 128 profiles</div>
+      <div class="wf-block"><b>Revenue MTD</b>₹18,500 · +22%</div>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block tall" style="flex:2"><b>📋 Moderation Queue (7 items)</b>
+        3 flagged profiles · 2 pending recruiters · 2 project reviews
+        [Review] buttons on each row</div>
+      <div class="wf-block tall" style="flex:1"><b>Featured Controls</b>
+        4 currently featured profiles
+        Toggle each · Set expiry · Add new
+      </div>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block"><b>7-Day Signup Chart</b>Line chart · Students vs Recruiters</div>
+      <div class="wf-block"><b>Contact Requests</b>42 this week · Response rate: 67%</div>
+    </div>
+  </div>
+
+  <h3>Public Student Profile Page</h3>
+  <div class="wireframe">
+    <div class="wf-bar"><span>solvoriz.com/u/aryan-mehta</span></div>
+    <div class="wf-row">
+      <div class="wf-block" style="flex:1;min-height:120px">
+        <b>Profile Header</b>
+        Large photo · Name · Age · Location
+        Skills chips (5 max) · Bio text
+        "Open to opportunities" green badge
+        [Contact Aryan] button (recruiters only)
+      </div>
+    </div>
+    <div class="wf-row">
+      <div class="wf-block tall" style="flex:3">
+        <b>Projects (3)</b>
+        Pinned project: large card · full width
+        2 remaining: 2-col grid
+        Each card: thumbnail · title · skills · type label · external link
+      </div>
+      <div class="wf-block" style="flex:1">
+        <b>Skills Cloud</b>
+        All skills as colored chips
+        ——
+        Social links
+        (GitHub · Behance)
+      </div>
+    </div>
+  </div>
+
+  <h3>Recruiter Browse Page</h3>
+  <p style="color:var(--ink-3);font-size:13px">See Recruiter Dashboard wireframe above — the browse page IS the dashboard home. No separate page needed in v1.</p>
+</section>
+
+<!-- S14 -->
+<section id="s14">
+  <div class="section-tag">Section 14</div>
+  <h2>UX Copy</h2>
+  <p class="section-intro">Every word of UI copy — from hero to empty states. Startup-grade, direct, zero fluff.</p>
+
+  <h3>Homepage</h3>
+  <div class="copy-block">
+    <div class="copy-label">Hero Headline</div>
+    <div class="copy-text">Discover student talent through real projects — not resumes.</div>
+    <div class="copy-sub">For recruiters building tomorrow's teams. For students building their future.</div>
+  </div>
+  <div class="copy-block">
+    <div class="copy-label">CTA Buttons</div>
+    <div class="copy-text" style="font-size:15px">→ Find Student Talent &nbsp;&nbsp; → Build My Profile</div>
+  </div>
+
+  <h3>Student Signup</h3>
+  <div class="copy-block">
+    <div class="copy-label">Headline</div>
+    <div class="copy-text">Your projects are your resume. Let's build your profile.</div>
+    <div class="copy-sub">Solvoriz is for students aged 15–21 who build things. It takes under 5 minutes.</div>
+  </div>
+  <div class="copy-block">
+    <div class="copy-label">Age Gate Message</div>
+    <div class="copy-text" style="font-size:14px">Solvoriz is built exclusively for students aged 15 to 21. Come back when you're 15 — or before you turn 22.</div>
+  </div>
+
+  <h3>Recruiter Signup</h3>
+  <div class="copy-block">
+    <div class="copy-label">Headline</div>
+    <div class="copy-text">Find young builders before everyone else does.</div>
+    <div class="copy-sub">Browse 200+ verified student profiles, filtered by skill, age, and real project work. No job postings. No spam. Just talent.</div>
+  </div>
+  <div class="copy-block">
+    <div class="copy-label">Verification Notice</div>
+    <div class="copy-text" style="font-size:14px">We verify every recruiter account to protect our student community. Approval takes less than 24 hours.</div>
+  </div>
+
+  <h3>Project Upload Helper Text</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Field</th><th>Helper Text</th></tr></thead>
+      <tbody>
+        <tr><td>Title</td><td>"What did you build? Use a name that describes the project, not the technology."</td></tr>
+        <tr><td>Description</td><td>"What problem does it solve? What did you learn? Keep it under 200 characters."</td></tr>
+        <tr><td>Skills Used</td><td>"What technologies or skills did this project require? Pick up to 5."</td></tr>
+        <tr><td>Project URL</td><td>"Link to live demo, GitHub repo, Behance case study, or YouTube walkthrough."</td></tr>
+        <tr><td>Image</td><td>"Upload a screenshot, mockup, or photo. This is the first thing recruiters see."</td></tr>
+        <tr><td>Project Type</td><td>"Be honest — recruiters value side projects as much as school work."</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Verification Badge</h3>
+  <div class="copy-block">
+    <div class="copy-label">Badge Text (on profile)</div>
+    <div class="copy-text" style="font-size:14px">✓ Verified — This student's identity and age have been confirmed by the Solvoriz team.</div>
+  </div>
+
+  <h3>Featured Profile Copy</h3>
+  <div class="copy-block">
+    <div class="copy-label">Banner on Profile</div>
+    <div class="copy-text" style="font-size:14px">⭐ Featured by Solvoriz — Selected for exceptional project quality and profile completeness.</div>
+  </div>
+
+  <h3>Empty States</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Context</th><th>Copy</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>Student: no projects</td><td>"Your profile is invisible without a project. Add your first one — it takes 2 minutes."</td><td>"Add Your First Project →"</td></tr>
+        <tr><td>Recruiter: no results</td><td>"No students match these filters right now. Try removing the location filter or broadening your skill search."</td><td>"Clear All Filters"</td></tr>
+        <tr><td>Recruiter: empty shortlist</td><td>"Save students you want to revisit. Click the ♡ on any profile."</td><td>—</td></tr>
+        <tr><td>Student: no notifications</td><td>"You haven't been contacted yet. A complete profile with strong projects gets noticed first."</td><td>"Improve Profile"</td></tr>
+        <tr><td>Admin: empty queue</td><td>"No items pending review. The platform is clean. 🎉"</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S15 -->
+<section id="s15">
+  <div class="section-tag">Section 15</div>
+  <h2>Guardrails</h2>
+  <p class="section-intro">What to avoid, what to delay, and where solo founders typically derail their own MVPs.</p>
+
+  <h3>Scope Creep Traps</h3>
+  <ul class="clean">
+    <li>Adding a job posting / application system — turns into a job board, kills positioning</li>
+    <li>Building a student-to-student messaging system — legal liability around minors + massive moderation burden</li>
+    <li>Creating a social feed / "following" system — requires content volume that doesn't exist at launch</li>
+    <li>Adding resume upload — directly contradicts the "projects are the signal" core thesis</li>
+    <li>Building company review features (rate your interview) — scope is a completely different product</li>
+    <li>Adding video profiles — high infrastructure cost, low early value</li>
+    <li>Gamification points / leaderboards — students game the system instead of adding real projects</li>
+  </ul>
+
+  <h3>Bad Feature Ideas for Now</h3>
+  <ul class="clean">
+    <li>Skill endorsements (LinkedIn-style) — meaningless without a large network</li>
+    <li>AI-suggested matches in v1 — needs 1000+ profiles to work properly</li>
+    <li>Recruiter-to-recruiter sharing — niche feature, high complexity</li>
+    <li>School/GPA field on student profile — reintroduces resume thinking</li>
+    <li>Community forum / discussion board — content moderation at scale for teenagers</li>
+  </ul>
+
+  <h3>Data Fields to Avoid</h3>
+  <ul class="clean">
+    <li>GPA / grades — not what this platform is about</li>
+    <li>School name as a required field — creates pedigree bias, against mission</li>
+    <li>Salary expectations — too early, legally complex with minors</li>
+    <li>Phone number — unnecessary, privacy risk for students</li>
+    <li>Home address — never needed, privacy violation risk</li>
+    <li>Gender / demographic data — don't collect what you don't need</li>
+  </ul>
+
+  <h3>UX Mistakes to Avoid</h3>
+  <ul class="clean">
+    <li>Making projects optional in onboarding — students will skip it and create empty, undiscoverable profiles</li>
+    <li>Showing recruiter names/emails to students without contact — invites off-platform communication</li>
+    <li>Infinite scroll without filters — recruiters need structure, not browsing fatigue</li>
+    <li>Making the profile completion score punishing — frame it as "unlock benefits", not "you failed"</li>
+    <li>Showing contact credit count prominently during browse — creates anxiety that slows down adoption</li>
+  </ul>
+
+  <h3>Admin Mistakes to Avoid</h3>
+  <ul class="clean">
+    <li>Approving all recruiters automatically without review — one bad actor destroys student trust permanently</li>
+    <li>Featuring every student who asks — featured = editorial signal, must be earned</li>
+    <li>Sending moderation emails that feel punishing — always frame as "here's how to fix this"</li>
+    <li>Collecting metrics you don't act on — pick 5 metrics and watch them daily</li>
+    <li>Over-automating moderation before you understand the patterns — false positives damage good students</li>
+  </ul>
+
+  <h3>What to Curate Manually Before Automating</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Action</th><th>Manual until...</th></tr></thead>
+      <tbody>
+        <tr><td>Recruiter approval</td><td>100+ recruiter accounts / clear patterns identified</td></tr>
+        <tr><td>Profile quality flagging</td><td>500+ profiles / spam patterns clear</td></tr>
+        <tr><td>Featured profile selection</td><td>Always manual — editorial judgment is the product</td></tr>
+        <tr><td>College partner onboarding</td><td>10+ college partnerships active</td></tr>
+        <tr><td>Contact abuse detection</td><td>50+ contact complaints logged</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- S16 -->
+<section id="s16">
+  <div class="section-tag">Section 16</div>
+  <h2>Final Recommendation</h2>
+  <p class="section-intro">The exact execution plan for a solo founder who needs to ship fast and make money in 60 days.</p>
+
+  <h3>Best V1 Feature Set</h3>
+  <div class="callout blue">
+    <strong>Ship exactly these 12 things and nothing else:</strong>
+    Student signup + profile builder · Project creation (up to 8) · Profile completion gate (70%) · Recruiter signup + manual verification · Browse + filter (skills, age, location) · Student card + full profile view · Contact request + credit system (5 free) · Shortlist / save · Admin moderation queue · Featured profile toggle · Stripe billing (starter plan) · Email notifications
+  </div>
+
+  <h3>Best Admin Feature Set (Solo Founder)</h3>
+  <ul class="clean">
+    <li>One-page admin dashboard with 6 daily metrics at top</li>
+    <li>Moderation queue (most important — your quality control)</li>
+    <li>Recruiter approval queue (most important — your trust control)</li>
+    <li>Featured toggle on student/project (your growth lever)</li>
+    <li>User search (find anyone in seconds)</li>
+    <li>College invite link generator</li>
+    <li>Stripe dashboard link (don't rebuild revenue charts in v1)</li>
+  </ul>
+
+  <h3>Best Monetization-First Feature Set</h3>
+  <ul class="clean">
+    <li>5 free contact credits for every recruiter on signup (hooks them)</li>
+    <li>Starter plan at ₹2,999/mo with 25 credits (low commitment, clear value)</li>
+    <li>Credit top-up at ₹999/10 (impulse purchase tier)</li>
+    <li>Credit counter visible in header (creates urgency naturally)</li>
+    <li>Upgrade prompt when &lt;3 credits remain (convert at peak intent)</li>
+    <li>No paywalls on student side — protect supply growth</li>
+  </ul>
+
+  <h3>Best Execution Order for a Solo Founder</h3>
+  <div class="phase-grid">
+    <div class="phase-card p1">
+      <div class="phase-label">Week 1–2</div>
+      <h3>Build Core</h3>
+      <div class="phase-feat">Auth + student profile builder</div>
+      <div class="phase-feat">Project creation form</div>
+      <div class="phase-feat">Profile completion logic</div>
+      <div class="phase-feat">Public profile page</div>
+    </div>
+    <div class="phase-card p2">
+      <div class="phase-label">Week 3–4</div>
+      <h3>Build Demand</h3>
+      <div class="phase-feat">Recruiter signup + approval flow</div>
+      <div class="phase-feat">Browse + filter system</div>
+      <div class="phase-feat">Student card + full profile view</div>
+      <div class="phase-feat">Contact request + credits</div>
+    </div>
+    <div class="phase-card p3">
+      <div class="phase-label">Week 5–8</div>
+      <h3>Ship + Sell</h3>
+      <div class="phase-feat">Admin dashboard + moderation</div>
+      <div class="phase-feat">Stripe billing integration</div>
+      <div class="phase-feat">Onboard 200 students manually</div>
+      <div class="phase-feat">Cold outreach to 20 recruiters</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>The core loop that makes Solvoriz work:</strong>
+    Great students add real projects → Platform looks high-quality → Recruiters trust it enough to pay → Revenue funds student growth → Better students join. This loop only starts when there are 50+ discoverable student profiles. Before spending a rupee on marketing or new features, get to 50 quality profiles manually. Everything else is secondary.
+  </div>
+
+  <hr>
+  <p style="color:var(--ink-3); font-size:13px; text-align:center; padding: 8px 0 0;">Solvoriz Product Blueprint · Complete v1 · Built for solo founder execution · 16 sections · MVP-ready</p>
+</section>
+
+<div class="footer">
+  <strong>Solvoriz</strong> — Complete Product Blueprint v1.0<br><br>
+  16 sections · Student + Recruiter + Admin dashboards · Full data model · User flows · KPI framework · Monetization · UX copy · Guardrails
+  <br><br>
+  <span>This document covers everything needed to design, build, and launch Solvoriz v1 in 30–60 days.</span>
+</div>
+
+</main>
+</body>
+</html>

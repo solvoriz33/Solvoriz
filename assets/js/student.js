@@ -101,11 +101,12 @@ function updateOverviewCard(profile) {
   if (skillsCount) skillsCount.textContent = (profile.skills || []).length;
 
   const visibility = document.getElementById('visibility-status');
-  if (visibility) visibility.textContent = profile.visibility === 'hidden' ? 'Hidden' : 'Public';
+  if (visibility) visibility.textContent = profile.discoverable ? 'Discoverable' : profile.visibility === 'hidden' ? 'Hidden' : 'Private';
 
   const score = calculateProfileScore(profile);
   const scoreBar = document.getElementById('overview-score-bar');
   if (scoreBar) scoreBar.style.width = `${score}%`;
+  updateProfilePrompt(profile, score);
 }
 
 function calculateProfileScore(profile) {
@@ -118,6 +119,56 @@ function calculateProfileScore(profile) {
   score += profile.handle ? 5 : 0;
   score += profile.avatar_url ? 5 : 0;
   return Math.min(score, 100);
+}
+
+function updateProfilePrompt(profile, score = calculateProfileScore(profile)) {
+  const prompt = document.getElementById('profile-prompt');
+  if (!prompt) return;
+  const strong = prompt.querySelector('strong');
+  const span = prompt.querySelector('span');
+  const actionBtn = prompt.querySelector('.btn');
+  const projectCount = myProjects.filter(project => project.visible).length;
+  const discoverable = Boolean(profile?.discoverable);
+
+  if (discoverable) {
+    if (strong) strong.textContent = 'You are discoverable';
+    if (span) span.textContent = 'Your profile is strong enough to appear in recruiter searches. Keep your projects updated.';
+    if (actionBtn) actionBtn.textContent = 'Polish profile';
+    prompt.style.borderColor = 'rgba(14,122,80,.2)';
+    prompt.style.background = 'linear-gradient(135deg, rgba(14,122,80,.08) 0%, rgba(14,122,80,.04) 100%)';
+    return;
+  }
+
+  const missing = [];
+  if (score < 70) missing.push('raise profile score to 70+');
+  if ((profile?.visibility || 'public') === 'hidden') missing.push('switch visibility to public');
+  if (projectCount < 1) missing.push('add at least one visible project');
+
+  if (strong) strong.textContent = 'Complete your profile to get discovered';
+  if (span) span.textContent = missing.length
+    ? `Before recruiters can find you, you still need to ${missing.join(', ')}.`
+    : 'Add a headline, skills, and at least one project to appear in recruiter searches.';
+  if (actionBtn) actionBtn.textContent = projectCount < 1 ? 'Add project' : 'Complete →';
+  prompt.style.borderColor = 'rgba(24,71,248,.2)';
+  prompt.style.background = 'linear-gradient(135deg, rgba(24,71,248,.08) 0%, rgba(24,71,248,.04) 100%)';
+}
+
+async function syncDiscoverability() {
+  const score = calculateProfileScore(currentProfile || {});
+  const visibleProjectCount = myProjects.filter(project => project.visible).length;
+  const discoverable = score >= 70 && (currentProfile?.visibility || 'public') === 'public' && visibleProjectCount > 0;
+
+  if (currentProfile) currentProfile.discoverable = discoverable;
+
+  if (!currentUser?.id) return;
+  const { error } = await window.sb
+    .from('student_profiles')
+    .update({ discoverable })
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    console.warn('Failed to sync discoverability', error);
+  }
 }
 
 // ── LOAD PROJECTS ─────────────────────────────────────────
@@ -134,6 +185,8 @@ async function loadProjects() {
   document.getElementById('project-count').textContent = myProjects.length;
   renderProjects();
   updateProjectLimitState();
+  await syncDiscoverability();
+  updateOverviewCard(currentProfile || {});
 }
 
 function updateProjectLimitState() {
@@ -254,7 +307,7 @@ function renderCommunityProjects() {
 async function loadConversations() {
   const { data, error } = await window.sb
     .from('conversations')
-    .select(`*, recruiter:recruiter_id(id, full_name, email), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id)`)
+    .select(`*, recruiter:recruiter_id(id, full_name, email), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
     .eq('student_id', currentUser.id)
     .order('created_at', { ascending: false });
 
@@ -266,7 +319,7 @@ async function loadConversations() {
       initiator:initiator_id(id, full_name, email),
       creator_one:creator_one_id(id, full_name, email),
       creator_two:creator_two_id(id, full_name, email),
-      last_message:creator_messages(id, body, created_at, sender_id)
+      last_message:creator_messages(id, body, created_at, sender_id, read)
     `)
     .or(`creator_one_id.eq.${currentUser.id},creator_two_id.eq.${currentUser.id}`)
     .order('created_at', { ascending: false });
@@ -330,6 +383,7 @@ function renderConversations() {
   list.innerHTML = myMessages.map(c => {
     const last = c.last_message || {};
     const isCreator = c.threadType === 'creator';
+    const status = getThreadStatus(c);
     return `
       <button class="thread-card ${c.id === currentConversation ? 'thread-card--active' : ''}" onclick="openConversation('${c.id}')">
         <div class="thread-card__avatar">${getThreadInitials(c.partnerName)}</div>
@@ -339,7 +393,7 @@ function renderConversations() {
             <span class="thread-card__time">${fmtTime(last.created_at)}</span>
           </div>
           <div class="thread-card__project ${isCreator ? 'thread-card__project--creator' : ''}">${escHtml(c.project?.title || 'Direct conversation')}</div>
-          <div class="thread-card__role">${escHtml(c.partnerRoleLabel)}</div>
+          <div class="thread-card__role">${escHtml(c.partnerRoleLabel)} · ${escHtml(status)}</div>
           <div class="thread-card__preview">${escHtml(last.body || 'No messages yet')}</div>
         </div>
       </button>`;
@@ -358,7 +412,7 @@ async function openConversation(convId) {
   document.getElementById('chat-meta').textContent = conv.project?.title || 'Direct conversation';
   const badge = document.getElementById('chat-trust-badge');
   if (badge) {
-    badge.textContent = conv.threadType === 'creator' ? 'Creator discussion' : 'Recruiter thread';
+    badge.textContent = conv.threadType === 'creator' ? `Creator discussion · ${getThreadStatus(conv)}` : `Recruiter thread · ${getThreadStatus(conv)}`;
     badge.className = 'thread-status-badge thread-status-badge--ok';
   }
   await loadConversationMessages(convId);
@@ -372,6 +426,14 @@ async function loadConversationMessages(convId) {
   const fk = conv.threadType === 'creator' ? 'creator_conversation_id' : 'conversation_id';
   const { data, error } = await window.sb.from(table).select('*').eq(fk, convId).order('created_at', { ascending: true });
   if (error) { showToast('Failed to load thread', 'error'); return; }
+  const unreadIncoming = (data || []).filter(m => m.sender_id !== currentUser.id && !m.read).map(m => m.id);
+  if (unreadIncoming.length) {
+    const { error: readError } = await window.sb.from(table).update({ read: true }).in('id', unreadIncoming);
+    if (readError) console.warn('Failed to mark thread as read', readError);
+    (data || []).forEach(m => {
+      if (unreadIncoming.includes(m.id)) m.read = true;
+    });
+  }
   const pane = document.getElementById('chat-messages');
   if (!data?.length) {
     pane.innerHTML = '<div class="chat-empty">No messages in this thread yet.</div>';
@@ -386,6 +448,7 @@ async function loadConversationMessages(convId) {
     </div>
   `).join('');
   pane.scrollTop = pane.scrollHeight;
+  await loadConversations();
 }
 
 async function sendStudentMessage() {
@@ -448,6 +511,13 @@ function renderEmptyConversation() {
       </div>
     `;
   }
+}
+
+function getThreadStatus(conversation) {
+  const last = conversation?.last_message;
+  if (!last) return 'No activity';
+  if (last.sender_id === currentUser.id) return last.read ? 'Seen' : 'Sent';
+  return 'Replied';
 }
 
 function openCreatorComposer(projectId) {
@@ -816,6 +886,7 @@ async function saveProfile(e) {
   if (error) { showToast('Failed to save profile: ' + error.message, 'error'); return; }
   showToast('Profile saved!', 'success');
   await loadStudentProfile();
+  await syncDiscoverability();
   showSection('overview');
 }
 
@@ -850,6 +921,7 @@ async function addProject(e) {
   projectSkills.length = 0;
   document.getElementById('add-proj-skills-wrap').querySelectorAll('.skill-tag').forEach(t => t.remove());
   await loadProjects();
+  await loadStudentProfile();
   showSection('projects');
 }
 
@@ -903,6 +975,7 @@ async function saveEditProject(e) {
   showToast('Project updated!', 'success');
   closeEditModal();
   await loadProjects();
+  await loadStudentProfile();
 }
 
 // ── DELETE PROJECT ───────────────────────────────────────
@@ -912,6 +985,7 @@ async function deleteProject(id) {
   if (error) { showToast('Failed to delete: ' + error.message, 'error'); return; }
   showToast('Project deleted', 'warn');
   await loadProjects();
+  await loadStudentProfile();
 }
 
 // ── PUBLIC PROFILE LINK ─────────────────────────────────

@@ -87,6 +87,22 @@
           <div class="stat-card__label">Projects</div>
           <div class="stat-card__value" id="stat-projects">—</div>
         </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.24s">
+          <div class="stat-card__label">Discoverable Profiles</div>
+          <div class="stat-card__value" id="stat-discoverable">—</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.30s">
+          <div class="stat-card__label">Pending Recruiters</div>
+          <div class="stat-card__value" id="stat-pending-recruiters">—</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.36s">
+          <div class="stat-card__label">Moderation Items</div>
+          <div class="stat-card__value" id="stat-moderation-items">—</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.42s">
+          <div class="stat-card__label">Featured Profiles</div>
+          <div class="stat-card__value" id="stat-featured-profiles">—</div>
+        </div>
       </div>
 
       <div class="card animate-fade-up" style="margin-top:24px">
@@ -94,6 +110,14 @@
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn--outline" onclick="showSection('users')">👥 Manage Users</button>
           <button class="btn btn--outline" onclick="showSection('projects')">⌬ Manage Projects</button>
+          <button class="btn btn--outline" onclick="showSection('moderation')">⚖ Open Moderation</button>
+        </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-top:24px">
+        <div class="card__title">Operations Snapshot</div>
+        <div style="margin-top:16px;display:grid;gap:12px" id="ops-snapshot">
+          <div class="muted">Loading operational metrics...</div>
         </div>
       </div>
     </section>

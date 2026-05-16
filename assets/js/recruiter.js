@@ -56,7 +56,7 @@ async function loadAllProjects() {
       *,
       users:user_id (
         id, full_name, email,
-        student_profiles (headline, bio, location, age, availability, skills, avatar_url)
+        student_profiles (headline, bio, location, age, availability, skills, avatar_url, visibility, discoverable, featured, review_status)
       )
     `)
     .eq('visible', true)
@@ -87,8 +87,16 @@ async function loadAllProjects() {
     builderAge: p.users?.student_profiles?.[0]?.age || null,
     builderAvailability: p.users?.student_profiles?.[0]?.availability || '',
     builderSkills: p.users?.student_profiles?.[0]?.skills || [],
-    builderAvatar: p.users?.student_profiles?.[0]?.avatar_url || ''
-  }));
+    builderAvatar: p.users?.student_profiles?.[0]?.avatar_url || '',
+    builderVisibility: p.users?.student_profiles?.[0]?.visibility || 'public',
+    builderDiscoverable: Boolean(p.users?.student_profiles?.[0]?.discoverable),
+    builderFeatured: Boolean(p.users?.student_profiles?.[0]?.featured),
+    builderReviewStatus: p.users?.student_profiles?.[0]?.review_status || 'pending'
+  })).filter(project =>
+    project.builderVisibility === 'public' &&
+    project.builderDiscoverable &&
+    project.builderReviewStatus !== 'flagged'
+  );
 
   document.getElementById('student-count').textContent = allProjects.length;
   renderProjects(allProjects);
@@ -396,7 +404,7 @@ async function loadConversations(preserveSelection = true) {
       *,
       student:student_id(id, full_name, email),
       project:project_id(id, title),
-      last_message:messages(id, body, created_at, sender_id)
+      last_message:messages(id, body, created_at, sender_id, read)
     `)
     .eq('recruiter_id', currentUser.id)
     .order('created_at', { ascending: false });
@@ -448,6 +456,7 @@ function renderConversations() {
   threads.innerHTML = myMessages.map(conv => {
     const last = conv.last_message || {};
     const active = conv.id === currentConversation;
+    const status = getThreadStatus(conv);
     return `
       <button class="thread-card ${active ? 'thread-card--active' : ''}" onclick="openConversation('${conv.id}')">
         <div class="thread-card__avatar">${getInitials(conv.student?.full_name || conv.student?.email || 'Builder')}</div>
@@ -457,6 +466,7 @@ function renderConversations() {
             <span class="thread-card__time">${fmtTime(last.created_at)}</span>
           </div>
           <div class="thread-card__project">${escHtml(conv.project?.title || 'Direct conversation')}</div>
+          <div class="thread-card__role">${escHtml(status)}</div>
           <div class="thread-card__preview">${escHtml(last.body || 'No messages yet')}</div>
         </div>
       </button>
@@ -473,7 +483,7 @@ async function openConversation(convId) {
 
   document.getElementById('chat-title').textContent = conv.student?.full_name || conv.student?.email || 'Builder';
   document.getElementById('chat-meta').textContent = conv.project?.title || 'Direct conversation';
-  document.getElementById('chat-trust-badge').textContent = currentProfile.verified_recruiter ? 'Verified recruiter' : 'Verification pending';
+  document.getElementById('chat-trust-badge').textContent = `${currentProfile.verified_recruiter ? 'Verified recruiter' : 'Verification pending'} · ${getThreadStatus(conv)}`;
   document.getElementById('chat-trust-badge').className = `thread-status-badge ${currentProfile.verified_recruiter ? 'thread-status-badge--ok' : ''}`;
   await loadConversationMessages(convId);
 }
@@ -492,6 +502,14 @@ async function loadConversationMessages(convId) {
 
   const pane = document.getElementById('chat-messages');
   if (!pane) return;
+  const unreadIncoming = (data || []).filter(message => message.sender_id !== currentUser.id && !message.read).map(message => message.id);
+  if (unreadIncoming.length) {
+    const { error: readError } = await window.sb.from('messages').update({ read: true }).in('id', unreadIncoming);
+    if (readError) console.warn('Failed to mark recruiter thread as read', readError);
+    (data || []).forEach(message => {
+      if (unreadIncoming.includes(message.id)) message.read = true;
+    });
+  }
 
   if (!data?.length) {
     pane.innerHTML = '<div class="chat-empty">No messages in this thread yet.</div>';
@@ -511,6 +529,7 @@ async function loadConversationMessages(convId) {
   }).join('');
 
   pane.scrollTop = pane.scrollHeight;
+  await loadConversations();
 }
 
 async function sendRecruiterMessage() {
@@ -557,6 +576,13 @@ function renderEmptyChatState() {
       </div>
     `;
   }
+}
+
+function getThreadStatus(conversation) {
+  const last = conversation?.last_message;
+  if (!last) return 'No activity';
+  if (last.sender_id === currentUser.id) return last.read ? 'Seen' : 'Sent';
+  return 'Replied';
 }
 
 function startChatRefresh() {
