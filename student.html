@@ -31,6 +31,9 @@
       <button class="nav-item" data-section="projects" onclick="showSection('projects')">
         <span class="nav-icon">⌬</span> My Projects
       </button>
+      <button class="nav-item" data-section="community" onclick="showSection('community')">
+        <span class="nav-icon">◌</span> Creator Community
+      </button>
       <button class="nav-item" data-section="add-project" onclick="showSection('add-project')">
         <span class="nav-icon">＋</span> Add Project
       </button>
@@ -281,39 +284,68 @@
       </div>
     </section>
 
+    <section class="dash-section" id="section-community">
+      <div class="section-header">
+        <h1 class="section-header__title">Creator Community</h1>
+        <p class="section-header__sub">Explore public builder projects and start direct creator-to-creator discussions.</p>
+      </div>
+
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="community-search-input" class="input" placeholder="Search projects, creators, or technologies...">
+        </div>
+      </div>
+
+      <div class="empty-state hidden" id="community-empty">
+        <div class="empty-state__icon">◌</div>
+        <div class="empty-state__title">No public creator projects found</div>
+        <div class="empty-state__sub">Once more builders publish projects, they will appear here.</div>
+      </div>
+
+      <div class="students-grid" id="community-grid"></div>
+    </section>
+
     <section class="dash-section" id="section-messages">
       <div class="section-header">
         <h1 class="section-header__title">Messages</h1>
-        <p class="section-header__sub">Your internal messages from recruiters. No email required.</p>
+        <p class="section-header__sub">Your shared inbox for recruiter outreach and creator-to-creator project discussions.</p>
       </div>
 
-      <div class="messages-wrap" style="display:flex;gap:18px">
-        <div style="width:320px">
-          <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-            <strong>Threads</strong>
-            <span class="muted">${/* placeholder */''}</span>
+      <div class="messages-layout">
+        <aside class="messages-sidebar">
+          <div class="messages-sidebar__header">
+            <div>
+              <strong>Threads</strong>
+              <div class="muted">Recruiter and creator conversations</div>
+            </div>
+            <span class="thread-status-badge thread-status-badge--ok">Protected</span>
           </div>
-          <div id="messages-threads" style="display:grid;gap:10px;max-height:60vh;overflow:auto"></div>
-          <div class="empty-state hidden" id="messages-empty" style="margin-top:20px">
+          <div id="messages-threads" class="thread-list"></div>
+          <div class="empty-state hidden" id="messages-empty">
             <div class="empty-state__icon">💬</div>
             <div class="empty-state__title">No messages yet</div>
             <div class="empty-state__sub">Recruiters can message you directly from their project pages.</div>
           </div>
-        </div>
+        </aside>
 
-        <div style="flex:1;display:flex;flex-direction:column;gap:12px">
-          <div id="chat-panel" style="display:flex;flex-direction:column;gap:12px;">
-            <div id="chat-header" style="display:flex;justify-content:space-between;align-items:center">
+        <section id="chat-panel" class="chat-panel">
+          <div id="chat-header" class="chat-panel__header">
+            <div>
               <div id="chat-title">Select a thread</div>
               <div id="chat-meta" class="muted"></div>
             </div>
-            <div id="chat-messages" style="min-height:220px;max-height:60vh;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--bg-2);border-radius:8px"></div>
-            <div id="chat-input-row" style="display:flex;gap:8px">
-              <textarea id="chat-input" class="input" placeholder="Type a message..." style="flex:1;min-height:48px"></textarea>
+            <div id="chat-trust-badge" class="thread-status-badge thread-status-badge--ok">Protected inbox</div>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div id="chat-input-row" class="chat-composer">
+            <textarea id="chat-input" class="input chat-composer__input" placeholder="Reply with context, links, or next steps..." rows="3"></textarea>
+            <div class="chat-composer__actions">
+              <div class="muted">Press Enter to send</div>
               <button class="btn btn--primary" id="chat-send-btn">Send</button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </section>
 
@@ -412,6 +444,40 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="creator-compose-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-header__title">Discuss Project</span>
+      <button class="modal-close" onclick="closeCreatorComposer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="trust-card trust-card--soft">
+        <div class="trust-card__header">
+          <div class="student-avatar" id="creator-compose-avatar">CR</div>
+          <div>
+            <strong id="creator-compose-name">Creator</strong>
+            <div class="muted" id="creator-compose-meta"></div>
+          </div>
+        </div>
+        <p class="muted" id="creator-compose-copy" style="margin-top:12px">Start a focused creator-to-creator discussion around this project.</p>
+      </div>
+
+      <div class="form-group" style="margin-top:18px">
+        <label for="creator-compose-input">Your message</label>
+        <textarea id="creator-compose-input" class="textarea" maxlength="1000" placeholder="Ask about the architecture, collaborate on an idea, or give thoughtful feedback."></textarea>
+      </div>
+
+      <div class="chat-composer__actions" style="margin-top:18px">
+        <div class="muted">Keep it relevant to the project so the thread stays useful.</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn--ghost" onclick="closeCreatorComposer()">Cancel</button>
+          <button class="btn btn--primary" id="creator-compose-send-btn">Send message</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -433,6 +499,9 @@
   // Close modal on overlay click
   document.getElementById('edit-project-modal').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
+  });
+  document.getElementById('creator-compose-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCreatorComposer();
   });
 </script>
 </body>

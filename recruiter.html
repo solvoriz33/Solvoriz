@@ -163,36 +163,43 @@
     <section class="dash-section" id="section-messages">
       <div class="section-header">
         <h1 class="section-header__title">Messages</h1>
-        <p class="section-header__sub">Your recruiter messages. Keep in touch with builders directly inside Solvoriz.</p>
+        <p class="section-header__sub">A cleaner, trusted inbox for direct creator outreach inside Solvoriz.</p>
       </div>
 
-      <div class="messages-wrap" style="display:flex;gap:18px">
-        <div style="width:320px">
-          <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-            <strong>Threads</strong>
-            <span class="muted">${/* placeholder */''}</span>
+      <div class="messages-layout">
+        <aside class="messages-sidebar">
+          <div class="messages-sidebar__header">
+            <div>
+              <strong>Threads</strong>
+              <div class="muted">Recent creator conversations</div>
+            </div>
+            <span class="thread-status-badge thread-status-badge--ok">Private</span>
           </div>
-          <div id="messages-threads" style="display:grid;gap:10px;max-height:60vh;overflow:auto"></div>
-          <div class="empty-state hidden" id="messages-empty" style="margin-top:20px">
+          <div id="messages-threads" class="thread-list"></div>
+          <div class="empty-state hidden" id="messages-empty">
             <div class="empty-state__icon">💬</div>
             <div class="empty-state__title">No messages yet</div>
             <div class="empty-state__sub">Message builders from any project and your thread history will appear here.</div>
           </div>
-        </div>
+        </aside>
 
-        <div style="flex:1;display:flex;flex-direction:column;gap:12px">
-          <div id="chat-panel" style="display:flex;flex-direction:column;gap:12px;">
-            <div id="chat-header" style="display:flex;justify-content:space-between;align-items:center">
+        <section id="chat-panel" class="chat-panel">
+          <div id="chat-header" class="chat-panel__header">
+            <div>
               <div id="chat-title">Select a thread</div>
               <div id="chat-meta" class="muted"></div>
             </div>
-            <div id="chat-messages" style="min-height:220px;max-height:60vh;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--bg-2);border-radius:8px"></div>
-            <div id="chat-input-row" style="display:flex;gap:8px">
-              <textarea id="chat-input" class="input" placeholder="Type a message..." style="flex:1;min-height:48px"></textarea>
+            <div id="chat-trust-badge" class="thread-status-badge">Verification pending</div>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div id="chat-input-row" class="chat-composer">
+            <textarea id="chat-input" class="input chat-composer__input" placeholder="Write a short, specific message..." rows="3"></textarea>
+            <div class="chat-composer__actions">
+              <div class="muted">Press Enter to send</div>
               <button class="btn btn--primary" id="chat-send-btn">Send</button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </section>
 
@@ -225,6 +232,40 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="message-compose-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-header__title">Message Creator</span>
+      <button class="modal-close" onclick="closeMessageComposer()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="trust-card trust-card--soft">
+        <div class="trust-card__header">
+          <div class="student-avatar" id="compose-recipient-avatar">CR</div>
+          <div>
+            <strong id="compose-recipient-name">Creator</strong>
+            <div class="muted" id="compose-recipient-meta"></div>
+          </div>
+        </div>
+        <p class="muted" id="compose-trust-copy" style="margin-top:12px"></p>
+      </div>
+
+      <div class="form-group" style="margin-top:18px">
+        <label for="compose-message-input">Your message</label>
+        <textarea id="compose-message-input" class="textarea" maxlength="1000" placeholder="Introduce yourself, reference the project, and explain why you want to connect."></textarea>
+      </div>
+
+      <div class="chat-composer__actions" style="margin-top:18px">
+        <div class="muted">Keep it short and personal for a better reply rate.</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn--ghost" onclick="closeMessageComposer()">Cancel</button>
+          <button class="btn btn--primary" id="compose-send-btn">Send message</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -235,6 +276,9 @@
 <script>
   document.getElementById('student-modal').addEventListener('click', function(e) {
     if (e.target === this) closeStudentModal();
+  });
+  document.getElementById('message-compose-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeMessageComposer();
   });
 </script>
 </body>

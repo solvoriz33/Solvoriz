@@ -38,6 +38,27 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
 // ── Set button loading state ─────────────────────────────
 function setBtnLoading(btn, loading, label = '') {
   if (!btn) return;
@@ -189,6 +210,8 @@ async function requireAuth(expectedRole, redirectTo = '/auth.html') {
 window.showToast = showToast;
 window.escHtml = escHtml;
 window.fmtDate = fmtDate;
+window.fmtDateTime = fmtDateTime;
+window.fmtTime = fmtTime;
 window.setBtnLoading = setBtnLoading;
 window.createNotification = createNotification;
 window.initSkillInput = initSkillInput;

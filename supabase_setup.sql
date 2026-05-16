@@ -137,6 +137,50 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
 
+CREATE TABLE IF NOT EXISTS public.conversations (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recruiter_id  UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  student_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  project_id    UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (recruiter_id, student_id, project_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.messages (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id  UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  sender_id        UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  body             TEXT NOT NULL,
+  read             BOOLEAN NOT NULL DEFAULT false,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversations_recruiter_student ON public.conversations(recruiter_id, student_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON public.messages(conversation_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.creator_conversations (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_one_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  creator_two_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  initiator_id   UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  project_id     UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (creator_one_id <> creator_two_id),
+  UNIQUE (creator_one_id, creator_two_id, project_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.creator_messages (
+  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_conversation_id UUID NOT NULL REFERENCES public.creator_conversations(id) ON DELETE CASCADE,
+  sender_id               UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  body                    TEXT NOT NULL,
+  read                    BOOLEAN NOT NULL DEFAULT false,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_creator_conversations_pair ON public.creator_conversations(creator_one_id, creator_two_id);
+CREATE INDEX IF NOT EXISTS idx_creator_messages_conversation_created ON public.creator_messages(creator_conversation_id, created_at DESC);
+
 
 -- ────────────────────────────────────────────────────────────
 -- 4. AUTO-UPDATE updated_at TRIGGER
@@ -170,6 +214,10 @@ ALTER TABLE public.student_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.creator_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.creator_messages ENABLE ROW LEVEL SECURITY;
 
 
 -- ── HELPER FUNCTION: get current user's role ──────────────
@@ -323,6 +371,119 @@ CREATE POLICY "notifications_insert_own"
     user_id = auth.uid()
     OR public.get_my_role() = 'recruiter'
     OR public.get_my_role() = 'admin'
+  );
+
+DROP POLICY IF EXISTS "conversations_select_participant" ON public.conversations;
+CREATE POLICY "conversations_select_participant"
+  ON public.conversations FOR SELECT
+  TO authenticated
+  USING (recruiter_id = auth.uid() OR student_id = auth.uid());
+
+DROP POLICY IF EXISTS "conversations_insert_recruiter_or_student" ON public.conversations;
+CREATE POLICY "conversations_insert_recruiter_or_student"
+  ON public.conversations FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    recruiter_id <> student_id
+    AND (
+      (recruiter_id = auth.uid() AND public.get_my_role() = 'recruiter')
+      OR (student_id = auth.uid() AND public.get_my_role() = 'student')
+    )
+  );
+
+DROP POLICY IF EXISTS "messages_select_participant" ON public.messages;
+CREATE POLICY "messages_select_participant"
+  ON public.messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.conversations c
+      WHERE c.id = conversation_id
+        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "messages_insert_sender_participant" ON public.messages;
+CREATE POLICY "messages_insert_sender_participant"
+  ON public.messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    sender_id = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.conversations c
+      WHERE c.id = conversation_id
+        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+        AND c.recruiter_id <> c.student_id
+    )
+  );
+
+DROP POLICY IF EXISTS "messages_update_participant" ON public.messages;
+CREATE POLICY "messages_update_participant"
+  ON public.messages FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.conversations c
+      WHERE c.id = conversation_id
+        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.conversations c
+      WHERE c.id = conversation_id
+        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "creator_conversations_select_participant" ON public.creator_conversations;
+CREATE POLICY "creator_conversations_select_participant"
+  ON public.creator_conversations FOR SELECT
+  TO authenticated
+  USING (creator_one_id = auth.uid() OR creator_two_id = auth.uid());
+
+DROP POLICY IF EXISTS "creator_conversations_insert_creator" ON public.creator_conversations;
+CREATE POLICY "creator_conversations_insert_creator"
+  ON public.creator_conversations FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    public.get_my_role() = 'student'
+    AND initiator_id = auth.uid()
+    AND (creator_one_id = auth.uid() OR creator_two_id = auth.uid())
+    AND creator_one_id <> creator_two_id
+  );
+
+DROP POLICY IF EXISTS "creator_messages_select_participant" ON public.creator_messages;
+CREATE POLICY "creator_messages_select_participant"
+  ON public.creator_messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "creator_messages_insert_participant" ON public.creator_messages;
+CREATE POLICY "creator_messages_insert_participant"
+  ON public.creator_messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    sender_id = auth.uid()
+    AND public.get_my_role() = 'student'
+    AND EXISTS (
+      SELECT 1
+      FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+        AND c.creator_one_id <> c.creator_two_id
+    )
   );
 
 
