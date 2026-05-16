@@ -47,28 +47,41 @@ function renderProfile(profile) {
   if (!card) return;
   const name = profile.users?.full_name || 'Builder';
   const skills = (profile.skills || []).map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('');
-  const projects = (profile.projects || [])
+  const visibleProjects = (profile.projects || [])
     .filter(project => project.visible && project.review_status !== 'flagged')
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .sort((a, b) => {
+      if (Boolean(b.featured) !== Boolean(a.featured)) return Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  const projects = visibleProjects
     .map(p => `
     <div class="project-card animate-fade-up" style="margin-bottom:16px">
       ${p.image_url ? `<div class="project-card__image" style="background-image:url('${escHtml(p.image_url)}');"></div>` : ''}
       <div style="padding:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <strong>${escHtml(p.title)}</strong>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <strong>${escHtml(p.title)}</strong>
+            ${p.featured ? '<span class="role-badge role-badge--recruiter">Featured project</span>' : ''}
+          </div>
           <span class="role-badge role-badge--grey">${escHtml(p.project_type || 'Side Project')}</span>
         </div>
         <p class="project-card__desc">${escHtml(p.description || '')}</p>
         <div class="project-card__skills">${(p.tech_stack || []).map(sk => `<span class="skill-chip">${escHtml(sk)}</span>`).join('')}</div>
         <div class="project-card__links" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-          ${p.demo_link ? `<a class="project-link" href="${escHtml(p.demo_link)}" target="_blank" rel="noopener">🔗 Demo</a>` : ''}
-          ${p.github_link ? `<a class="project-link" href="${escHtml(p.github_link)}" target="_blank" rel="noopener">⌥ GitHub</a>` : ''}
+          ${p.demo_link ? `<a class="project-link" href="${escHtml(p.demo_link)}" target="_blank" rel="noopener">Live demo</a>` : ''}
+          ${p.github_link ? `<a class="project-link" href="${escHtml(p.github_link)}" target="_blank" rel="noopener">GitHub repo</a>` : ''}
         </div>
       </div>
     </div>
   `).join('');
   const headline = profile.headline || 'Project-first creator profile';
   const score = calculateProfileStrength(profile, profile.projects || []);
+  const visibleProjectCount = visibleProjects.length;
+  const reviewCopy = profile.review_status === 'approved'
+    ? 'Admin reviewed'
+    : profile.review_status === 'flagged'
+      ? 'Under review'
+      : 'Pending review';
   const badges = [
     `<span class="role-badge role-badge--success">Discoverable</span>`,
     profile.featured ? `<span class="role-badge role-badge--recruiter">Featured</span>` : '',
@@ -93,7 +106,7 @@ function renderProfile(profile) {
         <div class="overview-profile-card__meta" style="margin-top:16px">
           <span>${profile.location ? escHtml(profile.location) : 'Location not shared'}</span>
           <span>${profile.age ? `Age ${profile.age}` : 'Age private'}</span>
-          <span>${projects ? `${(profile.projects || []).filter(project => project.visible && project.review_status !== 'flagged').length} visible projects` : 'No visible projects'}</span>
+          <span>${visibleProjectCount ? `${visibleProjectCount} visible projects` : 'No visible projects'}</span>
         </div>
       </div>
 
@@ -111,6 +124,19 @@ function renderProfile(profile) {
 
         <div style="display:grid;gap:18px">
           <div class="card">
+            <div class="card__title">Trust snapshot</div>
+            <div style="margin-top:14px;display:grid;gap:10px">
+              <div class="notification-card">
+                <strong>Search visibility</strong>
+                <div class="muted notification-card__body">This builder is currently eligible to appear in recruiter discovery.</div>
+              </div>
+              <div class="notification-card">
+                <strong>Review status</strong>
+                <div class="muted notification-card__body">${escHtml(reviewCopy)}${profile.featured ? ' and currently featured by Solvoriz.' : '.'}</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
             <div class="card__title">Profile strength</div>
             <div class="muted" style="margin-top:6px">A stronger public profile earns more recruiter trust.</div>
             <div class="progress-bar" style="margin-top:14px"><div class="progress-fill" style="width:${score}%"></div></div>
@@ -120,6 +146,14 @@ function renderProfile(profile) {
             <h4>Skills</h4>
             <div class="skill-chips-row">${skills || '<span class="muted">No skills listed</span>'}</div>
           </div>
+          ${profile.github_username ? `
+            <div class="card">
+              <h4>Links</h4>
+              <div class="project-card__links" style="margin-top:10px">
+                <a class="project-link" href="https://github.com/${escHtml(profile.github_username)}" target="_blank" rel="noopener">GitHub profile</a>
+              </div>
+            </div>
+          ` : ''}
           <div class="card">
             <h4>Trust signals</h4>
             <ul class="clean">

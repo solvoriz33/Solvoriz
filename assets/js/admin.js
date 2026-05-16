@@ -205,6 +205,50 @@ async function loadModerationQueue() {
   renderModerationRecruiters(recruiters);
   renderModerationProjects(queuedProjects);
   renderModerationProfiles(profiles);
+  renderOverviewQueues(recruiters, queuedProjects, profiles);
+}
+
+function renderOverviewQueues(recruiters, projects, profiles) {
+  const approvals = document.getElementById('overview-approvals');
+  const discoverability = document.getElementById('overview-discoverability');
+  if (approvals) {
+    const pendingProfiles = profiles.filter(profile => profile.review_status !== 'approved').slice(0, 3);
+    approvals.innerHTML = `
+      <div class="notification-card">
+        <strong>Recruiter approvals</strong>
+        <div class="muted notification-card__body">${recruiters.length} recruiter account${recruiters.length === 1 ? '' : 's'} waiting for verification.</div>
+      </div>
+      <div class="notification-card">
+        <strong>Project moderation</strong>
+        <div class="muted notification-card__body">${projects.length} project${projects.length === 1 ? '' : 's'} currently flagged or under review.</div>
+      </div>
+      <div class="notification-card">
+        <strong>Profiles to review next</strong>
+        <div class="muted notification-card__body">${pendingProfiles.length ? pendingProfiles.map(profile => profile.users?.full_name || profile.users?.email || 'Student').join(', ') : 'No student profiles currently waiting for approval.'}</div>
+      </div>
+    `;
+  }
+
+  if (discoverability) {
+    const hiddenProfiles = profiles.filter(profile => profile.visibility === 'hidden').length;
+    const pendingReview = profiles.filter(profile => profile.review_status !== 'approved').length;
+    const notDiscoverable = profiles.filter(profile => !profile.discoverable).length;
+    const featuredProfiles = profiles.filter(profile => profile.featured).length;
+    discoverability.innerHTML = `
+      <div class="notification-card">
+        <strong>Hidden profiles</strong>
+        <div class="muted notification-card__body">${hiddenProfiles} profiles are set to hidden and will not surface to recruiters.</div>
+      </div>
+      <div class="notification-card">
+        <strong>Search readiness</strong>
+        <div class="muted notification-card__body">${notDiscoverable} profiles are still not discoverable, usually because the profile or project stack is incomplete.</div>
+      </div>
+      <div class="notification-card">
+        <strong>Review + editorial</strong>
+        <div class="muted notification-card__body">${pendingReview} profiles need review, while ${featuredProfiles} are already featured.</div>
+      </div>
+    `;
+  }
 }
 
 function renderModerationRecruiters(recruiters) {
@@ -281,6 +325,7 @@ function renderModerationProfiles(profiles) {
           <strong>${escHtml(p.users?.full_name || p.users?.email || 'Student')}</strong>
           <div class="muted">${escHtml(p.users?.email || '')}</div>
           <div class="muted">Status: ${escHtml(p.review_status)}</div>
+          <div class="muted">Visibility: ${escHtml(p.visibility || 'public')} · ${p.discoverable ? 'Discoverable' : 'Not discoverable'}</div>
           ${p.featured ? `<span class="role-badge role-badge--success">Featured</span>` : ''}
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">

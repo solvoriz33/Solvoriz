@@ -18,6 +18,16 @@ let editingProjectId = null;
 let currentConversation = null;
 let conversationRefreshTimer = null;
 let creatorComposeTarget = null;
+let studentRealtimeChannel = null;
+
+function normalizeProfileJoin(profileJoin) {
+  if (Array.isArray(profileJoin)) return profileJoin[0] || null;
+  return profileJoin || null;
+}
+
+function getUnreadCountFromFeed(messageFeed = []) {
+  return messageFeed.filter(message => message.sender_id !== currentUser?.id && !message.read).length;
+}
 
 // ── INIT ─────────────────────────────────────────────────
 async function initStudent() {
@@ -37,6 +47,7 @@ async function initStudent() {
   await loadStudentProfile();
   await Promise.all([loadProjects(), loadCommunityProjects(), loadNotifications(), loadActivity(), loadConversations()]);
   setupMessagingComposer();
+  startRealtimeSync();
   // Set overview name reliably (not via setTimeout in HTML)
   const ovName = document.getElementById('overview-name');
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
@@ -228,7 +239,7 @@ async function loadCommunityProjects() {
       *,
       users:user_id (
         id, full_name, email,
-        student_profiles (headline, location, availability, avatar_url)
+        student_profiles (headline, location, availability, avatar_url, visibility, discoverable, featured, review_status)
       )
     `)
     .eq('visible', true)
@@ -241,24 +252,31 @@ async function loadCommunityProjects() {
     return;
   }
 
-  communityProjects = (data || []).map(project => ({
-    id: project.id,
-    userId: project.user_id,
-    title: project.title,
-    description: project.description || '',
-    tech_stack: project.tech_stack || [],
-    project_type: project.project_type || 'Side Project',
-    image_url: project.image_url || '',
-    demo_link: project.demo_link || '',
-    github_link: project.github_link || '',
-    created_at: project.created_at,
-    creatorName: project.users?.full_name || 'Creator',
-    creatorEmail: project.users?.email || '',
-    creatorHeadline: project.users?.student_profiles?.[0]?.headline || '',
-    creatorLocation: project.users?.student_profiles?.[0]?.location || '',
-    creatorAvailability: project.users?.student_profiles?.[0]?.availability || '',
-    creatorAvatar: project.users?.student_profiles?.[0]?.avatar_url || ''
-  }));
+  communityProjects = (data || []).map(project => {
+    const profile = normalizeProfileJoin(project.users?.student_profiles);
+    return {
+      id: project.id,
+      userId: project.user_id,
+      title: project.title,
+      description: project.description || '',
+      tech_stack: project.tech_stack || [],
+      project_type: project.project_type || 'Side Project',
+      image_url: project.image_url || '',
+      demo_link: project.demo_link || '',
+      github_link: project.github_link || '',
+      created_at: project.created_at,
+      creatorName: project.users?.full_name || 'Creator',
+      creatorEmail: project.users?.email || '',
+      creatorHeadline: profile?.headline || '',
+      creatorLocation: profile?.location || '',
+      creatorAvailability: profile?.availability || '',
+      creatorAvatar: profile?.avatar_url || '',
+      creatorFeatured: Boolean(profile?.featured),
+      creatorDiscoverable: Boolean(profile?.discoverable),
+      creatorReviewStatus: profile?.review_status || 'pending',
+      creatorVisibility: profile?.visibility || 'public'
+    };
+  }).filter(project => project.creatorVisibility === 'public' && project.creatorReviewStatus !== 'flagged');
 
   renderCommunityProjects();
 }
@@ -293,6 +311,8 @@ function renderCommunityProjects() {
           <p class="student-card__headline">${escHtml(project.creatorName)}</p>
           <div class="student-card__meta">
             <span class="muted">${escHtml(project.project_type)}</span>
+            ${project.creatorFeatured ? '<span class="role-badge role-badge--recruiter">Featured</span>' : ''}
+            ${project.creatorDiscoverable ? '<span class="role-badge role-badge--success">Public creator</span>' : '<span class="role-badge role-badge--grey">Community member</span>'}
           </div>
         </div>
       </div>
@@ -339,9 +359,13 @@ async function loadConversations() {
     threadType: 'recruiter',
     partnerName: conv.recruiter?.full_name || conv.recruiter?.email || 'Recruiter',
     partnerRoleLabel: 'Recruiter thread',
+    message_feed: Array.isArray(conv.last_message)
+      ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      : conv.last_message ? [conv.last_message] : [],
     last_message: Array.isArray(conv.last_message)
       ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-      : conv.last_message
+      : conv.last_message,
+    unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
   }));
 
   const creatorMessages = (creatorData || []).map(conv => {
@@ -351,9 +375,13 @@ async function loadConversations() {
       threadType: 'creator',
       partnerName: partner?.full_name || partner?.email || 'Creator',
       partnerRoleLabel: 'Creator discussion',
+      message_feed: Array.isArray(conv.last_message)
+        ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        : conv.last_message ? [conv.last_message] : [],
       last_message: Array.isArray(conv.last_message)
         ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-        : conv.last_message
+        : conv.last_message,
+      unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
     };
   });
 
@@ -377,7 +405,8 @@ function renderConversations() {
   const list = document.getElementById('messages-threads');
   const empty = document.getElementById('messages-empty');
   const count = document.getElementById('message-count');
-  if (count) count.textContent = String(myMessages.length || 0);
+  const unreadTotal = myMessages.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+  if (count) count.textContent = String(unreadTotal || myMessages.length || 0);
   if (!list) return;
 
   if (!myMessages.length) {
@@ -397,7 +426,10 @@ function renderConversations() {
         <div class="thread-card__body">
           <div class="thread-card__top">
             <strong>${escHtml(c.partnerName)}</strong>
-            <span class="thread-card__time">${fmtTime(last.created_at)}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${c.unread_count ? `<span class="nav-count">${c.unread_count}</span>` : ''}
+              <span class="thread-card__time">${fmtTime(last.created_at)}</span>
+            </div>
           </div>
           <div class="thread-card__project ${isCreator ? 'thread-card__project--creator' : ''}">${escHtml(c.project?.title || 'Direct conversation')}</div>
           <div class="thread-card__role">${escHtml(c.partnerRoleLabel)} · ${escHtml(status)}</div>
@@ -455,7 +487,13 @@ async function loadConversationMessages(convId) {
     </div>
   `).join('');
   pane.scrollTop = pane.scrollHeight;
-  await loadConversations();
+  const activeThread = myMessages.find(message => message.id === convId);
+  if (activeThread) {
+    activeThread.message_feed = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    activeThread.last_message = activeThread.message_feed[0] || null;
+    activeThread.unread_count = 0;
+  }
+  renderConversations();
 }
 
 async function sendStudentMessage() {
@@ -523,6 +561,7 @@ function renderEmptyConversation() {
 function getThreadStatus(conversation) {
   const last = conversation?.last_message;
   if (!last) return 'No activity';
+  if (conversation.unread_count > 0) return conversation.unread_count === 1 ? 'New reply' : `${conversation.unread_count} unread`;
   if (last.sender_id === currentUser.id) return last.read ? 'Seen' : 'Sent';
   return 'Replied';
 }
@@ -647,6 +686,18 @@ function stopConversationRefresh() {
     window.clearInterval(conversationRefreshTimer);
     conversationRefreshTimer = null;
   }
+}
+
+function startRealtimeSync() {
+  if (!window.sb || !currentUser?.id || studentRealtimeChannel) return;
+  studentRealtimeChannel = window.sb
+    .channel(`student-live-${currentUser.id}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_messages' }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations' }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
+    .subscribe();
 }
 
 async function loadActivity() {

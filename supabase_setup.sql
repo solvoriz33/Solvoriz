@@ -486,6 +486,27 @@ CREATE POLICY "creator_messages_insert_participant"
     )
   );
 
+DROP POLICY IF EXISTS "creator_messages_update_participant" ON public.creator_messages;
+CREATE POLICY "creator_messages_update_participant"
+  ON public.creator_messages FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.creator_conversations c
+      WHERE c.id = creator_conversation_id
+        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+    )
+  );
+
 
 -- ────────────────────────────────────────────────────────────
 -- 6. CREATE ADMIN USER

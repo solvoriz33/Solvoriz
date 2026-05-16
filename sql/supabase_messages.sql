@@ -134,3 +134,22 @@ create policy "creator_messages_insert_participant"
         and c.creator_one_id <> c.creator_two_id
     )
   );
+
+drop policy if exists "creator_messages_update_participant" on creator_messages;
+create policy "creator_messages_update_participant"
+  on creator_messages for update
+  to authenticated
+  using (
+    exists (
+      select 1 from creator_conversations c
+      where c.id = creator_conversation_id
+        and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
+    )
+  )
+  with check (
+    exists (
+      select 1 from creator_conversations c
+      where c.id = creator_conversation_id
+        and (c.creator_one_id = auth.uid() or c.creator_two_id = auth.uid())
+    )
+  );

@@ -13,6 +13,33 @@ let filterSkillsInput = null;
 let currentConversation = null;
 let chatRefreshTimer = null;
 let composeTarget = null;
+let recruiterRealtimeChannel = null;
+
+function normalizeProfileJoin(profileJoin) {
+  if (Array.isArray(profileJoin)) return profileJoin[0] || null;
+  return profileJoin || null;
+}
+
+function calculateDiscoverabilityScore(profile = {}) {
+  let score = 10;
+  if (profile.headline) score += 20;
+  if (profile.bio) score += 20;
+  if (profile.location) score += 10;
+  if (profile.availability && profile.availability !== 'not set') score += 10;
+  score += Math.min((profile.skills || []).length * 5, 25);
+  score += profile.avatar_url ? 5 : 0;
+  return Math.min(score, 100);
+}
+
+function isSearchReadyProfile(profile = {}) {
+  if (!profile || profile.visibility === 'hidden' || profile.review_status === 'flagged') return false;
+  if (profile.discoverable) return true;
+  return calculateDiscoverabilityScore(profile) >= 60;
+}
+
+function getUnreadCountFromFeed(messageFeed = []) {
+  return messageFeed.filter(message => message.sender_id !== currentUser?.id && !message.read).length;
+}
 
 async function initRecruiter() {
   const result = await requireAuth('recruiter');
@@ -41,6 +68,7 @@ async function initRecruiter() {
   await Promise.all([loadAllProjects(), loadShortlist(), loadNotifications(), loadConversations()]);
   setupSearch();
   setupMessagingComposer();
+  startRealtimeSync();
   updateDashboardStats();
   showSection('browse');
   startChatRefresh();
@@ -69,33 +97,38 @@ async function loadAllProjects() {
     return;
   }
 
-  allProjects = (data || []).map(p => ({
-    id: p.id,
-    userId: p.user_id,
-    title: p.title,
-    description: p.description || '',
-    tech_stack: p.tech_stack || [],
-    project_type: p.project_type || 'Side Project',
-    image_url: p.image_url || '',
-    demo_link: p.demo_link || '',
-    github_link: p.github_link || '',
-    created_at: p.created_at,
-    builderName: p.users?.full_name || 'Anonymous',
-    builderEmail: p.users?.email || '',
-    builderHeadline: p.users?.student_profiles?.[0]?.headline || '',
-    builderLocation: p.users?.student_profiles?.[0]?.location || '',
-    builderAge: p.users?.student_profiles?.[0]?.age || null,
-    builderAvailability: p.users?.student_profiles?.[0]?.availability || '',
-    builderSkills: p.users?.student_profiles?.[0]?.skills || [],
-    builderAvatar: p.users?.student_profiles?.[0]?.avatar_url || '',
-    builderVisibility: p.users?.student_profiles?.[0]?.visibility || 'public',
-    builderDiscoverable: Boolean(p.users?.student_profiles?.[0]?.discoverable),
-    builderFeatured: Boolean(p.users?.student_profiles?.[0]?.featured),
-    builderReviewStatus: p.users?.student_profiles?.[0]?.review_status || 'pending'
-  })).filter(project =>
+  allProjects = (data || []).map(p => {
+    const profile = normalizeProfileJoin(p.users?.student_profiles);
+    return {
+      id: p.id,
+      userId: p.user_id,
+      title: p.title,
+      description: p.description || '',
+      tech_stack: p.tech_stack || [],
+      project_type: p.project_type || 'Side Project',
+      image_url: p.image_url || '',
+      demo_link: p.demo_link || '',
+      github_link: p.github_link || '',
+      created_at: p.created_at,
+      builderName: p.users?.full_name || 'Anonymous',
+      builderEmail: p.users?.email || '',
+      builderHeadline: profile?.headline || '',
+      builderLocation: profile?.location || '',
+      builderAge: profile?.age || null,
+      builderAvailability: profile?.availability || '',
+      builderSkills: profile?.skills || [],
+      builderAvatar: profile?.avatar_url || '',
+      builderVisibility: profile?.visibility || 'public',
+      builderDiscoverable: Boolean(profile?.discoverable),
+      builderFeatured: Boolean(profile?.featured),
+      builderReviewStatus: profile?.review_status || 'pending',
+      builderSearchReady: isSearchReadyProfile(profile),
+      builderScore: calculateDiscoverabilityScore(profile || {})
+    };
+  }).filter(project =>
     project.builderVisibility === 'public' &&
-    project.builderDiscoverable &&
-    project.builderReviewStatus !== 'flagged'
+    project.builderReviewStatus !== 'flagged' &&
+    project.builderSearchReady
   );
 
   document.getElementById('student-count').textContent = allProjects.length;
@@ -141,6 +174,8 @@ function renderProjects(projects) {
             <p class="student-card__headline">${escHtml(project.builderName)}</p>
             <div class="student-card__meta">
               <span class="muted">${escHtml(project.project_type)}</span>
+              ${project.builderFeatured ? '<span class="role-badge role-badge--recruiter">Featured</span>' : ''}
+              ${project.builderDiscoverable ? '<span class="role-badge role-badge--success">Search ready</span>' : '<span class="role-badge role-badge--grey">Profile polishing</span>'}
             </div>
           </div>
           <button
@@ -358,7 +393,7 @@ async function sendMessageToProject(project, inputEl) {
   if (inputEl) inputEl.value = '';
   closeMessageComposer();
   showToast('Conversation started.', 'success');
-  await loadConversations();
+  await loadConversations(true);
   await openConversation(conversation.id);
   showSection('messages');
 }
@@ -416,9 +451,13 @@ async function loadConversations(preserveSelection = true) {
 
   myMessages = (data || []).map(conv => ({
     ...conv,
+    message_feed: Array.isArray(conv.last_message)
+      ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      : conv.last_message ? [conv.last_message] : [],
     last_message: Array.isArray(conv.last_message)
       ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-      : conv.last_message
+      : conv.last_message,
+    unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
   }));
 
   renderConversations();
@@ -440,9 +479,10 @@ function renderConversations() {
   const empty = document.getElementById('messages-empty');
   const navCount = document.getElementById('message-count');
   const dashboardCount = document.getElementById('dashboard-message-count');
+  const unreadTotal = myMessages.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
 
-  if (navCount) navCount.textContent = String(myMessages.length || 0);
-  if (dashboardCount) dashboardCount.textContent = String(myMessages.length || 0);
+  if (navCount) navCount.textContent = String(unreadTotal || myMessages.length || 0);
+  if (dashboardCount) dashboardCount.textContent = String(unreadTotal || myMessages.length || 0);
   if (!threads) return;
 
   if (!myMessages.length) {
@@ -463,7 +503,10 @@ function renderConversations() {
         <div class="thread-card__body">
           <div class="thread-card__top">
             <strong>${escHtml(conv.student?.full_name || conv.student?.email || 'Builder')}</strong>
-            <span class="thread-card__time">${fmtTime(last.created_at)}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${conv.unread_count ? `<span class="nav-count">${conv.unread_count}</span>` : ''}
+              <span class="thread-card__time">${fmtTime(last.created_at)}</span>
+            </div>
           </div>
           <div class="thread-card__project">${escHtml(conv.project?.title || 'Direct conversation')}</div>
           <div class="thread-card__role">${escHtml(status)}</div>
@@ -529,7 +572,14 @@ async function loadConversationMessages(convId) {
   }).join('');
 
   pane.scrollTop = pane.scrollHeight;
-  await loadConversations();
+  const activeThread = myMessages.find(message => message.id === convId);
+  if (activeThread) {
+    activeThread.message_feed = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    activeThread.last_message = activeThread.message_feed[0] || null;
+    activeThread.unread_count = 0;
+  }
+  renderConversations();
+  updateDashboardStats();
 }
 
 async function sendRecruiterMessage() {
@@ -553,7 +603,8 @@ async function sendRecruiterMessage() {
   }
 
   input.value = '';
-  await loadConversations();
+  await loadConversations(true);
+  await openConversation(currentConversation);
 }
 
 function renderEmptyChatState() {
@@ -581,8 +632,19 @@ function renderEmptyChatState() {
 function getThreadStatus(conversation) {
   const last = conversation?.last_message;
   if (!last) return 'No activity';
+  if (conversation.unread_count > 0) return conversation.unread_count === 1 ? 'New reply' : `${conversation.unread_count} unread`;
   if (last.sender_id === currentUser.id) return last.read ? 'Seen' : 'Sent';
   return 'Replied';
+}
+
+function startRealtimeSync() {
+  if (!window.sb || !currentUser?.id || recruiterRealtimeChannel) return;
+  recruiterRealtimeChannel = window.sb
+    .channel(`recruiter-live-${currentUser.id}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
+    .subscribe();
 }
 
 function startChatRefresh() {
