@@ -39,11 +39,11 @@
       </button>
       <button class="nav-item" data-section="messages" onclick="showSection('messages')">
         <span class="nav-icon">💬</span> Messages
-        <span id="message-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+        <span id="message-count" class="nav-count">0</span>
       </button>
       <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
         <span class="nav-icon">🔔</span> Notifications
-        <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+        <span id="notification-count" class="nav-count">0</span>
       </button>
       <button class="nav-item" data-section="activity" onclick="showSection('activity')">
         <span class="nav-icon">📊</span> Profile Activity
@@ -67,49 +67,55 @@
 
     <!-- OVERVIEW SECTION -->
     <section class="dash-section active" id="section-overview">
-      <div class="section-header">
-        <h1 class="section-header__title">Overview</h1>
-        <p class="section-header__sub">Your builder profile at a glance.</p>
-      </div>
+      <div class="overview-shell">
+        <div class="section-header">
+          <h1 class="section-header__title">Overview</h1>
+          <p class="section-header__sub">Your builder profile at a glance.</p>
+        </div>
 
-      <div class="overview-profile-card animate-fade-up">
-        <div class="overview-profile-card__name" id="overview-name">—</div>
-        <div class="overview-profile-card__headline" id="overview-headline">Complete your profile below →</div>
-        <div class="overview-profile-card__meta">
-          <span id="overview-location">📍 —</span>
-          <span id="overview-availability" class="avail-badge avail-badge--grey">not set</span>
+        <div class="overview-profile-card overview-profile-card--dashboard animate-fade-up">
+          <div class="overview-profile-card__top">
+            <div>
+              <div class="overview-profile-card__name" id="overview-name">—</div>
+              <div class="overview-profile-card__headline" id="overview-headline">Complete your profile below →</div>
+              <div class="overview-profile-card__meta">
+                <span id="overview-location">📍 —</span>
+                <span id="overview-availability" class="avail-badge avail-badge--grey">not set</span>
+              </div>
+            </div>
+          </div>
+          <div class="overview-profile-card__progress">
+            <div class="progress-label">Profile score</div>
+            <div class="progress-bar"><div id="overview-score-bar" class="progress-fill" style="width:0%"></div></div>
+          </div>
+          <div class="overview-profile-card__link">
+            <button class="btn btn--ghost btn--sm" id="public-profile-button" onclick="openPublicProfile()">View public profile</button>
+          </div>
         </div>
-        <div class="overview-profile-card__progress">
-          <div class="progress-label">Profile score</div>
-          <div class="progress-bar"><div id="overview-score-bar" class="progress-fill" style="width:0%"></div></div>
-        </div>
-        <div class="overview-profile-card__link">
-          <button class="btn btn--ghost btn--sm" id="public-profile-button" onclick="openPublicProfile()">View public profile</button>
-        </div>
-      </div>
 
-      <div class="stat-grid">
-        <div class="stat-card animate-fade-up">
-          <div class="stat-card__label">Projects</div>
-          <div class="stat-card__value" id="project-count">0</div>
+        <div class="stat-grid stat-grid--overview">
+          <div class="stat-card stat-card--overview animate-fade-up">
+            <div class="stat-card__label">Projects</div>
+            <div class="stat-card__value" id="project-count">0</div>
+          </div>
+          <div class="stat-card stat-card--overview animate-fade-up" style="animation-delay:.06s">
+            <div class="stat-card__label">Skills</div>
+            <div class="stat-card__value" id="skills-count">0</div>
+          </div>
+          <div class="stat-card stat-card--overview stat-card--feature animate-fade-up" style="animation-delay:.12s">
+            <div class="stat-card__label">Visibility</div>
+            <div class="stat-card__value stat-card__value--feature" id="visibility-status">Public</div>
+          </div>
         </div>
-        <div class="stat-card animate-fade-up" style="animation-delay:.06s">
-          <div class="stat-card__label">Skills</div>
-          <div class="stat-card__value" id="skills-count">0</div>
-        </div>
-        <div class="stat-card animate-fade-up" style="animation-delay:.12s">
-          <div class="stat-card__label">Visibility</div>
-          <div class="stat-card__value" id="visibility-status">Public</div>
-        </div>
-      </div>
 
-      <div class="prompt-banner animate-fade-up" id="profile-prompt">
-        <span class="prompt-banner__icon">💡</span>
-        <div class="prompt-banner__text">
-          <strong>Complete your profile to get discovered</strong>
-          <span>Add a headline, skills, and at least one project to appear in recruiter searches.</span>
+        <div class="prompt-banner prompt-banner--overview animate-fade-up" id="profile-prompt">
+          <span class="prompt-banner__icon">💡</span>
+          <div class="prompt-banner__text">
+            <strong>Complete your profile to get discovered</strong>
+            <span>Add a headline, skills, and at least one project to appear in recruiter searches.</span>
+          </div>
+          <button class="btn btn--primary btn--sm" onclick="showSection('profile')">Complete →</button>
         </div>
-        <button class="btn btn--primary btn--sm" onclick="showSection('profile')">Complete →</button>
       </div>
     </section>
 
