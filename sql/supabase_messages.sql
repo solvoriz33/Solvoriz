@@ -24,8 +24,8 @@ create table if not exists creator_conversations (
   creator_one_id uuid not null references users(id) on delete cascade,
   creator_two_id uuid not null references users(id) on delete cascade,
   initiator_id uuid not null references users(id) on delete cascade,
-  project_id uuid references projects(id) on delete set null,
-  created_at timestamptz default now(),
+  project_id uuid not null references projects(id) on delete cascade,
+  created_at timestamptz not null default now(),
   check (creator_one_id <> creator_two_id),
   unique (creator_one_id, creator_two_id, project_id)
 );

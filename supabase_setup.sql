@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS public.creator_conversations (
   creator_one_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   creator_two_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   initiator_id   UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  project_id     UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  project_id     UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (creator_one_id <> creator_two_id),
   UNIQUE (creator_one_id, creator_two_id, project_id)
