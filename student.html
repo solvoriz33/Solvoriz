@@ -34,6 +34,10 @@
       <button class="nav-item" data-section="add-project" onclick="showSection('add-project')">
         <span class="nav-icon">＋</span> Add Project
       </button>
+      <button class="nav-item" data-section="messages" onclick="showSection('messages')">
+        <span class="nav-icon">💬</span> Messages
+        <span id="message-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+      </button>
       <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
         <span class="nav-icon">🔔</span> Notifications
         <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
@@ -274,6 +278,19 @@
           </div>
           <p class="muted" id="project-limit-note" style="margin-top:14px"></p>
         </form>
+      </div>
+    </section>
+
+    <section class="dash-section" id="section-messages">
+      <div class="section-header">
+        <h1 class="section-header__title">Messages</h1>
+        <p class="section-header__sub">Your internal messages from recruiters. No email required.</p>
+      </div>
+      <div id="messages-list" style="display:grid;gap:16px"></div>
+      <div class="empty-state hidden" id="messages-empty" style="margin-top:20px">
+        <div class="empty-state__icon">💬</div>
+        <div class="empty-state__title">No messages yet</div>
+        <div class="empty-state__sub">Recruiters can message you directly from their project pages.</div>
       </div>
     </section>
 

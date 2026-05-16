@@ -7,6 +7,7 @@ let currentProfile = null;
 let allProjects = [];
 let allStudents = []; // Keep for context
 let myNotifications = [];
+let myMessages = [];
 let filterSkills = [];
 let shortlistProjectIds = []; // DB-persisted shortlist
 let filterSkillsInput = null;
@@ -38,8 +39,9 @@ async function initRecruiter() {
     onChange: () => applyFilters()
   });
 
-  await Promise.all([loadAllProjects(), loadShortlist(), loadNotifications()]);
+  await Promise.all([loadAllProjects(), loadShortlist(), loadNotifications(), loadMessages()]);
   setupSearch();
+  updateDashboardStats();
   showSection('browse');
 }
 
@@ -293,6 +295,7 @@ async function toggleShortlist(projectId) {
   renderProjects(getFilteredProjects());
   updateShortlistCount();
   renderShortlist();
+  updateDashboardStats();
 }
 
 function updateShortlistCount() {
@@ -357,6 +360,58 @@ async function loadNotifications() {
   if (error) { showToast('Failed to load notifications', 'error'); return; }
   myNotifications = data || [];
   renderNotifications();
+}
+
+async function loadMessages() {
+  const { data, error } = await window.sb
+    .from('contact_requests')
+    .select(`*, student:student_id (id, full_name, email), project:project_id (id, title)`)
+    .eq('recruiter_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) { showToast('Failed to load messages', 'error'); return; }
+  myMessages = data || [];
+  renderMessages();
+}
+
+function renderMessages() {
+  const list = document.getElementById('messages-list');
+  const empty = document.getElementById('messages-empty');
+  const count = document.getElementById('message-count');
+  const dashboardCount = document.getElementById('dashboard-message-count');
+  if (count) count.textContent = String(myMessages.length || 0);
+  if (dashboardCount) dashboardCount.textContent = String(myMessages.length || 0);
+  if (!list) return;
+
+  if (!myMessages.length) {
+    list.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+  list.innerHTML = myMessages.map(msg => `
+    <div class="card notification-card animate-fade-up">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div>
+          <strong>💬 Message to ${escHtml(msg.student?.full_name || msg.student?.email || 'Builder')}</strong>
+          <div class="muted" style="margin-top:6px">${escHtml(msg.project?.title || 'Project message')}</div>
+          <div style="margin-top:8px;padding:10px;background:var(--bg-2);border-radius:6px;font-size:.95rem">
+            ${escHtml(msg.message)}
+          </div>
+        </div>
+        <span class="role-badge role-badge--grey">${fmtDate(msg.created_at)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateDashboardStats() {
+  const projectCount = document.getElementById('dashboard-project-count');
+  const shortlistCount = document.getElementById('dashboard-shortlist-count');
+  const messageCount = document.getElementById('dashboard-message-count');
+  if (projectCount) projectCount.textContent = String(allProjects.length);
+  if (shortlistCount) shortlistCount.textContent = String(shortlistProjectIds.length);
+  if (messageCount) messageCount.textContent = String(myMessages.length);
 }
 
 function renderNotifications() {
@@ -455,6 +510,7 @@ function showSection(section) {
 
   if (section === 'shortlist') renderShortlist();
   if (section === 'notifications') renderNotifications();
+  if (section === 'messages') renderMessages();
 }
 
 // ── LOGOUT ────────────────────────────────────────────────

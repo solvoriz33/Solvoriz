@@ -8,6 +8,7 @@ let currentUser = null;
 let currentProfile = null;
 let myProjects = [];
 let myNotifications = [];
+let myMessages = [];
 let myActivity = [];
 let profileSkills = [];
 let projectSkills = [];
@@ -30,7 +31,7 @@ async function initStudent() {
 
   initForms();
   await loadStudentProfile();
-  await Promise.all([loadProjects(), loadNotifications(), loadActivity()]);
+  await Promise.all([loadProjects(), loadNotifications(), loadActivity(), loadMessages()]);
   // Set overview name reliably (not via setTimeout in HTML)
   const ovName = document.getElementById('overview-name');
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
@@ -152,6 +153,47 @@ async function loadNotifications() {
   if (error) { showToast('Failed to load notifications', 'error'); return; }
   myNotifications = data || [];
   renderNotifications();
+}
+
+async function loadMessages() {
+  const { data, error } = await window.sb
+    .from('contact_requests')
+    .select(`*, recruiter:recruiter_id (id, full_name, email), project:project_id (id, title)`)
+    .eq('student_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) { console.warn('Failed to load messages', error); return; }
+  myMessages = data || [];
+  renderMessages();
+}
+
+function renderMessages() {
+  const list = document.getElementById('messages-list');
+  const empty = document.getElementById('messages-empty');
+  const count = document.getElementById('message-count');
+  if (count) count.textContent = String(myMessages.length || 0);
+  if (!list) return;
+
+  if (!myMessages.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = myMessages.map(msg => `
+    <div class="card notification-card animate-fade-up">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div>
+          <strong>💬 Message from ${escHtml(msg.recruiter?.full_name || msg.recruiter?.email || 'Recruiter')}</strong>
+          <div class="muted" style="margin-top:6px">${escHtml(msg.project?.title || 'General request')}</div>
+          <div style="margin-top:8px;padding:10px;background:var(--bg-2);border-radius:6px;font-size:.95rem">
+            ${escHtml(msg.message)}
+          </div>
+        </div>
+        <span class="role-badge role-badge--grey">${fmtDate(msg.created_at)}</span>
+      </div>
+    </div>
+  `).join('');
 }
 
 async function loadActivity() {
@@ -320,8 +362,8 @@ function showSection(section) {
   if (sectionEl) sectionEl.classList.add('active');
   if (navEl) navEl.classList.add('active');
 
-  // Reload activity when viewing
   if (section === 'activity') loadActivity();
+  if (section === 'messages') loadMessages();
 }
 
 // ── FORMS ────────────────────────────────────────────────

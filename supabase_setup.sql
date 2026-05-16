@@ -319,7 +319,11 @@ DROP POLICY IF EXISTS "notifications_insert_own" ON public.notifications;
 CREATE POLICY "notifications_insert_own"
   ON public.notifications FOR INSERT
   TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (
+    user_id = auth.uid()
+    OR public.get_my_role() = 'recruiter'
+    OR public.get_my_role() = 'admin'
+  );
 
 
 -- ────────────────────────────────────────────────────────────

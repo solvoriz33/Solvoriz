@@ -26,10 +26,16 @@
       <button class="nav-item" data-section="shortlist" onclick="showSection('shortlist')">
         <span class="nav-icon">★</span> Shortlist
         <span id="shortlist-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
-      </button>      <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
+      </button>
+      <button class="nav-item" data-section="messages" onclick="showSection('messages')">
+        <span class="nav-icon">💬</span> Messages
+        <span id="message-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
+      </button>
+      <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
         <span class="nav-icon">🔔</span> Notifications
         <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
-      </button>    </nav>
+      </button>
+    </nav>
 
     <div class="sidebar-user">
       <div class="sidebar-user__card">
@@ -53,6 +59,21 @@
         <p class="section-header__sub">
           <span id="student-count">—</span> builder profiles. Filter by skill, location, or availability.
         </p>
+      </div>
+
+      <div class="stat-grid" style="margin-bottom:24px">
+        <div class="stat-card animate-fade-up">
+          <div class="stat-card__label">Active projects</div>
+          <div class="stat-card__value" id="dashboard-project-count">0</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.06s">
+          <div class="stat-card__label">Shortlisted</div>
+          <div class="stat-card__value" id="dashboard-shortlist-count">0</div>
+        </div>
+        <div class="stat-card animate-fade-up" style="animation-delay:.12s">
+          <div class="stat-card__label">Messages</div>
+          <div class="stat-card__value" id="dashboard-message-count">0</div>
+        </div>
       </div>
 
       <!-- SEARCH BAR -->
@@ -137,6 +158,19 @@
       </div>
 
       <div class="students-grid" id="shortlist-grid"></div>
+    </section>
+
+    <section class="dash-section" id="section-messages">
+      <div class="section-header">
+        <h1 class="section-header__title">Messages</h1>
+        <p class="section-header__sub">Your recruiter messages. Keep in touch with builders directly inside Solvoriz.</p>
+      </div>
+      <div id="messages-list" style="display:grid;gap:16px"></div>
+      <div class="empty-state hidden" id="messages-empty" style="margin-top:20px">
+        <div class="empty-state__icon">💬</div>
+        <div class="empty-state__title">No messages yet</div>
+        <div class="empty-state__sub">Message builders from any project and your thread history will appear here.</div>
+      </div>
     </section>
 
     <section class="dash-section" id="section-notifications">
