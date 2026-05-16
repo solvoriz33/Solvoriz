@@ -124,8 +124,8 @@ function calculateProfileScore(profile) {
 function updateProfilePrompt(profile, score = calculateProfileScore(profile)) {
   const prompt = document.getElementById('profile-prompt');
   if (!prompt) return;
-  const strong = prompt.querySelector('strong');
-  const span = prompt.querySelector('span');
+  const strong = prompt.querySelector('.prompt-banner__text strong');
+  const span = prompt.querySelector('.prompt-banner__text span');
   const actionBtn = prompt.querySelector('.btn');
   const projectCount = myProjects.filter(project => project.visible).length;
   const discoverable = Boolean(profile?.discoverable);
