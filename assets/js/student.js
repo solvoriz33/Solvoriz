@@ -8,6 +8,7 @@ let currentUser = null;
 let currentProfile = null;
 let myProjects = [];
 let myNotifications = [];
+let myActivity = [];
 let profileSkills = [];
 let projectSkills = [];
 let editProjectSkills = [];
@@ -29,7 +30,7 @@ async function initStudent() {
 
   initForms();
   await loadStudentProfile();
-  await Promise.all([loadProjects(), loadNotifications()]);
+  await Promise.all([loadProjects(), loadNotifications(), loadActivity()]);
   // Set overview name reliably (not via setTimeout in HTML)
   const ovName = document.getElementById('overview-name');
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
@@ -153,6 +154,76 @@ async function loadNotifications() {
   renderNotifications();
 }
 
+async function loadActivity() {
+  const { data, error } = await window.sb
+    .from('activity_log')
+    .select(`*, 
+      actor:actor_id (id, full_name, email, student_profiles(headline, location))
+    `)
+    .eq('target_user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) { console.warn('Failed to load activity', error); return; }
+  myActivity = data || [];
+  renderActivity();
+}
+
+function renderActivity() {
+  const list = document.getElementById('activity-list');
+  const empty = document.getElementById('activity-empty');
+  if (!list) return;
+  
+  if (!myActivity.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  list.innerHTML = myActivity.map(act => {
+    let icon, title, desc;
+    const actor = act.actor?.[0];
+    const actorName = actor?.full_name || actor?.email || 'Someone';
+    const actorHeadline = actor?.student_profiles?.[0]?.headline || '';
+
+    if (act.action_type === 'profile_view') {
+      icon = '👀';
+      title = 'Profile viewed';
+      desc = `${actorName} viewed your profile`;
+    } else if (act.action_type === 'project_view') {
+      icon = '🔍';
+      title = 'Project viewed';
+      desc = `${actorName} viewed your project`;
+    } else if (act.action_type === 'shortlist') {
+      icon = '⭐';
+      title = 'Added to shortlist';
+      desc = `${actorName} shortlisted your project`;
+    } else if (act.action_type === 'contact_sent') {
+      icon = '💬';
+      title = 'Message received';
+      desc = `${actorName} sent you a message`;
+    } else {
+      icon = '📌';
+      title = 'Activity';
+      desc = `${act.action_type}`;
+    }
+
+    return `
+      <div class="card animate-fade-up">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:1.5rem;min-width:36px;text-align:center">${icon}</div>
+          <div style="flex:1">
+            <div><strong>${escHtml(title)}</strong></div>
+            <div class="muted" style="margin-top:4px">${escHtml(desc)}</div>
+            ${actorHeadline ? `<div class="muted" style="margin-top:4px;font-size:.9rem">${escHtml(actorHeadline)}</div>` : ''}
+            <div class="muted" style="margin-top:8px;font-size:.85rem">${fmtDate(act.created_at)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderNotifications() {
   const list = document.getElementById('notifications-list');
   const empty = document.getElementById('notifications-empty');
@@ -166,13 +237,27 @@ function renderNotifications() {
   }
   if (empty) empty.classList.add('hidden');
   list.innerHTML = myNotifications.map(note => {
-    const title = note.type === 'contact_request'
-      ? 'New contact request'
-      : note.type === 'project_feature'
-        ? `Project ${note.payload?.featured ? 'featured' : 'updated'}`
-        : note.type === 'recruiter_verified'
-          ? 'Recruiter status updated'
-          : 'Notification';
+    if (note.type === 'contact_request') {
+      return `
+        <div class="card notification-card animate-fade-up">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+            <div>
+              <strong>💬 New message from recruiter</strong>
+              <div class="muted" style="margin-top:6px;max-width:400px">"${escHtml(note.payload?.recruiter_name || 'A recruiter')}"</div>
+              <div style="margin-top:8px;padding:10px;background:var(--bg-2);border-radius:6px;font-size:.95rem">
+                ${escHtml(note.payload?.message || 'No message text')}
+              </div>
+            </div>
+            <span class="role-badge role-badge--grey">${fmtDate(note.created_at)}</span>
+          </div>
+        </div>
+      `;
+    }
+    const title = note.type === 'project_feature'
+      ? 'Project updated'
+      : note.type === 'recruiter_verified'
+        ? 'Recruiter status updated'
+        : 'Notification';
     const body = note.payload?.message || note.payload?.title || note.payload?.detail || 'You have a new update.';
     return `
       <div class="card notification-card animate-fade-up">
@@ -234,6 +319,9 @@ function showSection(section) {
   const navEl = document.querySelector(`.nav-item[data-section="${section}"]`);
   if (sectionEl) sectionEl.classList.add('active');
   if (navEl) navEl.classList.add('active');
+
+  // Reload activity when viewing
+  if (section === 'activity') loadActivity();
 }
 
 // ── FORMS ────────────────────────────────────────────────

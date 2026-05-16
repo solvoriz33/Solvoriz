@@ -38,6 +38,9 @@
         <span class="nav-icon">🔔</span> Notifications
         <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
       </button>
+      <button class="nav-item" data-section="activity" onclick="showSection('activity')">
+        <span class="nav-icon">📊</span> Profile Activity
+      </button>
     </nav>
 
     <div class="sidebar-user">
@@ -284,6 +287,20 @@
         <div class="empty-state__icon">🔔</div>
         <div class="empty-state__title">No notifications yet</div>
         <div class="empty-state__sub">Important updates will appear here as they come in.</div>
+      </div>
+    </section>
+
+    <section class="dash-section" id="section-activity">
+      <div class="section-header">
+        <h1 class="section-header__title">Profile Activity</h1>
+        <p class="section-header__sub">See who viewed your profile and projects, who shortlisted you, and who contacted you.</p>
+      </div>
+
+      <div id="activity-list" style="display:grid;gap:16px"></div>
+      <div class="empty-state hidden" id="activity-empty" style="margin-top:20px">
+        <div class="empty-state__icon">📊</div>
+        <div class="empty-state__title">No activity yet</div>
+        <div class="empty-state__sub">When recruiters start viewing your profile and projects, activity will appear here.</div>
       </div>
     </section>
 

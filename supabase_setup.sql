@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS verified_recruiter BOOLEAN NOT NULL DEFAULT false;
+
 -- Index for fast role lookups
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
 CREATE INDEX IF NOT EXISTS idx_users_verified_recruiter ON public.users(verified_recruiter);
@@ -51,6 +54,23 @@ CREATE TABLE IF NOT EXISTS public.student_profiles (
   UNIQUE(user_id)
 );
 
+ALTER TABLE public.student_profiles
+  ADD COLUMN IF NOT EXISTS handle TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS age INT,
+  ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+  ADD COLUMN IF NOT EXISTS github_username TEXT,
+  ADD COLUMN IF NOT EXISTS headline TEXT,
+  ADD COLUMN IF NOT EXISTS bio TEXT,
+  ADD COLUMN IF NOT EXISTS location TEXT,
+  ADD COLUMN IF NOT EXISTS visibility TEXT NOT NULL DEFAULT 'public',
+  ADD COLUMN IF NOT EXISTS availability TEXT DEFAULT 'not set',
+  ADD COLUMN IF NOT EXISTS skills TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS review_status TEXT NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 CREATE INDEX IF NOT EXISTS idx_student_profiles_user_id ON public.student_profiles(user_id);
 -- GIN index for fast skills array search
 CREATE INDEX IF NOT EXISTS idx_student_profiles_skills ON public.student_profiles USING GIN(skills);
@@ -77,6 +97,18 @@ CREATE TABLE IF NOT EXISTS public.projects (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.projects
+  ADD COLUMN IF NOT EXISTS tech_stack TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS project_type TEXT DEFAULT 'Side Project',
+  ADD COLUMN IF NOT EXISTS image_url TEXT,
+  ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS review_status TEXT NOT NULL DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS demo_link TEXT,
+  ADD COLUMN IF NOT EXISTS github_link TEXT,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON public.projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_tech_stack ON public.projects USING GIN(tech_stack);
@@ -170,6 +202,14 @@ CREATE POLICY "users_update_own"
   TO authenticated
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
+
+DROP POLICY IF EXISTS "users_update_admin" ON public.users;
+-- Admins can update any user (for recruiter verification, role changes, etc.)
+CREATE POLICY "users_update_admin"
+  ON public.users FOR UPDATE
+  TO authenticated
+  USING (public.get_my_role() = 'admin')
+  WITH CHECK (public.get_my_role() = 'admin');
 
 DROP POLICY IF EXISTS "users_delete_admin" ON public.users;
 -- Only admins can delete users

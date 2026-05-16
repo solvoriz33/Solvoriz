@@ -4,10 +4,11 @@
 
 let currentUser = null;
 let currentProfile = null;
-let allStudents = [];
+let allProjects = [];
+let allStudents = []; // Keep for context
 let myNotifications = [];
 let filterSkills = [];
-let shortlist = [];
+let shortlistProjectIds = []; // DB-persisted shortlist
 let filterSkillsInput = null;
 
 // ── INIT ─────────────────────────────────────────────────
@@ -37,67 +38,178 @@ async function initRecruiter() {
     onChange: () => applyFilters()
   });
 
-  await Promise.all([loadStudents(), loadNotifications()]);
+  await Promise.all([loadAllProjects(), loadShortlist(), loadNotifications()]);
   setupSearch();
   showSection('browse');
 }
 
-// ── LOAD ALL STUDENTS ─────────────────────────────────────
-async function loadStudents() {
+// ── LOAD ALL PROJECTS (Browse by projects, not profiles) ──
+async function loadAllProjects() {
   const loadingEl = document.getElementById('students-loading');
-  const gridEl = document.getElementById('students-grid');
   if (loadingEl) loadingEl.classList.remove('hidden');
 
-  // Join student_profiles with users, plus their projects
-  // Projects are linked to users (not student_profiles), so we join via users
   const { data, error } = await window.sb
-    .from('student_profiles')
+    .from('projects')
     .select(`
       *,
       users:user_id (
-        id, full_name, email, created_at,
-        projects (id, title, tech_stack, demo_link, github_link, description, created_at)
+        id, full_name, email,
+        student_profiles (headline, bio, location, age, availability, skills)
       )
-    `);
+    `)
+    .eq('visible', true)
+    .eq('review_status', 'active')
+    .order('created_at', { ascending: false });
 
   if (loadingEl) loadingEl.classList.add('hidden');
 
-  if (error) { showToast('Failed to load students', 'error'); return; }
+  if (error) { showToast('Failed to load projects', 'error'); return; }
 
-  allStudents = (data || []).map(sp => ({
-    profileId: sp.id,
-    userId: sp.user_id,
-    fullName: sp.users?.full_name || 'Anonymous',
-    email: sp.users?.email || '',
-    headline: sp.headline || '',
-    bio: sp.bio || '',
-    location: sp.location || '',
-    age: sp.age || null,
-    availability: sp.availability || '',
-    skills: sp.skills || [],
-    joinedAt: sp.users?.created_at || '',
-    projects: sp.users?.projects || []
+  allProjects = (data || []).map(p => ({
+    id: p.id,
+    userId: p.user_id,
+    title: p.title,
+    description: p.description || '',
+    tech_stack: p.tech_stack || [],
+    project_type: p.project_type || 'Side Project',
+    image_url: p.image_url || '',
+    demo_link: p.demo_link || '',
+    github_link: p.github_link || '',
+    created_at: p.created_at,
+    builderName: p.users?.full_name || 'Anonymous',
+    builderEmail: p.users?.email || '',
+    builderHeadline: p.users?.student_profiles?.[0]?.headline || '',
+    builderLocation: p.users?.student_profiles?.[0]?.location || '',
+    builderAge: p.users?.student_profiles?.[0]?.age || null,
+    builderAvailability: p.users?.student_profiles?.[0]?.availability || '',
+    builderSkills: p.users?.student_profiles?.[0]?.skills || []
   }));
 
-  document.getElementById('student-count').textContent = allStudents.length;
-  renderStudents(allStudents);
+  document.getElementById('student-count').textContent = allProjects.length;
+  renderProjects(allProjects);
 }
 
-// ── RENDER STUDENTS ───────────────────────────────────────
-function renderStudents(students) {
+// ── LOAD SHORTLIST FROM DB ────────────────────────────────
+async function loadShortlist() {
+  const { data, error } = await window.sb
+    .from('shortlists')
+    .select('project_id')
+    .eq('recruiter_id', currentUser.id);
+
+  if (error) { showToast('Failed to load shortlist', 'error'); return; }
+  shortlistProjectIds = (data || []).map(s => s.project_id);
+  renderShortlist();
+  updateShortlistCount();
+}
+
+// ── RENDER PROJECTS ──────────────────────────────────────
+function renderProjects(projects) {
   const grid = document.getElementById('students-grid');
   const empty = document.getElementById('students-empty');
 
-  if (!students.length) {
+  if (!projects.length) {
     grid.innerHTML = '';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
 
-  grid.innerHTML = students.map(s => `
-    <div class="student-card animate-fade-up" onclick="openStudentProfile('${s.userId}')">
-      <div class="student-card__top">
+  grid.innerHTML = projects.map(p => {
+    const isShortlisted = shortlistProjectIds.includes(p.id);
+    return `
+      <div class="student-card animate-fade-up">
+        <div class="student-card__top">
+          <div class="student-avatar">${getInitials(p.builderName)}</div>
+          <div class="student-card__info">
+            <h3 class="student-card__name">${escHtml(p.title)}</h3>
+            <p class="student-card__headline">${escHtml(p.builderName)}</p>
+            <div class="student-card__meta">
+              <span style="font-size:.9rem;color:var(--ink-2)">${escHtml(p.project_type)}</span>
+            </div>
+          </div>
+          <button class="shortlist-btn ${isShortlisted ? 'shortlisted' : ''}" 
+            onclick="event.stopPropagation();toggleShortlist('${p.id}')"
+            title="${isShortlisted ? 'Remove from shortlist' : 'Add to shortlist'}">★</button>
+        </div>
+        <p style="font-size:.95rem;color:var(--ink-2);margin:12px 0">${escHtml(p.description.slice(0, 100))}${p.description.length > 100 ? '...' : ''}</p>
+        <div class="project-card__skills" style="margin:12px 0">
+          ${(p.tech_stack || []).slice(0, 4).map(s => `<span class="skill-chip skill-chip--sm">${escHtml(s)}</span>`).join('')}
+        </div>
+        <div class="student-card__footer">
+          ${p.builderLocation ? `<span style="font-size:.9rem">📍 ${escHtml(p.builderLocation)}</span>` : ''}
+          ${p.builderAvailability ? `<span class="role-badge role-badge--sm role-badge--${p.builderAvailability === 'available' ? 'success' : 'grey'}">${escHtml(p.builderAvailability)}</span>` : ''}
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn--sm btn--primary" onclick="event.stopPropagation();openProjectDetail('${p.id}')">View project</button>
+          <button class="btn btn--sm btn--outline" onclick="event.stopPropagation();contactBuilder('${p.userId}','${p.id}')">Send message</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── OPEN PROJECT DETAIL MODAL ─────────────────────────────
+function openProjectDetail(projectId) {
+  const project = allProjects.find(p => p.id === projectId);
+  if (!project) return;
+
+  // Log activity
+  logActivity('project_view', 'project', projectId, project.userId);
+
+  const modal = document.getElementById('student-modal');
+  const content = document.getElementById('student-modal-content');
+  if (!modal || !content) return;
+
+  const isShortlisted = shortlistProjectIds.includes(project.id);
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2>${escHtml(project.title)}</h2>
+        <p class="muted">${escHtml(project.builderName)}</p>
+        <p class="muted">${escHtml(project.project_type)}</p>
+      </div>
+      <button class="shortlist-btn ${isShortlisted ? 'shortlisted' : ''}" 
+        onclick="toggleShortlist('${project.id}');renderProjectDetail('${projectId}')"
+        title="${isShortlisted ? 'Remove from shortlist' : 'Add to shortlist'}">★</button>
+    </div>
+    ${project.image_url ? `<div style="background-image:url('${escHtml(project.image_url)}');margin-top:16px;height:200px;background-size:cover;background-position:center;border-radius:12px"></div>` : ''}
+    <div style="margin-top:18px">
+      <h3 style="margin-bottom:8px">About this project</h3>
+      <p>${escHtml(project.description)}</p>
+    </div>
+    <div style="margin-top:16px">
+      <h3 style="margin-bottom:8px">Tech stack</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${(project.tech_stack || []).map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('')}
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <h3 style="margin-bottom:8px">Builder profile</h3>
+      <div style="padding:12px;background:var(--bg-2);border-radius:8px">
+        <p><strong>${escHtml(project.builderName)}</strong></p>
+        <p class="muted">${escHtml(project.builderEmail)}</p>
+        ${project.builderHeadline ? `<p style="margin-top:4px">${escHtml(project.builderHeadline)}</p>` : ''}
+        ${project.builderLocation ? `<p style="margin-top:4px;color:var(--ink-2)">📍 ${escHtml(project.builderLocation)}</p>` : ''}
+        ${project.builderAge ? `<p style="margin-top:4px;color:var(--ink-2)">Age: ${project.builderAge}</p>` : ''}
+      </div>
+    </div>
+    <div class="project-card__links" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      ${project.demo_link ? `<a class="project-link" href="${escHtml(project.demo_link)}" target="_blank" rel="noopener">🔗 Live Demo</a>` : ''}
+      ${project.github_link ? `<a class="project-link" href="${escHtml(project.github_link)}" target="_blank" rel="noopener">⌥ GitHub</a>` : ''}
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn--primary" onclick="contactBuilder('${project.userId}','${project.id}')">Send message</button>
+      <button class="btn btn--outline" onclick="closeStudentModal()">Close</button>
+    </div>
+  `;
+
+  modal.classList.remove('hidden');
+}
+
+function renderProjectDetail(projectId) {
+  openProjectDetail(projectId);
+}
         <div class="student-avatar">${getInitials(s.fullName)}</div>
         <div class="student-card__info">
           <h3 class="student-card__name">${escHtml(s.fullName)}</h3>
@@ -116,11 +228,12 @@ function renderStudents(students) {
         ${s.skills.length > 5 ? `<span class="skill-chip skill-chip--more">+${s.skills.length - 5}</span>` : ''}
       </div>
       <div class="student-card__footer">
-        <span class="avail-badge avail-badge--${availColor(s.availability)}">${s.availability || 'unknown'}</span>
-        <span class="proj-count">${s.projects.length} project${s.projects.length !== 1 ? 's' : ''}</span>
+        ${p.builderLocation ? `<span style="font-size:.9rem">📍 ${escHtml(p.builderLocation)}</span>` : ''}
+        ${p.builderAvailability ? `<span class="role-badge role-badge--sm role-badge--${p.builderAvailability === 'available' ? 'success' : 'grey'}">${escHtml(p.builderAvailability)}</span>` : ''}
       </div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn--sm btn--ghost" onclick="event.stopPropagation();openStudentProfile('${s.userId}')">View profile</button>
+        <button class="btn btn--sm btn--primary" onclick="event.stopPropagation();openProjectDetail('${p.id}')">View project</button>
+        <button class="btn btn--sm btn--outline" onclick="event.stopPropagation();contactBuilder('${p.userId}','${p.id}')">Send message</button>
       </div>
     </div>
   `).join('');
@@ -129,126 +242,98 @@ function renderStudents(students) {
 function getInitials(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
-function availColor(av) {
-  if (av === 'available') return 'green';
-  if (av === 'open') return 'amber';
-  return 'grey';
-}
-
-// ── STUDENT PROFILE MODAL ─────────────────────────────────
-function openStudentProfile(userId) {
-  const student = allStudents.find(s => s.userId === userId);
-  if (!student) return;
-
-  const modal = document.getElementById('student-modal');
-  const content = document.getElementById('student-modal-content');
-
-  content.innerHTML = `
-    <div class="student-modal__header">
-      <div class="student-avatar student-avatar--lg">${getInitials(student.fullName)}</div>
-      <div>
-        <h2>${escHtml(student.fullName)}</h2>
-        <p class="student-modal__headline">${escHtml(student.headline)}</p>
-        ${student.location ? `<p class="student-modal__loc">📍 ${escHtml(student.location)}</p>` : ''}
-        <span class="avail-badge avail-badge--${availColor(student.availability)}">${student.availability || 'Not set'}</span>
-      </div>
-    </div>
-    ${student.bio ? `<div class="student-modal__bio"><h4>About</h4><p>${escHtml(student.bio)}</p></div>` : ''}
-    <div class="student-modal__skills">
-      <h4>Skills</h4>
-      <div class="skill-chips-row">
-        ${student.skills.map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('') || '<span class="muted">No skills listed</span>'}
-      </div>
-    </div>
-    <div class="student-modal__projects">
-      <h4>Projects (${student.projects.length})</h4>
-      ${student.projects.length ? student.projects.map(p => `
-        <div class="modal-project-card">
-          <div class="modal-project-card__head">
-            <strong>${escHtml(p.title)}</strong>
-            <span class="project-date">${fmtDate(p.created_at)}</span>
-          </div>
-          <p class="project-card__desc">${escHtml(p.description || '')}</p>
-          <div class="project-card__skills">
-            ${(p.tech_stack || []).map(s => `<span class="skill-chip skill-chip--sm">${escHtml(s)}</span>`).join('')}
-          </div>
-          <div class="project-card__links">
-            ${p.demo_link ? `<a class="project-link" href="${escHtml(p.demo_link)}" target="_blank" rel="noopener">🔗 Live</a>` : ''}
-            ${p.github_link ? `<a class="project-link" href="${escHtml(p.github_link)}" target="_blank" rel="noopener">⌥ GitHub</a>` : ''}
-          </div>
-        </div>
-      `).join('') : '<p class="muted">No projects yet</p>'}
-    </div>
-    <div class="student-modal__actions">
-      <textarea id="contact-message" class="textarea" placeholder="Write a short message to introduce yourself and why you'd like to connect." rows="4"></textarea>
-      <button class="btn btn--primary" onclick="sendContactRequest('${student.userId}')">✉ Send contact request</button>
-      <button class="btn btn--outline" onclick="toggleShortlist('${student.userId}');updateShortlistBtn('${student.userId}',this)">
-        ${shortlist.includes(student.userId) ? '★ Shortlisted' : '☆ Shortlist'}
-      </button>
-    </div>
-  `;
-
-  modal.classList.remove('hidden');
-}
-
-function updateShortlistBtn(userId, btn) {
-  btn.textContent = shortlist.includes(userId) ? '★ Shortlisted' : '☆ Shortlist';
-}
 
 function closeStudentModal() {
   document.getElementById('student-modal').classList.add('hidden');
 }
 
-async function sendContactRequest(studentId) {
+// ── SEND CONTACT REQUEST ─────────────────────────────────
+async function contactBuilder(studentId, projectId) {
   if (!currentProfile.verified_recruiter) {
-    showToast('You must be a verified recruiter to send contact requests.', 'error');
+    showToast('You must be a verified recruiter to send messages.', 'error');
     return;
   }
 
-  const message = document.getElementById('contact-message')?.value.trim();
-  if (!message) {
-    showToast('Please write a short message before sending.', 'error');
-    return;
-  }
+  const message = prompt('Write your message to this builder (max 500 characters):');
+  if (!message || !message.trim()) return;
+
+  const truncated = message.trim().slice(0, 500);
 
   const { error } = await window.sb.from('contact_requests').insert({
     recruiter_id: currentUser.id,
     student_id: studentId,
-    message,
+    project_id: projectId || null,
+    message: truncated,
   });
 
   if (error) {
-    showToast('Failed to send contact request: ' + error.message, 'error');
+    showToast('Failed to send message: ' + error.message, 'error');
     return;
   }
 
+  // Create notification for the builder
   await createNotification(studentId, 'contact_request', {
     recruiter_id: currentUser.id,
-    recruiter_name: currentProfile.full_name,
-    message
+    recruiter_name: currentProfile.full_name || currentUser.email,
+    message: truncated,
+    project_id: projectId || null
   });
 
-  showToast('Contact request sent!', 'success');
+  // Log activity
+  logActivity('contact_sent', 'project', projectId || null, studentId);
+
+  showToast('Message sent! 📬', 'success');
   closeStudentModal();
 }
 
-// ── SHORTLIST ─────────────────────────────────────────────
-function toggleShortlist(userId) {
-  const idx = shortlist.indexOf(userId);
-  if (idx > -1) { shortlist.splice(idx, 1); showToast('Removed from shortlist', 'warn'); }
-  else { shortlist.push(userId); showToast('Added to shortlist ★', 'success'); }
-  renderStudents(getFilteredStudents());
+// ── SHORTLIST (DB-PERSISTED) ──────────────────────────────
+async function toggleShortlist(projectId) {
+  const isShortlisted = shortlistProjectIds.includes(projectId);
+
+  if (isShortlisted) {
+    // Remove from shortlist
+    const { error } = await window.sb
+      .from('shortlists')
+      .delete()
+      .eq('recruiter_id', currentUser.id)
+      .eq('project_id', projectId);
+
+    if (error) { showToast('Failed to update shortlist: ' + error.message, 'error'); return; }
+    shortlistProjectIds = shortlistProjectIds.filter(id => id !== projectId);
+    showToast('Removed from shortlist', 'warn');
+  } else {
+    // Add to shortlist
+    const { error } = await window.sb
+      .from('shortlists')
+      .insert({
+        recruiter_id: currentUser.id,
+        project_id: projectId
+      });
+
+    if (error) { showToast('Failed to update shortlist: ' + error.message, 'error'); return; }
+    shortlistProjectIds.push(projectId);
+    showToast('Added to shortlist ★', 'success');
+
+    // Log activity
+    logActivity('shortlist', 'project', projectId, allProjects.find(p => p.id === projectId)?.userId);
+  }
+
+  renderProjects(getFilteredProjects());
+  updateShortlistCount();
   renderShortlist();
+}
+
+function updateShortlistCount() {
+  const count = document.getElementById('shortlist-count');
+  if (count) count.textContent = shortlistProjectIds.length;
 }
 
 function renderShortlist() {
   const grid = document.getElementById('shortlist-grid');
   const empty = document.getElementById('shortlist-empty');
-  const count = document.getElementById('shortlist-count');
   if (!grid) return;
 
-  count.textContent = shortlist.length;
-  const shortlisted = allStudents.filter(s => shortlist.includes(s.userId));
+  const shortlisted = allProjects.filter(p => shortlistProjectIds.includes(p.id));
 
   if (!shortlisted.length) {
     grid.innerHTML = '';
@@ -256,26 +341,40 @@ function renderShortlist() {
     return;
   }
   empty.classList.add('hidden');
-  grid.innerHTML = shortlisted.map(s => `
-    <div class="student-card animate-fade-up" onclick="openStudentProfile('${s.userId}')">
+  grid.innerHTML = shortlisted.map(p => `
+    <div class="student-card animate-fade-up">
       <div class="student-card__top">
-        <div class="student-avatar">${getInitials(s.fullName)}</div>
+        <div class="student-avatar">${getInitials(p.builderName)}</div>
         <div class="student-card__info">
-          <h3 class="student-card__name">${escHtml(s.fullName)}</h3>
-          <p class="student-card__headline">${escHtml(s.headline)}</p>
-          ${s.age ? `<span class="student-card__loc">🎂 Age ${escHtml(String(s.age))}</span>` : ''}
+          <h3 class="student-card__name">${escHtml(p.title)}</h3>
+          <p class="student-card__headline">${escHtml(p.builderName)}</p>
         </div>
-        <button class="shortlist-btn shortlisted" onclick="event.stopPropagation();toggleShortlist('${s.userId}')">★</button>
+        <button class="shortlist-btn shortlisted" onclick="event.stopPropagation();toggleShortlist('${p.id}')">★</button>
       </div>
       <div class="student-card__footer">
-        <a href="mailto:${escHtml(s.email)}" class="btn btn--sm btn--primary" onclick="event.stopPropagation()">✉ Contact</a>
+        <span class="role-badge role-badge--grey">${escHtml(p.project_type)}</span>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn--sm btn--ghost" onclick="event.stopPropagation();openStudentProfile('${s.userId}')">View profile</button>
+        <button class="btn btn--sm btn--primary" onclick="openProjectDetail('${p.id}')">View project</button>
+        <button class="btn btn--sm btn--outline" onclick="contactBuilder('${p.userId}','${p.id}')">Send message</button>
       </div>
     </div>
   `).join('');
 }
+
+// ── ACTIVITY LOGGING ──────────────────────────────────────
+async function logActivity(actionType, targetType, targetId, targetUserId) {
+  if (!targetUserId) return;
+  const { error } = await window.sb.from('activity_log').insert({
+    actor_id: currentUser.id,
+    action_type: actionType,
+    target_type: targetType,
+    target_id: targetId,
+    target_user_id: targetUserId
+  });
+  if (error) console.warn('Activity log failed:', error);
+}
+
 
 async function loadNotifications() {
   const { data, error } = await window.sb
@@ -338,7 +437,7 @@ function setupSearch() {
   if (ageMax) ageMax.addEventListener('input', () => applyFilters());
 }
 
-function getFilteredStudents() {
+function getFilteredProjects() {
   const q = document.getElementById('search-input')?.value.trim().toLowerCase() || '';
   const loc = document.getElementById('filter-location')?.value || '';
   const avail = document.getElementById('filter-availability')?.value || '';
@@ -346,20 +445,20 @@ function getFilteredStudents() {
   const minAge = parseInt(document.getElementById('filter-age-min')?.value, 10);
   const maxAge = parseInt(document.getElementById('filter-age-max')?.value, 10);
 
-  return allStudents.filter(s => {
-    if (q && !s.fullName.toLowerCase().includes(q) && !s.headline.toLowerCase().includes(q) && !s.skills.some(sk => sk.toLowerCase().includes(q))) return false;
-    if (loc && !s.location.toLowerCase().includes(loc.toLowerCase())) return false;
-    if (avail && s.availability !== avail) return false;
-    if (type && !s.projects.some(p => p.project_type === type)) return false;
-    if (!Number.isNaN(minAge) && (s.age === null || s.age < minAge)) return false;
-    if (!Number.isNaN(maxAge) && (s.age === null || s.age > maxAge)) return false;
-    if (filterSkills.length && !filterSkills.every(fs => s.skills.some(sk => sk.toLowerCase() === fs.toLowerCase()))) return false;
+  return allProjects.filter(p => {
+    if (q && !p.title.toLowerCase().includes(q) && !p.builderName.toLowerCase().includes(q) && !p.description.toLowerCase().includes(q) && !p.tech_stack.some(sk => sk.toLowerCase().includes(q))) return false;
+    if (loc && !p.builderLocation.toLowerCase().includes(loc.toLowerCase())) return false;
+    if (avail && p.builderAvailability !== avail) return false;
+    if (type && p.project_type !== type) return false;
+    if (!Number.isNaN(minAge) && (p.builderAge === null || p.builderAge < minAge)) return false;
+    if (!Number.isNaN(maxAge) && (p.builderAge === null || p.builderAge > maxAge)) return false;
+    if (filterSkills.length && !filterSkills.every(fs => p.tech_stack.some(sk => sk.toLowerCase() === fs.toLowerCase()))) return false;
     return true;
   });
 }
 
 function applyFilters() {
-  renderStudents(getFilteredStudents());
+  renderProjects(getFilteredProjects());
 }
 
 function clearFilters() {
@@ -371,8 +470,9 @@ function clearFilters() {
   document.getElementById('filter-project-type').value = '';
   filterSkills.length = 0;
   document.getElementById('filter-skills-wrap').querySelectorAll('.skill-tag').forEach(t => t.remove());
-  renderStudents(allStudents);
+  renderProjects(allProjects);
 }
+
 
 // ── SECTION NAV ───────────────────────────────────────────
 function showSection(section) {
