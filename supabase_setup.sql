@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS public.conversations (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recruiter_id  UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   student_id    UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  project_id    UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  project_id    UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (recruiter_id, student_id, project_id)
 );
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS public.creator_conversations (
   initiator_id   UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   project_id     UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (creator_one_id <> creator_two_id),
+  CHECK (creator_one_id <> creator_two_id AND creator_one_id::text < creator_two_id::text),
   UNIQUE (creator_one_id, creator_two_id, project_id)
 );
 
@@ -377,7 +377,7 @@ DROP POLICY IF EXISTS "conversations_select_participant" ON public.conversations
 CREATE POLICY "conversations_select_participant"
   ON public.conversations FOR SELECT
   TO authenticated
-  USING (recruiter_id = auth.uid() OR student_id = auth.uid());
+  USING (recruiter_id = auth.uid() OR student_id = auth.uid() OR public.get_my_role() = 'admin');
 
 DROP POLICY IF EXISTS "conversations_insert_recruiter_or_student" ON public.conversations;
 CREATE POLICY "conversations_insert_recruiter_or_student"
@@ -389,6 +389,7 @@ CREATE POLICY "conversations_insert_recruiter_or_student"
       (recruiter_id = auth.uid() AND public.get_my_role() = 'recruiter')
       OR (student_id = auth.uid() AND public.get_my_role() = 'student')
     )
+    AND project_id IS NOT NULL
   );
 
 DROP POLICY IF EXISTS "messages_select_participant" ON public.messages;
@@ -396,12 +397,15 @@ CREATE POLICY "messages_select_participant"
   ON public.messages FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1
-      FROM public.conversations c
-      WHERE c.id = conversation_id
-        AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+    (
+      EXISTS (
+        SELECT 1
+        FROM public.conversations c
+        WHERE c.id = conversation_id
+          AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+      )
     )
+    OR public.get_my_role() = 'admin'
   );
 
 DROP POLICY IF EXISTS "messages_insert_sender_participant" ON public.messages;
@@ -416,6 +420,7 @@ CREATE POLICY "messages_insert_sender_participant"
       WHERE c.id = conversation_id
         AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
         AND c.recruiter_id <> c.student_id
+        AND c.project_id IS NOT NULL
     )
   );
 
@@ -440,6 +445,25 @@ CREATE POLICY "messages_update_participant"
     )
   );
 
+-- Prevent non-senders from changing message body: enforced by trigger
+CREATE OR REPLACE FUNCTION public.prevent_message_body_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF (OLD.body IS DISTINCT FROM NEW.body) AND (auth.uid()::text <> OLD.sender_id::text) THEN
+      RAISE EXCEPTION 'Only the message sender may modify the message body';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_message_body_change ON public.messages;
+CREATE TRIGGER trg_prevent_message_body_change
+  BEFORE UPDATE ON public.messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_message_body_change();
+
 DROP POLICY IF EXISTS "creator_conversations_select_participant" ON public.creator_conversations;
 CREATE POLICY "creator_conversations_select_participant"
   ON public.creator_conversations FOR SELECT
@@ -455,6 +479,8 @@ CREATE POLICY "creator_conversations_insert_creator"
     AND initiator_id = auth.uid()
     AND (creator_one_id = auth.uid() OR creator_two_id = auth.uid())
     AND creator_one_id <> creator_two_id
+    AND creator_one_id::text < creator_two_id::text
+    AND project_id IS NOT NULL
   );
 
 DROP POLICY IF EXISTS "creator_messages_select_participant" ON public.creator_messages;
@@ -462,12 +488,15 @@ CREATE POLICY "creator_messages_select_participant"
   ON public.creator_messages FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1
-      FROM public.creator_conversations c
-      WHERE c.id = creator_conversation_id
-        AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+    (
+      EXISTS (
+        SELECT 1
+        FROM public.creator_conversations c
+        WHERE c.id = creator_conversation_id
+          AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
+      )
     )
+    OR public.get_my_role() = 'admin'
   );
 
 DROP POLICY IF EXISTS "creator_messages_insert_participant" ON public.creator_messages;
@@ -483,6 +512,7 @@ CREATE POLICY "creator_messages_insert_participant"
       WHERE c.id = creator_conversation_id
         AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
         AND c.creator_one_id <> c.creator_two_id
+        AND c.project_id IS NOT NULL
     )
   );
 
@@ -506,6 +536,25 @@ CREATE POLICY "creator_messages_update_participant"
         AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
     )
   );
+
+-- Prevent non-senders from changing creator message body
+CREATE OR REPLACE FUNCTION public.prevent_creator_message_body_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF (OLD.body IS DISTINCT FROM NEW.body) AND (auth.uid()::text <> OLD.sender_id::text) THEN
+      RAISE EXCEPTION 'Only the message sender may modify the message body';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_creator_message_body_change ON public.creator_messages;
+CREATE TRIGGER trg_prevent_creator_message_body_change
+  BEFORE UPDATE ON public.creator_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_creator_message_body_change();
 
 
 -- ────────────────────────────────────────────────────────────

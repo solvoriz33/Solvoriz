@@ -631,6 +631,11 @@ async function sendCreatorComposeMessage() {
 }
 
 async function ensureCreatorConversation(otherCreatorId, projectId) {
+  if (!projectId) {
+    showToast('Missing project id. Creator discussions must be tied to a project.', 'error');
+    return null;
+  }
+
   const creatorOneId = [currentUser.id, otherCreatorId].sort()[0];
   const creatorTwoId = [currentUser.id, otherCreatorId].sort()[1];
 

@@ -26,7 +26,7 @@ create table if not exists creator_conversations (
   initiator_id uuid not null references users(id) on delete cascade,
   project_id uuid not null references projects(id) on delete cascade,
   created_at timestamptz not null default now(),
-  check (creator_one_id <> creator_two_id),
+  check (creator_one_id <> creator_two_id AND creator_one_id::text < creator_two_id::text),
   unique (creator_one_id, creator_two_id, project_id)
 );
 
@@ -96,6 +96,7 @@ CREATE POLICY "messages_insert_participant"
       SELECT 1 FROM public.conversations c
       WHERE c.id = conversation_id
         AND (c.recruiter_id = auth.uid() OR c.student_id = auth.uid())
+        AND c.project_id IS NOT NULL
     )
   );
 
@@ -117,6 +118,7 @@ CREATE POLICY "creator_conversations_insert_creator"
     initiator_id = auth.uid()
     AND (creator_one_id = auth.uid() OR creator_two_id = auth.uid())
     AND creator_one_id <> creator_two_id
+    AND creator_one_id::text < creator_two_id::text
     AND project_id IS NOT NULL
   );
 
@@ -163,5 +165,43 @@ CREATE POLICY "creator_messages_update_participant"
         AND (c.creator_one_id = auth.uid() OR c.creator_two_id = auth.uid())
     )
   );
+
+-- Trigger to prevent non-senders from changing message body (messages)
+CREATE OR REPLACE FUNCTION public.prevent_message_body_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF (OLD.body IS DISTINCT FROM NEW.body) AND (auth.uid()::text <> OLD.sender_id::text) THEN
+      RAISE EXCEPTION 'Only the message sender may modify the message body';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_message_body_change ON public.messages;
+CREATE TRIGGER trg_prevent_message_body_change
+  BEFORE UPDATE ON public.messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_message_body_change();
+
+-- Trigger to prevent non-senders from changing creator message body
+CREATE OR REPLACE FUNCTION public.prevent_creator_message_body_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF (OLD.body IS DISTINCT FROM NEW.body) AND (auth.uid()::text <> OLD.sender_id::text) THEN
+      RAISE EXCEPTION 'Only the message sender may modify the message body';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_creator_message_body_change ON public.creator_messages;
+CREATE TRIGGER trg_prevent_creator_message_body_change
+  BEFORE UPDATE ON public.creator_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_creator_message_body_change();
 
 -- To support strict project-thread messaging, all conversation records must include a project_id.

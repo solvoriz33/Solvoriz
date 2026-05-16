@@ -399,6 +399,11 @@ async function sendMessageToProject(project, inputEl) {
 }
 
 async function ensureConversation(studentId, projectId) {
+  if (!projectId) {
+    showToast('Missing project id. Messaging requires a project.', 'error');
+    return null;
+  }
+
   const { data: existing, error: existingError } = await window.sb
     .from('conversations')
     .select('*')
