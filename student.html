@@ -485,6 +485,27 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="student-policy-modal">
+  <div class="modal-box modal-box--lg">
+    <div class="modal-header">
+      <span class="modal-header__title">Community Guidelines</span>
+    </div>
+    <div class="modal-body">
+      <p>To use Solvoriz safely, please agree to follow the community and communication guidelines.</p>
+      <ul class="policy-list">
+        <li>Keep your profile and messages professional and respectful.</li>
+        <li>Do not share personal contact details or move conversations off-platform.</li>
+        <li>Report any recruiter misuse, harassment, or policy violations.</li>
+        <li>Use accurate information and do not misrepresent your experience.</li>
+      </ul>
+      <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn--primary" id="accept-student-policy-btn">I agree and understand</button>
+        <button class="btn btn--ghost" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

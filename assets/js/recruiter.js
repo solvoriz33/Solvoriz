@@ -56,6 +56,8 @@ async function initRecruiter() {
     showToast('Your recruiter account is pending verification. Messaging is locked until you are verified.', 'warn');
   }
 
+  await ensureRecruiterPolicyAccepted();
+
   filterSkillsInput = initSkillInput({
     wrapId: 'filter-skills-wrap',
     inputId: 'filter-skill-input',
@@ -72,6 +74,51 @@ async function initRecruiter() {
   updateDashboardStats();
   showSection('browse');
   startChatRefresh();
+}
+
+async function ensureRecruiterPolicyAccepted() {
+  const { data, error } = await window.sb
+    .from('recruiter_onboarding_acceptances')
+    .select('id')
+    .eq('recruiter_id', currentUser.id)
+    .limit(1);
+
+  if (error) {
+    console.warn('Unable to verify recruiter guidelines acceptance', error);
+    return;
+  }
+
+  if (!data || !data.length) {
+    showRecruiterPolicyModal();
+    await new Promise(resolve => { window.__recruiterPolicyResolve = resolve; });
+  }
+}
+
+function showRecruiterPolicyModal() {
+  document.getElementById('recruiter-policy-modal')?.classList.remove('hidden');
+  const btn = document.getElementById('accept-recruiter-policy-btn');
+  if (btn) btn.onclick = acceptRecruiterPolicy;
+}
+
+function hideRecruiterPolicyModal() {
+  document.getElementById('recruiter-policy-modal')?.classList.add('hidden');
+}
+
+async function acceptRecruiterPolicy() {
+  const { error } = await window.sb.from('recruiter_onboarding_acceptances').insert({
+    recruiter_id: currentUser.id,
+    ip_address: window.location.hostname || ''
+  });
+  if (error) {
+    showToast('Unable to save acceptance: ' + error.message, 'error');
+    return;
+  }
+  hideRecruiterPolicyModal();
+  if (window.__recruiterPolicyResolve) {
+    window.__recruiterPolicyResolve();
+    window.__recruiterPolicyResolve = null;
+  }
+  showToast('Thanks for accepting the recruiter guidelines.', 'success');
 }
 
 async function loadAllProjects() {

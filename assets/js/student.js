@@ -43,6 +43,8 @@ async function initStudent() {
     .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
 
+  await ensureStudentPolicyAccepted();
+
   initForms();
   await loadStudentProfile();
   await Promise.all([loadProjects(), loadCommunityProjects(), loadNotifications(), loadActivity(), loadConversations()]);
@@ -53,6 +55,51 @@ async function initStudent() {
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
   showSection('overview');
   startConversationRefresh();
+}
+
+async function ensureStudentPolicyAccepted() {
+  const { data, error } = await window.sb
+    .from('student_onboarding_acceptances')
+    .select('id')
+    .eq('student_id', currentUser.id)
+    .limit(1);
+
+  if (error) {
+    console.warn('Unable to verify student guidelines acceptance', error);
+    return;
+  }
+
+  if (!data || !data.length) {
+    showStudentPolicyModal();
+    await new Promise(resolve => { window.__studentPolicyResolve = resolve; });
+  }
+}
+
+function showStudentPolicyModal() {
+  document.getElementById('student-policy-modal')?.classList.remove('hidden');
+  const btn = document.getElementById('accept-student-policy-btn');
+  if (btn) btn.onclick = acceptStudentPolicy;
+}
+
+function hideStudentPolicyModal() {
+  document.getElementById('student-policy-modal')?.classList.add('hidden');
+}
+
+async function acceptStudentPolicy() {
+  const { error } = await window.sb.from('student_onboarding_acceptances').insert({
+    student_id: currentUser.id,
+    ip_address: window.location.hostname || ''
+  });
+  if (error) {
+    showToast('Unable to save acceptance: ' + error.message, 'error');
+    return;
+  }
+  hideStudentPolicyModal();
+  if (window.__studentPolicyResolve) {
+    window.__studentPolicyResolve();
+    window.__studentPolicyResolve = null;
+  }
+  showToast('Thanks for accepting the community guidelines.', 'success');
 }
 
 // ── LOAD STUDENT PROFILE ─────────────────────────────────

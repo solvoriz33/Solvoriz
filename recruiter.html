@@ -267,6 +267,27 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="recruiter-policy-modal">
+  <div class="modal-box modal-box--lg">
+    <div class="modal-header">
+      <span class="modal-header__title">Recruiter Community Guidelines</span>
+    </div>
+    <div class="modal-body">
+      <p>Before you access Solvoriz as a recruiter, please agree to follow our platform guidelines and respect every creator.</p>
+      <ul class="policy-list">
+        <li>Use respectful language and do not request personal contact information.</li>
+        <li>Only message students for genuine career opportunities.</li>
+        <li>Do not share private contact details or attempt off-platform recruiting without consent.</li>
+        <li>Report harassment, unsafe behavior, or policy violations immediately.</li>
+      </ul>
+      <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn--primary" id="accept-recruiter-policy-btn">I agree and understand</button>
+        <button class="btn btn--ghost" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

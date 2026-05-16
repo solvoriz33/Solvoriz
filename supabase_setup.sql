@@ -324,6 +324,15 @@ CREATE TABLE IF NOT EXISTS public.recruiter_onboarding_acceptances (
 
 CREATE INDEX IF NOT EXISTS idx_recruiter_onboarding_acceptances ON public.recruiter_onboarding_acceptances(recruiter_id);
 
+CREATE TABLE IF NOT EXISTS public.student_onboarding_acceptances (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  accepted_on timestamptz NOT NULL DEFAULT NOW(),
+  ip_address text
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_onboarding_acceptances ON public.student_onboarding_acceptances(student_id);
+
 CREATE TABLE IF NOT EXISTS public.contact_sharing_attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -530,7 +539,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-
+CREATE OR REPLACE FUNCTION public.log_student_policy_acceptance(student uuid, ip_address text)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO public.student_onboarding_acceptances (student_id, ip_address)
+  VALUES (student, ip_address);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ────────────────────────────────────────────────────────────
 -- 4. AUTO-UPDATE updated_at TRIGGER
@@ -951,6 +966,28 @@ DROP POLICY IF EXISTS "blocked_message_attempts_insert" ON public.blocked_messag
 CREATE POLICY "blocked_message_attempts_insert" ON public.blocked_message_attempts FOR INSERT
   TO authenticated
   WITH CHECK (sender_id = auth.uid());
+
+-- recruiter onboarding acceptance: recruiter can insert their own acceptance and view it
+DROP POLICY IF EXISTS "recruiter_onboarding_acceptances_select" ON public.recruiter_onboarding_acceptances;
+CREATE POLICY "recruiter_onboarding_acceptances_select" ON public.recruiter_onboarding_acceptances FOR SELECT
+  TO authenticated
+  USING (recruiter_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "recruiter_onboarding_acceptances_insert" ON public.recruiter_onboarding_acceptances;
+CREATE POLICY "recruiter_onboarding_acceptances_insert" ON public.recruiter_onboarding_acceptances FOR INSERT
+  TO authenticated
+  WITH CHECK (recruiter_id = auth.uid());
+
+-- student onboarding acceptance: student can insert their own acceptance and view it
+DROP POLICY IF EXISTS "student_onboarding_acceptances_select" ON public.student_onboarding_acceptances;
+CREATE POLICY "student_onboarding_acceptances_select" ON public.student_onboarding_acceptances FOR SELECT
+  TO authenticated
+  USING (student_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "student_onboarding_acceptances_insert" ON public.student_onboarding_acceptances;
+CREATE POLICY "student_onboarding_acceptances_insert" ON public.student_onboarding_acceptances FOR INSERT
+  TO authenticated
+  WITH CHECK (student_id = auth.uid());
 
 -- policy_violations: admin-only operations (insert/select/update)
 DROP POLICY IF EXISTS "policy_violations_admin_select" ON public.policy_violations;
