@@ -210,34 +210,6 @@ function openProjectDetail(projectId) {
 function renderProjectDetail(projectId) {
   openProjectDetail(projectId);
 }
-        <div class="student-avatar">${getInitials(s.fullName)}</div>
-        <div class="student-card__info">
-          <h3 class="student-card__name">${escHtml(s.fullName)}</h3>
-          <p class="student-card__headline">${escHtml(s.headline)}</p>
-          ${s.age ? `<span class="student-card__loc">🎂 Age ${escHtml(String(s.age))}</span>` : ''}
-        </div>
-        <button class="shortlist-btn ${shortlist.includes(s.userId) ? 'shortlisted' : ''}"
-          onclick="event.stopPropagation();toggleShortlist('${s.userId}')"
-          title="${shortlist.includes(s.userId) ? 'Remove from shortlist' : 'Add to shortlist'}">
-          ${shortlist.includes(s.userId) ? '★' : '☆'}
-        </button>
-      </div>
-      ${s.location ? `<p class="student-card__loc">📍 ${escHtml(s.location)}</p>` : ''}
-      <div class="student-card__skills">
-        ${s.skills.slice(0, 5).map(sk => `<span class="skill-chip">${escHtml(sk)}</span>`).join('')}
-        ${s.skills.length > 5 ? `<span class="skill-chip skill-chip--more">+${s.skills.length - 5}</span>` : ''}
-      </div>
-      <div class="student-card__footer">
-        ${p.builderLocation ? `<span style="font-size:.9rem">📍 ${escHtml(p.builderLocation)}</span>` : ''}
-        ${p.builderAvailability ? `<span class="role-badge role-badge--sm role-badge--${p.builderAvailability === 'available' ? 'success' : 'grey'}">${escHtml(p.builderAvailability)}</span>` : ''}
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn--sm btn--primary" onclick="event.stopPropagation();openProjectDetail('${p.id}')">View project</button>
-        <button class="btn btn--sm btn--outline" onclick="event.stopPropagation();contactBuilder('${p.userId}','${p.id}')">Send message</button>
-      </div>
-    </div>
-  `).join('');
-}
 
 function getInitials(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
