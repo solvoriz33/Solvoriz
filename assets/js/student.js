@@ -31,7 +31,7 @@ async function initStudent() {
 
   initForms();
   await loadStudentProfile();
-  await Promise.all([loadProjects(), loadNotifications(), loadActivity(), loadMessages()]);
+  await Promise.all([loadProjects(), loadNotifications(), loadActivity(), loadConversations()]);
   // Set overview name reliably (not via setTimeout in HTML)
   const ovName = document.getElementById('overview-name');
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
@@ -154,46 +154,75 @@ async function loadNotifications() {
   myNotifications = data || [];
   renderNotifications();
 }
-
-async function loadMessages() {
+async function loadConversations() {
   const { data, error } = await window.sb
-    .from('contact_requests')
-    .select(`*, recruiter:recruiter_id (id, full_name, email), project:project_id (id, title)`)
+    .from('conversations')
+    .select(`*, recruiter:recruiter_id(id, full_name, email), last_message:messages (id, body, created_at, sender_id)`)
     .eq('student_id', currentUser.id)
     .order('created_at', { ascending: false });
 
-  if (error) { console.warn('Failed to load messages', error); return; }
+  if (error) { console.warn('Failed to load conversations', error); return; }
   myMessages = data || [];
-  renderMessages();
+  renderConversations();
 }
 
-function renderMessages() {
-  const list = document.getElementById('messages-list');
+function renderConversations() {
+  const list = document.getElementById('messages-threads');
   const empty = document.getElementById('messages-empty');
   const count = document.getElementById('message-count');
   if (count) count.textContent = String(myMessages.length || 0);
   if (!list) return;
 
-  if (!myMessages.length) {
-    list.innerHTML = '';
-    empty.classList.remove('hidden');
-    return;
-  }
-  empty.classList.add('hidden');
-  list.innerHTML = myMessages.map(msg => `
-    <div class="card notification-card animate-fade-up">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-        <div>
-          <strong>💬 Message from ${escHtml(msg.recruiter?.full_name || msg.recruiter?.email || 'Recruiter')}</strong>
-          <div class="muted" style="margin-top:6px">${escHtml(msg.project?.title || 'General request')}</div>
-          <div style="margin-top:8px;padding:10px;background:var(--bg-2);border-radius:6px;font-size:.95rem">
-            ${escHtml(msg.message)}
+  if (!myMessages.length) { list.innerHTML = ''; if (empty) empty.classList.remove('hidden'); return; }
+  if (empty) empty.classList.add('hidden');
+  list.innerHTML = myMessages.map(c => {
+    const last = (c.last_message && c.last_message[0]) || {};
+    return `
+      <div class="card" style="padding:10px;cursor:pointer" onclick="openConversation('${c.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>${escHtml(c.recruiter?.full_name || c.recruiter?.email || 'Recruiter')}</strong>
+            <div class="muted" style="margin-top:6px">${escHtml(last.body || 'No messages yet')}</div>
           </div>
+          <div class="muted" style="font-size:.8rem">${fmtDate(last.created_at)}</div>
         </div>
-        <span class="role-badge role-badge--grey">${fmtDate(msg.created_at)}</span>
-      </div>
+      </div>`;
+  }).join('');
+}
+
+let currentConversation = null;
+
+async function openConversation(convId) {
+  currentConversation = convId;
+  const conv = myMessages.find(c => c.id === convId);
+  if (!conv) return;
+  document.getElementById('chat-title').textContent = conv.recruiter?.full_name || conv.recruiter?.email || 'Recruiter';
+  document.getElementById('chat-meta').textContent = conv.project_id ? (`Project: ${conv.project_id}`) : '';
+  await loadConversationMessages(convId);
+  document.getElementById('chat-send-btn').onclick = sendStudentMessage;
+}
+
+async function loadConversationMessages(convId) {
+  const { data, error } = await window.sb.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true });
+  if (error) { showToast('Failed to load thread', 'error'); return; }
+  const pane = document.getElementById('chat-messages');
+  pane.innerHTML = (data || []).map(m => `
+    <div style="display:flex;flex-direction:column;align-items:${m.sender_id === currentUser.id ? 'flex-end' : 'flex-start'}">
+      <div style="background:${m.sender_id === currentUser.id ? 'var(--accent)' : 'var(--bg-1)'};color:${m.sender_id === currentUser.id ? '#fff' : 'inherit'};padding:8px;border-radius:8px;max-width:70%">${escHtml(m.body)}</div>
+      <div class="muted" style="font-size:.75rem;margin-top:4px">${fmtDate(m.created_at)}</div>
     </div>
   `).join('');
+  pane.scrollTop = pane.scrollHeight;
+}
+
+async function sendStudentMessage() {
+  const input = document.getElementById('chat-input');
+  if (!input || !input.value.trim() || !currentConversation) return;
+  const body = input.value.trim().slice(0,1000);
+  const { error } = await window.sb.from('messages').insert({ conversation_id: currentConversation, sender_id: currentUser.id, body });
+  if (error) { showToast('Failed to send', 'error'); return; }
+  input.value = '';
+  await loadConversationMessages(currentConversation);
 }
 
 async function loadActivity() {

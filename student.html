@@ -286,11 +286,34 @@
         <h1 class="section-header__title">Messages</h1>
         <p class="section-header__sub">Your internal messages from recruiters. No email required.</p>
       </div>
-      <div id="messages-list" style="display:grid;gap:16px"></div>
-      <div class="empty-state hidden" id="messages-empty" style="margin-top:20px">
-        <div class="empty-state__icon">💬</div>
-        <div class="empty-state__title">No messages yet</div>
-        <div class="empty-state__sub">Recruiters can message you directly from their project pages.</div>
+
+      <div class="messages-wrap" style="display:flex;gap:18px">
+        <div style="width:320px">
+          <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+            <strong>Threads</strong>
+            <span class="muted">${/* placeholder */''}</span>
+          </div>
+          <div id="messages-threads" style="display:grid;gap:10px;max-height:60vh;overflow:auto"></div>
+          <div class="empty-state hidden" id="messages-empty" style="margin-top:20px">
+            <div class="empty-state__icon">💬</div>
+            <div class="empty-state__title">No messages yet</div>
+            <div class="empty-state__sub">Recruiters can message you directly from their project pages.</div>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+          <div id="chat-panel" style="display:flex;flex-direction:column;gap:12px;">
+            <div id="chat-header" style="display:flex;justify-content:space-between;align-items:center">
+              <div id="chat-title">Select a thread</div>
+              <div id="chat-meta" class="muted"></div>
+            </div>
+            <div id="chat-messages" style="min-height:220px;max-height:60vh;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--bg-2);border-radius:8px"></div>
+            <div id="chat-input-row" style="display:flex;gap:8px">
+              <textarea id="chat-input" class="input" placeholder="Type a message..." style="flex:1;min-height:48px"></textarea>
+              <button class="btn btn--primary" id="chat-send-btn">Send</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

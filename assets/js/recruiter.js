@@ -11,6 +11,7 @@ let myMessages = [];
 let filterSkills = [];
 let shortlistProjectIds = []; // DB-persisted shortlist
 let filterSkillsInput = null;
+let currentConversation = null;
 
 // ── INIT ─────────────────────────────────────────────────
 async function initRecruiter() {
@@ -233,17 +234,28 @@ async function contactBuilder(studentId, projectId) {
 
   const truncated = message.trim().slice(0, 500);
 
-  const { error } = await window.sb.from('contact_requests').insert({
-    recruiter_id: currentUser.id,
-    student_id: studentId,
-    project_id: projectId || null,
-    message: truncated,
-  });
-
-  if (error) {
-    showToast('Failed to send message: ' + error.message, 'error');
-    return;
+  // Ensure a conversation exists
+  let conv = null;
+  const { data: existing } = await window.sb.from('conversations').select('*')
+    .eq('recruiter_id', currentUser.id).eq('student_id', studentId).eq('project_id', projectId || null).limit(1);
+  if (existing && existing.length) conv = existing[0];
+  if (!conv) {
+    const { data: created, error: cErr } = await window.sb.from('conversations').insert({
+      recruiter_id: currentUser.id,
+      student_id: studentId,
+      project_id: projectId || null
+    }).select().single();
+    if (cErr) { showToast('Failed to start conversation: ' + cErr.message, 'error'); return; }
+    conv = created;
   }
+
+  // Insert message into messages table
+  const { error: mErr } = await window.sb.from('messages').insert({
+    conversation_id: conv.id,
+    sender_id: currentUser.id,
+    body: truncated
+  });
+  if (mErr) { showToast('Failed to send message: ' + mErr.message, 'error'); return; }
 
   // Create notification for the builder
   await createNotification(studentId, 'contact_request', {
@@ -258,6 +270,77 @@ async function contactBuilder(studentId, projectId) {
 
   showToast('Message sent! 📬', 'success');
   closeStudentModal();
+  await loadMessages();
+}
+
+// ── CONVERSATIONS & CHAT ─────────────────────────────────
+async function loadMessages() {
+  const { data, error } = await window.sb
+    .from('conversations')
+    .select(`*, student:student_id(id, full_name, email), last_message:messages (id, body, created_at, sender_id)`)
+    .eq('recruiter_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) { showToast('Failed to load messages', 'error'); return; }
+  myMessages = data || [];
+  renderConversations();
+}
+
+function renderConversations() {
+  const threads = document.getElementById('messages-threads');
+  const empty = document.getElementById('messages-empty');
+  const navCount = document.getElementById('message-count');
+  if (navCount) navCount.textContent = String(myMessages.length || 0);
+  if (!threads) return;
+  if (!myMessages.length) { threads.innerHTML = ''; if (empty) empty.classList.remove('hidden'); return; }
+  if (empty) empty.classList.add('hidden');
+  threads.innerHTML = myMessages.map(c => {
+    const last = (c.last_message && c.last_message[0]) || {};
+    return `
+      <div class="card" style="padding:10px;cursor:pointer" onclick="openConversation('${c.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>${escHtml(c.student?.full_name || c.student?.email || 'Builder')}</strong>
+            <div class="muted" style="margin-top:6px">${escHtml(last.body || 'No messages yet')}</div>
+          </div>
+          <div class="muted" style="font-size:.8rem">${fmtDate(last.created_at)}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function openConversation(convId) {
+  currentConversation = convId;
+  const conv = myMessages.find(c => c.id === convId);
+  if (!conv) return;
+  document.getElementById('chat-title').textContent = conv.student?.full_name || conv.student?.email || 'Builder';
+  document.getElementById('chat-meta').textContent = conv.project_id ? (`Project: ${conv.project_id}`) : '';
+  await loadConversationMessages(convId);
+  document.getElementById('chat-send-btn').onclick = sendRecruiterMessage;
+}
+
+async function loadConversationMessages(convId) {
+  const { data, error } = await window.sb.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true });
+  if (error) { showToast('Failed to load thread', 'error'); return; }
+  const pane = document.getElementById('chat-messages');
+  pane.innerHTML = (data || []).map(m => `
+    <div style="display:flex;flex-direction:column;align-items:${m.sender_id === currentUser.id ? 'flex-end' : 'flex-start'}">
+      <div style="background:${m.sender_id === currentUser.id ? 'var(--accent)' : 'var(--bg-1)'};color:${m.sender_id === currentUser.id ? '#fff' : 'inherit'};padding:8px;border-radius:8px;max-width:70%">${escHtml(m.body)}</div>
+      <div class="muted" style="font-size:.75rem;margin-top:4px">${fmtDate(m.created_at)}</div>
+    </div>
+  `).join('');
+  pane.scrollTop = pane.scrollHeight;
+}
+
+async function sendRecruiterMessage() {
+  const input = document.getElementById('chat-input');
+  if (!input || !input.value.trim() || !currentConversation) return;
+  const body = input.value.trim().slice(0,1000);
+  const { error } = await window.sb.from('messages').insert({ conversation_id: currentConversation, sender_id: currentUser.id, body });
+  if (error) { showToast('Failed to send', 'error'); return; }
+  input.value = '';
+  await loadConversationMessages(currentConversation);
+  // Optionally notify other party
 }
 
 // ── SHORTLIST (DB-PERSISTED) ──────────────────────────────
