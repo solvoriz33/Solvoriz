@@ -581,6 +581,8 @@ async function openConversation(convId) {
   document.getElementById('chat-trust-badge').textContent = `${currentProfile.verified_recruiter ? 'Verified recruiter' : 'Verification pending'} · ${getThreadStatus(conv)}`;
   document.getElementById('chat-trust-badge').className = `thread-status-badge ${currentProfile.verified_recruiter ? 'thread-status-badge--ok' : ''}`;
   renderChatActions(conv);
+  // render interview UI (if any)
+  renderRecruiterInterviewUI(conv);
   await loadConversationMessages(convId);
 }
 
@@ -596,7 +598,88 @@ function renderChatActions(conv) {
   container.innerHTML = `
     <button class="btn btn--outline btn--sm" onclick="reportConversation('${conv.id}','${partnerId}')">Report user</button>
     <button class="btn btn--danger btn--sm" onclick="blockConversationPartner('${partnerId}')">Block user</button>
+    <span id="interview-ui-wrap"></span>
   `;
+}
+
+async function loadInterviewForRecruiter(convId) {
+  if (!convId) return null;
+  const { data, error } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
+  if (error) {
+    console.warn('Failed to load interview', error);
+    return null;
+  }
+  return data || null;
+}
+
+async function renderRecruiterInterviewUI(conv) {
+  const wrap = document.getElementById('interview-ui-wrap');
+  if (!wrap) return;
+  const interview = await loadInterviewForRecruiter(conv.id);
+  if (!interview) {
+    wrap.innerHTML = `<button class="btn btn--primary btn--sm" onclick="requestInterview('${conv.id}')">Request Interview</button>`;
+    return;
+  }
+
+  const statusLabel = `<span class="role-badge role-badge--grey">${escHtml(interview.status)}</span>`;
+  let meetPart = '';
+  if (interview.meet_link && interview.status === 'scheduled') {
+    const safeLink = escHtml(interview.meet_link);
+    meetPart = `<a class="btn btn--sm btn--outline" href="${safeLink}" target="_blank" rel="noopener">Join Interview</a>`;
+  }
+
+  // If recruiter who created request, allow entering meet link when accepted
+  if (interview.recruiter_id === currentUser.id && interview.status === 'accepted') {
+    meetPart = `
+      <input id="meet-link-input" placeholder="Enter Google Meet link" style="width:220px;margin-right:8px" />
+      <button class="btn btn--sm btn--primary" onclick="setMeetLink('${conv.id}')">Save link & Schedule</button>
+    `;
+  }
+
+  wrap.innerHTML = `
+    <span style="margin-left:8px">Interview: ${statusLabel}</span>
+    <span style="margin-left:8px">${meetPart}</span>
+  `;
+}
+
+async function requestInterview(convId) {
+  if (!convId) return;
+  const conv = myMessages.find(c => c.id === convId);
+  if (!conv) return showToast('Conversation not found', 'error');
+  const confirmReq = confirm('Send interview request to this student?');
+  if (!confirmReq) return;
+
+  const { data, error } = await window.sb.from('interviews').insert({
+    conversation_id: convId,
+    project_id: conv.project_id || conv.project?.id,
+    recruiter_id: currentUser.id,
+    student_id: conv.student?.id,
+    status: 'requested'
+  }).select().maybeSingle();
+
+  if (error) { showToast('Failed to request interview: ' + error.message, 'error'); return; }
+  showToast('Interview requested.', 'success');
+  await loadConversations(true);
+  await openConversation(convId);
+}
+
+async function setMeetLink(convId) {
+  const input = document.getElementById('meet-link-input');
+  if (!input) return showToast('Enter a meet link first', 'error');
+  const link = input.value.trim();
+  if (!link) return showToast('Enter a valid link', 'error');
+  const { data: existing } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
+  if (!existing) return showToast('Interview record missing', 'error');
+  const { error } = await window.sb.from('interviews').update({ meet_link: link, status: 'scheduled' }).eq('id', existing.id);
+  if (error) { showToast('Failed to save meet link: ' + error.message, 'error'); return; }
+  showToast('Meet link saved and interview scheduled.', 'success');
+  await loadConversations(true);
+  await openConversation(convId);
+}
+
+function joinInterview(link) {
+  if (!link) return;
+  window.open(link, '_blank');
 }
 
 async function reportConversation(conversationId, reportedUserId) {

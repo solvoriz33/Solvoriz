@@ -163,6 +163,67 @@ CREATE TABLE IF NOT EXISTS public.messages (
 CREATE INDEX IF NOT EXISTS idx_conversations_recruiter_student ON public.conversations(recruiter_id, student_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON public.messages(conversation_id, created_at DESC);
 
+-- ────────────────────────────────────────────────────────────
+-- INTERVIEWS TABLE
+-- Lightweight interview scheduling between recruiter and student
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.interviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  recruiter_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'requested'
+    CHECK (status IN ('requested','accepted','scheduled','completed','rejected')),
+  meet_link text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_interviews_conversation ON public.interviews(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_recruiter ON public.interviews(recruiter_id);
+CREATE INDEX IF NOT EXISTS idx_interviews_student ON public.interviews(student_id);
+
+DROP TRIGGER IF EXISTS set_updated_at_interviews ON public.interviews;
+CREATE TRIGGER set_updated_at_interviews
+  BEFORE UPDATE ON public.interviews
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Enable RLS and policies for interviews
+ALTER TABLE public.interviews ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "interviews_select_participant" ON public.interviews;
+CREATE POLICY "interviews_select_participant" ON public.interviews FOR SELECT
+  TO authenticated
+  USING (recruiter_id = auth.uid() OR student_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "interviews_insert_participant" ON public.interviews;
+CREATE POLICY "interviews_insert_participant" ON public.interviews FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    (recruiter_id = auth.uid() OR student_id = auth.uid())
+    AND conversation_id IS NOT NULL
+    AND project_id IS NOT NULL
+  );
+
+-- Allow recruiters to update interview records (including setting meet_link)
+DROP POLICY IF EXISTS "interviews_update_recruiter" ON public.interviews;
+CREATE POLICY "interviews_update_recruiter" ON public.interviews FOR UPDATE
+  TO authenticated
+  USING (recruiter_id = auth.uid() OR public.get_my_role() = 'admin')
+  WITH CHECK (project_id IS NOT NULL);
+
+-- Allow students to update interview status (accept/reject) but not set meet_link
+DROP POLICY IF EXISTS "interviews_update_student" ON public.interviews;
+CREATE POLICY "interviews_update_student" ON public.interviews FOR UPDATE
+  TO authenticated
+  USING (student_id = auth.uid() OR public.get_my_role() = 'admin')
+  WITH CHECK (
+    project_id IS NOT NULL
+    AND (meet_link IS NULL) -- students may update status but may not provide a meet link
+  );
+
+
 CREATE TABLE IF NOT EXISTS public.creator_conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   creator_one_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,

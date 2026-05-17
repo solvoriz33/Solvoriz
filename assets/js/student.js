@@ -502,6 +502,8 @@ async function openConversation(convId) {
     badge.className = 'thread-status-badge thread-status-badge--ok';
   }
   renderStudentChatActions(conv);
+  // render interview UI (if any)
+  renderStudentInterviewUI(conv);
   await loadConversationMessages(convId);
   document.getElementById('chat-send-btn').onclick = sendStudentMessage;
 }
@@ -525,6 +527,69 @@ function renderStudentChatActions(conv) {
     <button class="btn btn--outline btn--sm" onclick="studentReportConversation('${conv.id}','${partnerId}')">Report user</button>
     <button class="btn btn--danger btn--sm" onclick="studentBlockConversationPartner('${partnerId}')">Block user</button>
   `;
+}
+
+async function loadInterviewForStudent(convId) {
+  if (!convId) return null;
+  const { data, error } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
+  if (error) { console.warn('Failed to load interview', error); return null; }
+  return data || null;
+}
+
+async function renderStudentInterviewUI(conv) {
+  const container = document.getElementById('chat-actions-top');
+  if (!container || !conv) return;
+  const interview = await loadInterviewForStudent(conv.id);
+  // keep existing actions and append interview UI
+  let extra = '';
+  if (!interview) {
+    extra = `<span style="margin-left:8px" class="muted">No interview requested</span>`;
+  } else {
+    const status = escHtml(interview.status);
+    if (interview.status === 'requested') {
+      extra = `
+        <span style="margin-left:8px">Interview: <strong>Pending</strong></span>
+        <button class="btn btn--primary btn--sm" onclick="acceptInterview('${conv.id}')">Accept Interview</button>
+        <button class="btn btn--outline btn--sm" onclick="rejectInterview('${conv.id}')">Reject</button>
+      `;
+    } else if (interview.status === 'accepted') {
+      extra = `<span style="margin-left:8px">Interview: <strong>Accepted</strong></span>`;
+    } else if (interview.status === 'scheduled' && interview.meet_link) {
+      const safeLink = escHtml(interview.meet_link);
+      extra = `
+        <span style="margin-left:8px">Interview: <strong>Scheduled</strong></span>
+        <a class="btn btn--sm btn--outline" href="${safeLink}" target="_blank" rel="noopener">Join Interview</a>
+      `;
+    } else {
+      extra = `<span style="margin-left:8px">Interview: <strong>${status}</strong></span>`;
+    }
+  }
+  container.innerHTML = container.innerHTML + extra;
+}
+
+async function acceptInterview(convId) {
+  if (!convId) return;
+  const { data: interview, error: findErr } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
+  if (findErr) { showToast('Failed to accept: ' + findErr.message, 'error'); return; }
+  if (!interview) { showToast('Interview not found', 'error'); return; }
+  const { error } = await window.sb.from('interviews').update({ status: 'accepted' }).eq('id', interview.id);
+  if (error) { showToast('Failed to accept interview: ' + error.message, 'error'); return; }
+  showToast('Interview accepted. Waiting for recruiter to schedule.', 'success');
+  await loadConversations();
+  await openConversation(convId);
+}
+
+async function rejectInterview(convId) {
+  if (!convId) return;
+  if (!confirm('Reject this interview request?')) return;
+  const { data: interview, error: findErr } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
+  if (findErr) { showToast('Failed to reject: ' + findErr.message, 'error'); return; }
+  if (!interview) { showToast('Interview not found', 'error'); return; }
+  const { error } = await window.sb.from('interviews').update({ status: 'rejected' }).eq('id', interview.id);
+  if (error) { showToast('Failed to reject interview: ' + error.message, 'error'); return; }
+  showToast('Interview rejected.', 'warn');
+  await loadConversations();
+  await openConversation(convId);
 }
 
 async function studentReportConversation(conversationId, reportedUserId) {
