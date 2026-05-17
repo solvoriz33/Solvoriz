@@ -177,8 +177,12 @@
       return;
     }
 
-    showToast('Account created! Redirecting...', 'success');
-    setTimeout(() => redirect(role), 1200);
+    const nextRole = data?.user?.user_metadata?.requested_role === 'recruiter' ? 'student' : 'student';
+    showToast(role === 'recruiter'
+      ? 'Account created. Recruiter access stays locked until an admin promotes and verifies you.'
+      : 'Account created! Redirecting...',
+      role === 'recruiter' ? 'warn' : 'success');
+    setTimeout(() => redirect(nextRole), 1200);
   }
 
   function redirect(role) {

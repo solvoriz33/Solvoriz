@@ -1,12 +1,15 @@
 // ============================================================
-// ADMIN.JS — Admin panel logic
+// ADMIN.JS - Admin panel logic
 // ============================================================
 
 let currentAdmin = null;
 let allUsers = [];
 let allProjects = [];
 
-// ── INIT ─────────────────────────────────────────────────
+function isPendingRecruiter(user) {
+  return user?.requested_role === 'recruiter' && user?.role !== 'recruiter';
+}
+
 async function initAdmin() {
   const result = await requireAuth('admin');
   if (!result) return;
@@ -16,12 +19,12 @@ async function initAdmin() {
 
   await Promise.all([loadStats(), loadUsers(), loadAllProjects(), loadModerationQueue()]);
   showSection('overview');
+
   document.addEventListener('click', event => {
     if (event.target?.id === 'admin-project-modal') closeAdminProjectModal();
   });
 }
 
-// ── STATS ─────────────────────────────────────────────────
 async function loadStats() {
   const [usersRes, studentsRes, recruitersRes, projectsRes, discoverableRes, pendingRecruitersRes, moderationProjectsRes, moderationProfilesRes, featuredProfilesRes] = await Promise.all([
     window.sb.from('users').select('id', { count: 'exact', head: true }),
@@ -29,7 +32,7 @@ async function loadStats() {
     window.sb.from('users').select('id', { count: 'exact', head: true }).eq('role', 'recruiter'),
     window.sb.from('projects').select('id', { count: 'exact', head: true }),
     window.sb.from('student_profiles').select('id', { count: 'exact', head: true }).eq('discoverable', true),
-    window.sb.from('users').select('id', { count: 'exact', head: true }).eq('role', 'recruiter').eq('verified_recruiter', false),
+    window.sb.from('users').select('id', { count: 'exact', head: true }).eq('requested_role', 'recruiter').neq('role', 'recruiter'),
     window.sb.from('projects').select('id', { count: 'exact', head: true }).in('review_status', ['under review', 'flagged']),
     window.sb.from('student_profiles').select('id', { count: 'exact', head: true }).neq('review_status', 'approved'),
     window.sb.from('student_profiles').select('id', { count: 'exact', head: true }).eq('featured', true)
@@ -57,6 +60,7 @@ async function loadStats() {
 function renderOpsSnapshot(stats) {
   const container = document.getElementById('ops-snapshot');
   if (!container) return;
+
   const discoverableRate = stats.totalStudents ? Math.round((stats.discoverable / stats.totalStudents) * 100) : 0;
   container.innerHTML = `
     <div class="notification-card">
@@ -78,14 +82,17 @@ function renderOpsSnapshot(stats) {
   `;
 }
 
-// ── LOAD USERS ────────────────────────────────────────────
 async function loadUsers() {
   const { data, error } = await window.sb
     .from('users')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) { showToast('Failed to load users', 'error'); return; }
+  if (error) {
+    showToast('Failed to load users', 'error');
+    return;
+  }
+
   allUsers = data || [];
   renderUsersTable(allUsers);
 }
@@ -99,26 +106,25 @@ function renderUsersTable(users) {
     return;
   }
 
-  tbody.innerHTML = users.map(u => `
+  tbody.innerHTML = users.map(user => `
     <tr>
       <td>
         <div class="user-cell">
-          <div class="user-cell__avatar">${getInitials(u.full_name || u.email)}</div>
+          <div class="user-cell__avatar">${getInitials(user.full_name || user.email)}</div>
           <div>
-            <div class="user-cell__name">${escHtml(u.full_name || '—')}</div>
-            <div class="user-cell__email">${escHtml(u.email)}</div>
+            <div class="user-cell__name">${escHtml(user.full_name || '-')}</div>
+            <div class="user-cell__email">${escHtml(user.email)}</div>
           </div>
         </div>
       </td>
       <td>
-        <span class="role-badge role-badge--${u.role}">${u.role}</span>
-        ${u.role === 'recruiter' ? `<span class="role-badge role-badge--${u.verified_recruiter ? 'success' : 'grey'}" style="margin-left:8px">${u.verified_recruiter ? 'Verified' : 'Pending'}</span>` : ''}
+        <span class="role-badge role-badge--${user.role}">${escHtml(user.role)}</span>
+        ${(user.role === 'recruiter' || isPendingRecruiter(user)) ? `<span class="role-badge role-badge--${user.verified_recruiter ? 'success' : 'grey'}" style="margin-left:8px">${user.verified_recruiter ? 'Verified' : 'Pending'}</span>` : ''}
       </td>
-      <td>${fmtDate(u.created_at)}</td>
+      <td>${fmtDate(user.created_at)}</td>
       <td>
-        ${u.id === currentAdmin.id ? '<span class="muted">You</span>' : `
-          ${u.role === 'recruiter' ? `<button class="btn btn--sm btn--outline" onclick="toggleRecruiterVerification('${u.id}', ${u.verified_recruiter})">${u.verified_recruiter ? 'Revoke' : 'Approve'}</button>` : ''}
-          <button class="btn btn--sm btn--danger" onclick="deleteUser('${u.id}','${escHtml(u.email)}')">Delete</button>
+        ${user.id === currentAdmin.id ? '<span class="muted">You</span>' : `
+          ${(user.role === 'recruiter' || isPendingRecruiter(user)) ? `<button class="btn btn--sm btn--outline" onclick="toggleRecruiterVerification('${user.id}', ${user.verified_recruiter}, ${isPendingRecruiter(user)})">${user.verified_recruiter ? 'Revoke' : 'Approve'}</button>` : ''}
         `}
       </td>
     </tr>
@@ -126,54 +132,59 @@ function renderUsersTable(users) {
 }
 
 function getInitials(str) {
-  return (str || '?').split(/[\s@]/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  return (str || '?').split(/[\s@]/).map(word => word[0]).join('').slice(0, 2).toUpperCase();
 }
 
-// ── SEARCH USERS ──────────────────────────────────────────
-function searchUsers(q) {
-  if (!q.trim()) { renderUsersTable(allUsers); return; }
-  const filtered = allUsers.filter(u =>
-    u.email?.toLowerCase().includes(q.toLowerCase()) ||
-    u.full_name?.toLowerCase().includes(q.toLowerCase())
+function searchUsers(query) {
+  if (!query.trim()) {
+    renderUsersTable(allUsers);
+    return;
+  }
+
+  const filtered = allUsers.filter(user =>
+    user.email?.toLowerCase().includes(query.toLowerCase()) ||
+    user.full_name?.toLowerCase().includes(query.toLowerCase())
   );
   renderUsersTable(filtered);
 }
 
 function filterByRole(role) {
-  if (!role) { renderUsersTable(allUsers); return; }
-  renderUsersTable(allUsers.filter(u => u.role === role));
+  if (!role) {
+    renderUsersTable(allUsers);
+    return;
+  }
+
+  renderUsersTable(allUsers.filter(user => user.role === role));
 }
 
-// ── DELETE USER ───────────────────────────────────────────
-async function toggleRecruiterVerification(userId, currentValue) {
+async function toggleRecruiterVerification(userId, currentValue, isPending = false) {
   const nextValue = !Boolean(currentValue);
-  const { error } = await window.sb.from('users').update({ verified_recruiter: nextValue }).eq('id', userId);
-  if (error) { showToast('Failed to update recruiter verification: ' + error.message, 'error'); return; }
+  const rpcName = isPending ? 'admin_promote_to_recruiter' : 'admin_set_recruiter_verification';
+  const { error } = await window.sb.rpc(rpcName, {
+    p_target_user_id: userId,
+    p_verified: nextValue
+  });
+
+  if (error) {
+    showToast('Failed to update recruiter verification: ' + error.message, 'error');
+    return;
+  }
+
   await createNotification(userId, 'recruiter_verified', {
     detail: nextValue ? 'Your recruiter account has been verified.' : 'Your recruiter verification has been revoked.'
   });
+
   showToast(nextValue ? 'Recruiter verified' : 'Recruiter verification revoked', 'success');
-  allUsers = allUsers.map(u => u.id === userId ? { ...u, verified_recruiter: nextValue } : u);
+  allUsers = allUsers.map(user => user.id === userId ? {
+    ...user,
+    role: 'recruiter',
+    requested_role: 'recruiter',
+    verified_recruiter: nextValue
+  } : user);
   renderUsersTable(allUsers);
-  await loadModerationQueue();
-  await loadStats();
+  await Promise.all([loadStats(), loadModerationQueue()]);
 }
 
-async function deleteUser(userId, email) {
-  if (!confirm(`Delete user "${email}"? This is irreversible.`)) return;
-
-  // Delete from public users table (cascade should handle profiles/projects via FK)
-  const { error } = await window.sb.from('users').delete().eq('id', userId);
-  if (error) { showToast('Failed to delete: ' + error.message, 'error'); return; }
-
-  showToast(`Deleted ${email}`, 'warn');
-  allUsers = allUsers.filter(u => u.id !== userId);
-  renderUsersTable(allUsers);
-  await loadStats();
-  await loadModerationQueue();
-}
-
-// ── ALL PROJECTS ──────────────────────────────────────────
 async function loadAllProjects() {
   const { data, error } = await window.sb
     .from('projects')
@@ -187,7 +198,7 @@ async function loadAllProjects() {
 
 async function loadModerationQueue() {
   const [recruitersRes, projectsRes, profilesRes, reportsRes] = await Promise.all([
-    window.sb.from('users').select('*').eq('role', 'recruiter').eq('verified_recruiter', false),
+    window.sb.from('users').select('*').eq('requested_role', 'recruiter').neq('role', 'recruiter'),
     window.sb.from('projects')
       .select(`*, users:user_id (full_name, email)`)
       .in('review_status', ['under review', 'flagged'])
@@ -195,25 +206,29 @@ async function loadModerationQueue() {
     window.sb.from('student_profiles')
       .select(`*, users:user_id (full_name, email)`)
       .order('updated_at', { ascending: false })
-      .limit(40)
-    // moderation reports (recent)
-    window.sb.from('moderation_reports').select(`*, reporter:reporter_id (full_name, email), reported:reported_user_id (full_name, email)`).order('created_at', { ascending: false }).limit(60)
+      .limit(40),
+    window.sb.from('moderation_reports')
+      .select(`*, reporter:reporter_id (full_name, email), reported:reported_user_id (full_name, email)`)
+      .order('created_at', { ascending: false })
+      .limit(60)
   ]);
 
   const recruiters = recruitersRes.data || [];
   const queuedProjects = projectsRes.data || [];
   const profiles = profilesRes.data || [];
+  const reports = reportsRes.data || [];
 
   renderModerationRecruiters(recruiters);
   renderModerationProjects(queuedProjects);
   renderModerationProfiles(profiles);
-  renderModerationReports((reportsRes && reportsRes.data) || []);
+  renderModerationReports(reports);
   renderOverviewQueues(recruiters, queuedProjects, profiles);
 }
 
 function renderOverviewQueues(recruiters, projects, profiles) {
   const approvals = document.getElementById('overview-approvals');
   const discoverability = document.getElementById('overview-discoverability');
+
   if (approvals) {
     const pendingProfiles = profiles.filter(profile => profile.review_status !== 'approved').slice(0, 3);
     approvals.innerHTML = `
@@ -264,17 +279,17 @@ function renderModerationRecruiters(recruiters) {
     empty.classList.remove('hidden');
     return;
   }
+
   empty.classList.add('hidden');
-  container.innerHTML = recruiters.map(u => `
+  container.innerHTML = recruiters.map(user => `
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div>
-          <strong>${escHtml(u.full_name || u.email)}</strong>
-          <div class="muted">${escHtml(u.email)}</div>
+          <strong>${escHtml(user.full_name || user.email)}</strong>
+          <div class="muted">${escHtml(user.email)}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn--primary btn--sm" onclick="toggleRecruiterVerification('${u.id}', ${u.verified_recruiter})">Approve recruiter</button>
-          <button class="btn btn--danger btn--sm" onclick="deleteUser('${u.id}','${escHtml(u.email)}')">Delete</button>
+          <button class="btn btn--primary btn--sm" onclick="toggleRecruiterVerification('${user.id}', ${user.verified_recruiter}, true)">Approve recruiter</button>
         </div>
       </div>
     </div>
@@ -291,19 +306,20 @@ function renderModerationProjects(projects) {
     empty.classList.remove('hidden');
     return;
   }
+
   empty.classList.add('hidden');
-  container.innerHTML = projects.map(p => `
+  container.innerHTML = projects.map(project => `
     <div class="card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
         <div>
-          <strong>${escHtml(p.title)}</strong>
-          <div class="muted">${escHtml(p.users?.full_name || p.users?.email || 'Unknown student')}</div>
-          <div class="muted">Status: ${escHtml(p.review_status)}</div>
+          <strong>${escHtml(project.title)}</strong>
+          <div class="muted">${escHtml(project.users?.full_name || project.users?.email || 'Unknown student')}</div>
+          <div class="muted">Status: ${escHtml(project.review_status)}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn--primary btn--sm" onclick="setProjectReviewStatus('${p.id}','active')">Approve</button>
-          <button class="btn btn--outline btn--sm" onclick="setProjectReviewStatus('${p.id}','flagged')">Flag</button>
-          <button class="btn btn--outline btn--sm" onclick="toggleFeature('${p.id}')">${p.featured ? 'Unfeature' : 'Feature'}</button>
+          <button class="btn btn--primary btn--sm" onclick="setProjectReviewStatus('${project.id}','active')">Approve</button>
+          <button class="btn btn--outline btn--sm" onclick="setProjectReviewStatus('${project.id}','flagged')">Flag</button>
+          <button class="btn btn--outline btn--sm" onclick="toggleFeature('${project.id}')">${project.featured ? 'Unfeature' : 'Feature'}</button>
         </div>
       </div>
     </div>
@@ -320,21 +336,22 @@ function renderModerationProfiles(profiles) {
     empty.classList.remove('hidden');
     return;
   }
+
   empty.classList.add('hidden');
-  container.innerHTML = profiles.map(p => `
+  container.innerHTML = profiles.map(profile => `
     <div class="card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
         <div>
-          <strong>${escHtml(p.users?.full_name || p.users?.email || 'Student')}</strong>
-          <div class="muted">${escHtml(p.users?.email || '')}</div>
-          <div class="muted">Status: ${escHtml(p.review_status)}</div>
-          <div class="muted">Visibility: ${escHtml(p.visibility || 'public')} · ${p.discoverable ? 'Discoverable' : 'Not discoverable'}</div>
-          ${p.featured ? `<span class="role-badge role-badge--success">Featured</span>` : ''}
+          <strong>${escHtml(profile.users?.full_name || profile.users?.email || 'Student')}</strong>
+          <div class="muted">${escHtml(profile.users?.email || '')}</div>
+          <div class="muted">Status: ${escHtml(profile.review_status)}</div>
+          <div class="muted">Visibility: ${escHtml(profile.visibility || 'public')} · ${profile.discoverable ? 'Discoverable' : 'Not discoverable'}</div>
+          ${profile.featured ? '<span class="role-badge role-badge--success">Featured</span>' : ''}
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn--primary btn--sm" onclick="setProfileReviewStatus('${p.id}','approved')">Approve</button>
-          <button class="btn btn--outline btn--sm" onclick="setProfileReviewStatus('${p.id}','flagged')">Flag</button>
-          <button class="btn btn--outline btn--sm" onclick="toggleProfileFeatured('${p.id}', ${p.featured})">${p.featured ? 'Unfeature' : 'Feature'}</button>
+          <button class="btn btn--primary btn--sm" onclick="setProfileReviewStatus('${profile.id}','approved')">Approve</button>
+          <button class="btn btn--outline btn--sm" onclick="setProfileReviewStatus('${profile.id}','flagged')">Flag</button>
+          <button class="btn btn--outline btn--sm" onclick="toggleProfileFeatured('${profile.id}', ${profile.featured})">${profile.featured ? 'Unfeature' : 'Feature'}</button>
         </div>
       </div>
     </div>
@@ -344,27 +361,28 @@ function renderModerationProfiles(profiles) {
 function renderModerationReports(reports) {
   const container = document.getElementById('moderation-reports');
   if (!container) return;
+
   if (!reports.length) {
     container.innerHTML = '<div class="muted">No recent reports</div>';
     return;
   }
 
-  container.innerHTML = reports.map(r => {
-    const reporterName = r.reporter?.full_name || r.reporter?.email || 'Reporter';
-    const reportedName = r.reported?.full_name || r.reported?.email || 'Reported user';
+  container.innerHTML = reports.map(report => {
+    const reporterName = report.reporter?.full_name || report.reporter?.email || 'Reporter';
+    const reportedName = report.reported?.full_name || report.reported?.email || 'Reported user';
     return `
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
           <div style="flex:1;min-width:220px">
             <strong>${escHtml(reporterName)} reported ${escHtml(reportedName)}</strong>
-            <div class="muted">Reason: ${escHtml(r.reason || '—')}</div>
-            <div class="muted">Context: ${escHtml(r.context || '')}</div>
-            <div class="muted">Created: ${fmtDate(r.created_at)}</div>
+            <div class="muted">Reason: ${escHtml(report.reason_category || 'Unknown')}</div>
+            <div class="muted">Detail: ${escHtml(report.reason_detail || '')}</div>
+            <div class="muted">Created: ${fmtDate(report.created_at)}</div>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn--primary btn--sm" onclick="reviewReport('${r.id}','resolve')">Resolve</button>
-            <button class="btn btn--outline btn--sm" onclick="reviewReport('${r.id}','dismiss')">Dismiss</button>
-            <button class="btn btn--danger btn--sm" onclick="reviewReport('${r.id}','suspend')">Suspend User</button>
+            <button class="btn btn--primary btn--sm" onclick="reviewReport('${report.id}','resolve')">Resolve</button>
+            <button class="btn btn--outline btn--sm" onclick="reviewReport('${report.id}','dismiss')">Dismiss</button>
+            <button class="btn btn--danger btn--sm" onclick="reviewReport('${report.id}','suspend')">Suspend User</button>
           </div>
         </div>
       </div>
@@ -374,57 +392,86 @@ function renderModerationReports(reports) {
 
 async function reviewReport(reportId, action) {
   if (!reportId) return;
+
   const note = prompt('Optional review note (internal):') || '';
-
-  // Update report status
   const status = action === 'resolve' ? 'resolved' : action === 'dismiss' ? 'dismissed' : 'in_review';
-  const { error: updateErr } = await window.sb.from('moderation_reports').update({ status, reviewed_by: currentAdmin.id, review_notes: note }).eq('id', reportId);
-  if (updateErr) { showToast('Failed to update report: ' + updateErr.message, 'error'); return; }
+  const { error: updateErr } = await window.sb
+    .from('moderation_reports')
+    .update({ status, reviewed_by: currentAdmin.id, review_notes: note })
+    .eq('id', reportId);
 
-  // If suspending, ask for duration and insert account_suspensions
+  if (updateErr) {
+    showToast('Failed to update report: ' + updateErr.message, 'error');
+    return;
+  }
+
   if (action === 'suspend') {
     const days = parseInt(prompt('Suspend for how many days? (e.g. 7)'), 10) || 7;
     const until = new Date(Date.now() + (days * 24 * 60 * 60 * 1000)).toISOString();
-    // find reported_user_id
-    const { data: reportRows } = await window.sb.from('moderation_reports').select('reported_user_id').eq('id', reportId).single();
-    if (reportRows && reportRows.reported_user_id) {
-      const { error: suspendErr } = await window.sb.from('account_suspensions').insert([{ user_id: reportRows.reported_user_id, suspended_by: currentAdmin.id, suspended_until: until, reason: note }]);
-      if (suspendErr) { showToast('Failed to suspend user: ' + suspendErr.message, 'error'); }
-      else showToast('User suspended', 'warn');
+    const { data: reportRow } = await window.sb
+      .from('moderation_reports')
+      .select('reported_user_id')
+      .eq('id', reportId)
+      .single();
+
+    if (reportRow?.reported_user_id) {
+      const { error: suspendErr } = await window.sb.rpc('admin_suspend_user', {
+        p_target_user_id: reportRow.reported_user_id,
+        p_suspended_until: until,
+        p_reason: note || 'Suspended from moderation review'
+      });
+      if (suspendErr) {
+        showToast('Failed to suspend user: ' + suspendErr.message, 'error');
+      } else {
+        showToast('User suspended', 'warn');
+      }
     }
   }
 
-  // record moderation action audit
-  const { error: auditErr } = await window.sb.from('moderation_actions').insert([{ report_id: reportId, action, performed_by: currentAdmin.id, notes: note }]);
+  const { error: auditErr } = await window.sb.from('moderation_actions').insert([{
+    admin_id: currentAdmin.id,
+    action_type: action === 'suspend' ? 'user_suspended' : 'report_reviewed',
+    target_type: 'report',
+    target_id: reportId,
+    details: { action, note }
+  }]);
   if (auditErr) console.warn('Failed to log moderation action', auditErr.message);
 
-  await loadModerationQueue();
-  await loadStats();
+  await Promise.all([loadModerationQueue(), loadStats()]);
 }
 
 async function setProjectReviewStatus(id, status) {
   const { error } = await window.sb.from('projects').update({ review_status: status }).eq('id', id);
-  if (error) { showToast('Failed to update project review status: ' + error.message, 'error'); return; }
+  if (error) {
+    showToast('Failed to update project review status: ' + error.message, 'error');
+    return;
+  }
+
   showToast('Project review status updated', 'success');
-  await loadModerationQueue();
-  await loadStats();
+  await Promise.all([loadModerationQueue(), loadStats()]);
 }
 
 async function setProfileReviewStatus(id, status) {
   const { error } = await window.sb.from('student_profiles').update({ review_status: status }).eq('id', id);
-  if (error) { showToast('Failed to update profile review status: ' + error.message, 'error'); return; }
+  if (error) {
+    showToast('Failed to update profile review status: ' + error.message, 'error');
+    return;
+  }
+
   showToast('Profile review status updated', 'success');
-  await loadModerationQueue();
-  await loadStats();
+  await Promise.all([loadModerationQueue(), loadStats()]);
 }
 
 async function toggleProfileFeatured(id, currentValue) {
   const nextValue = !currentValue;
   const { error } = await window.sb.from('student_profiles').update({ featured: nextValue }).eq('id', id);
-  if (error) { showToast('Unable to update featured status: ' + error.message, 'error'); return; }
+  if (error) {
+    showToast('Unable to update featured status: ' + error.message, 'error');
+    return;
+  }
+
   showToast(nextValue ? 'Profile featured' : 'Profile unfeatured', 'success');
-  await loadModerationQueue();
-  await loadStats();
+  await Promise.all([loadModerationQueue(), loadStats()]);
 }
 
 function renderProjectsTable(projects) {
@@ -436,35 +483,36 @@ function renderProjectsTable(projects) {
     return;
   }
 
-  tbody.innerHTML = projects.map(p => `
+  tbody.innerHTML = projects.map(project => `
     <tr>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
-          <strong>${escHtml(p.title)}</strong>
-          ${p.featured ? `<span class="role-badge role-badge--success">Featured</span>` : ''}
-          <span class="role-badge role-badge--grey">${escHtml(p.project_type || 'Side Project')}</span>
-          ${p.visible ? '' : `<span class="role-badge role-badge--danger">Hidden</span>`}
+          <strong>${escHtml(project.title)}</strong>
+          ${project.featured ? '<span class="role-badge role-badge--success">Featured</span>' : ''}
+          <span class="role-badge role-badge--grey">${escHtml(project.project_type || 'Side Project')}</span>
+          ${project.visible ? '' : '<span class="role-badge role-badge--danger">Hidden</span>'}
         </div>
       </td>
-      <td>${escHtml(p.users?.full_name || p.users?.email || '—')}</td>
+      <td>${escHtml(project.users?.full_name || project.users?.email || '-')}</td>
       <td>
         <div class="skill-chips-row skill-chips-row--sm">
-          ${(p.tech_stack || []).slice(0, 4).map(s => `<span class="skill-chip skill-chip--sm">${escHtml(s)}</span>`).join('')}
+          ${(project.tech_stack || []).slice(0, 4).map(skill => `<span class="skill-chip skill-chip--sm">${escHtml(skill)}</span>`).join('')}
         </div>
       </td>
-      <td>${fmtDate(p.created_at)}</td>
+      <td>${fmtDate(project.created_at)}</td>
       <td>
-        <button class="btn btn--sm btn--ghost" onclick="openProject('${p.id}')">View</button>
-        <button class="btn btn--sm btn--outline" onclick="toggleFeature('${p.id}')">${p.featured ? 'Unfeature' : 'Feature'}</button>
-        <button class="btn btn--sm btn--danger" onclick="deleteProject('${p.id}')">Delete</button>
+        <button class="btn btn--sm btn--ghost" onclick="openProject('${project.id}')">View</button>
+        <button class="btn btn--sm btn--outline" onclick="toggleFeature('${project.id}')">${project.featured ? 'Unfeature' : 'Feature'}</button>
+        <button class="btn btn--sm btn--danger" onclick="deleteProject('${project.id}')">Delete</button>
       </td>
     </tr>
   `).join('');
 }
 
 function openProject(id) {
-  const project = allProjects.find(p => p.id === id);
+  const project = allProjects.find(item => item.id === id);
   if (!project) return;
+
   const modal = document.getElementById('admin-project-modal');
   const content = document.getElementById('admin-project-modal-content');
   if (!modal || !content) return;
@@ -489,16 +537,16 @@ function openProject(id) {
       <span class="role-badge role-badge--grey">${escHtml(project.project_type || 'Side Project')}</span>
     </div>
     <div class="project-card__skills" style="margin-top:16px">
-      ${(project.tech_stack || []).map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('')}
+      ${(project.tech_stack || []).map(skill => `<span class="skill-chip">${escHtml(skill)}</span>`).join('')}
     </div>
     <div class="project-card__links" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-      ${project.demo_link ? `<a class="project-link" href="${escHtml(project.demo_link)}" target="_blank" rel="noopener">🔗 Live Demo</a>` : ''}
-      ${project.github_link ? `<a class="project-link" href="${escHtml(project.github_link)}" target="_blank" rel="noopener">⌥ GitHub</a>` : ''}
+      ${project.demo_link ? `<a class="project-link" href="${escHtml(project.demo_link)}" target="_blank" rel="noopener">Live Demo</a>` : ''}
+      ${project.github_link ? `<a class="project-link" href="${escHtml(project.github_link)}" target="_blank" rel="noopener">GitHub</a>` : ''}
     </div>
     <div style="margin-top:18px;color:var(--ink-3);font-size:.95rem;display:grid;gap:6px">
       <div><strong>Added:</strong> ${fmtDate(project.created_at)}</div>
-      <div><strong>Student email:</strong> ${escHtml(project.users?.email || '—')}</div>
-      <div><strong>Student role:</strong> ${escHtml(project.users?.role || '—')}</div>
+      <div><strong>Student email:</strong> ${escHtml(project.users?.email || '-')}</div>
+      <div><strong>Student role:</strong> ${escHtml(project.users?.role || '-')}</div>
     </div>
   `;
 
@@ -510,10 +558,10 @@ function closeAdminProjectModal() {
 }
 
 async function toggleFeature(id) {
-  const project = allProjects.find(p => p.id === id);
+  const project = allProjects.find(item => item.id === id);
   if (!project) return;
-  const nextValue = !project.featured;
 
+  const nextValue = !project.featured;
   const { error } = await window.sb.from('projects').update({ featured: nextValue }).eq('id', id);
   if (error) {
     showToast('Unable to update featured status: ' + error.message, 'error');
@@ -529,10 +577,10 @@ async function toggleFeature(id) {
       detail: nextValue ? 'Your project has been featured by an admin.' : 'Your project has been removed from featured projects.'
     });
   }
+
   showToast(nextValue ? 'Project featured' : 'Project unfeatured', 'success');
   renderProjectsTable(allProjects);
-  await loadModerationQueue();
-  await loadStats();
+  await Promise.all([loadModerationQueue(), loadStats()]);
   if (!document.getElementById('admin-project-modal')?.classList.contains('hidden')) {
     openProject(id);
   }
@@ -540,25 +588,27 @@ async function toggleFeature(id) {
 
 async function deleteProject(id) {
   if (!confirm('Delete this project?')) return;
+
   const { error } = await window.sb.from('projects').delete().eq('id', id);
-  if (error) { showToast('Failed: ' + error.message, 'error'); return; }
+  if (error) {
+    showToast('Failed: ' + error.message, 'error');
+    return;
+  }
+
   closeAdminProjectModal();
   showToast('Project deleted', 'warn');
-  allProjects = allProjects.filter(p => p.id !== id);
+  allProjects = allProjects.filter(project => project.id !== id);
   renderProjectsTable(allProjects);
-  await loadStats();
-  await loadModerationQueue();
+  await Promise.all([loadModerationQueue(), loadStats()]);
 }
 
-// ── SECTION NAV ───────────────────────────────────────────
 function showSection(section) {
-  document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.dash-section').forEach(item => item.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
   document.getElementById(`section-${section}`)?.classList.add('active');
   document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active');
 }
 
-// ── LOGOUT ────────────────────────────────────────────────
 async function logout() {
   await Auth.signOut();
   window.location.href = '/index.html';

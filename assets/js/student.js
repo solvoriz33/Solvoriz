@@ -19,6 +19,11 @@ let currentConversation = null;
 let conversationRefreshTimer = null;
 let creatorComposeTarget = null;
 let studentRealtimeChannel = null;
+let studentThreadChannel = null;
+
+const COMMUNITY_PAGE_SIZE = 24;
+const CONVERSATION_PAGE_SIZE = 25;
+const MESSAGE_PAGE_SIZE = 50;
 
 function normalizeProfileJoin(profileJoin) {
   if (Array.isArray(profileJoin)) return profileJoin[0] || null;
@@ -27,6 +32,10 @@ function normalizeProfileJoin(profileJoin) {
 
 function getUnreadCountFromFeed(messageFeed = []) {
   return messageFeed.filter(message => message.sender_id !== currentUser?.id && !message.read).length;
+}
+
+function isValidMeetLink(link) {
+  return /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i.test((link || '').trim());
 }
 
 // ── INIT ─────────────────────────────────────────────────
@@ -273,57 +282,46 @@ async function loadNotifications() {
     .from('notifications')
     .select('*')
     .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(0, CONVERSATION_PAGE_SIZE - 1);
   if (error) { showToast('Failed to load notifications', 'error'); return; }
   myNotifications = data || [];
   renderNotifications();
 }
 
 async function loadCommunityProjects() {
-  const { data, error } = await window.sb
-    .from('projects')
-    .select(`
-      *,
-      users:user_id (
-        id, full_name, email,
-        student_profiles (headline, location, availability, avatar_url, visibility, discoverable, featured, review_status)
-      )
-    `)
-    .eq('visible', true)
-    .eq('review_status', 'active')
-    .neq('user_id', currentUser.id)
-    .order('created_at', { ascending: false });
+  const { data, error } = await window.sb.rpc('list_creator_projects', {
+    p_limit: COMMUNITY_PAGE_SIZE,
+    p_offset: 0
+  });
 
   if (error) {
     console.warn('Failed to load creator community projects', error);
     return;
   }
 
-  communityProjects = (data || []).map(project => {
-    const profile = normalizeProfileJoin(project.users?.student_profiles);
-    return {
-      id: project.id,
-      userId: project.user_id,
-      title: project.title,
-      description: project.description || '',
-      tech_stack: project.tech_stack || [],
-      project_type: project.project_type || 'Side Project',
-      image_url: project.image_url || '',
-      demo_link: project.demo_link || '',
-      github_link: project.github_link || '',
-      created_at: project.created_at,
-      creatorName: project.users?.full_name || 'Creator',
-      creatorEmail: project.users?.email || '',
-      creatorHeadline: profile?.headline || '',
-      creatorLocation: profile?.location || '',
-      creatorAvailability: profile?.availability || '',
-      creatorAvatar: profile?.avatar_url || '',
-      creatorFeatured: Boolean(profile?.featured),
-      creatorDiscoverable: Boolean(profile?.discoverable),
-      creatorReviewStatus: profile?.review_status || 'pending',
-      creatorVisibility: profile?.visibility || 'public'
-    };
-  }).filter(project => project.creatorVisibility === 'public' && project.creatorReviewStatus !== 'flagged');
+  communityProjects = (data || []).map(project => ({
+    id: project.id,
+    userId: project.user_id,
+    title: project.title,
+    description: project.description || '',
+    tech_stack: project.tech_stack || [],
+    project_type: project.project_type || 'Side Project',
+    image_url: project.image_url || '',
+    demo_link: project.demo_link || '',
+    github_link: project.github_link || '',
+    created_at: project.created_at,
+    creatorName: project.creator_name || 'Creator',
+    creatorEmail: '',
+    creatorHeadline: project.creator_headline || '',
+    creatorLocation: project.creator_location || '',
+    creatorAvailability: project.creator_availability || '',
+    creatorAvatar: project.creator_avatar || '',
+    creatorFeatured: Boolean(project.creator_featured),
+    creatorDiscoverable: Boolean(project.creator_discoverable),
+    creatorReviewStatus: project.creator_review_status || 'pending',
+    creatorVisibility: project.creator_visibility || 'public'
+  })).filter(project => project.userId !== currentUser.id && project.creatorVisibility === 'public' && project.creatorReviewStatus !== 'flagged');
 
   renderCommunityProjects();
 }
@@ -383,7 +381,8 @@ async function loadConversations() {
     .from('conversations')
     .select(`*, recruiter:recruiter_id(id, full_name, email), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
     .eq('student_id', currentUser.id)
-    .order('created_at', { ascending: false });
+    .order('last_message_at', { ascending: false })
+    .range(0, CONVERSATION_PAGE_SIZE - 1);
 
   const { data: creatorData, error: creatorError } = await window.sb
     .from('creator_conversations')
@@ -396,7 +395,8 @@ async function loadConversations() {
       last_message:creator_messages(id, body, created_at, sender_id, read)
     `)
     .or(`creator_one_id.eq.${currentUser.id},creator_two_id.eq.${currentUser.id}`)
-    .order('created_at', { ascending: false });
+    .order('last_message_at', { ascending: false })
+    .range(0, CONVERSATION_PAGE_SIZE - 1);
 
   if (error) { console.warn('Failed to load recruiter conversations', error); }
   if (creatorError) { console.warn('Failed to load creator conversations', creatorError); }
@@ -504,6 +504,7 @@ async function openConversation(convId) {
   renderStudentChatActions(conv);
   // render interview UI (if any)
   renderStudentInterviewUI(conv);
+  subscribeToStudentThread(conv);
   await loadConversationMessages(convId);
   document.getElementById('chat-send-btn').onclick = sendStudentMessage;
 }
@@ -554,7 +555,7 @@ async function renderStudentInterviewUI(conv) {
       `;
     } else if (interview.status === 'accepted') {
       extra = `<span style="margin-left:8px">Interview: <strong>Accepted</strong></span>`;
-    } else if (interview.status === 'scheduled' && interview.meet_link) {
+    } else if (interview.status === 'scheduled' && interview.meet_link && isValidMeetLink(interview.meet_link)) {
       const safeLink = escHtml(interview.meet_link);
       extra = `
         <span style="margin-left:8px">Interview: <strong>Scheduled</strong></span>
@@ -569,10 +570,10 @@ async function renderStudentInterviewUI(conv) {
 
 async function acceptInterview(convId) {
   if (!convId) return;
-  const { data: interview, error: findErr } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
-  if (findErr) { showToast('Failed to accept: ' + findErr.message, 'error'); return; }
-  if (!interview) { showToast('Interview not found', 'error'); return; }
-  const { error } = await window.sb.from('interviews').update({ status: 'accepted' }).eq('id', interview.id);
+  const { error } = await window.sb.rpc('respond_to_interview_request', {
+    p_conversation_id: convId,
+    p_decision: 'accepted'
+  });
   if (error) { showToast('Failed to accept interview: ' + error.message, 'error'); return; }
   showToast('Interview accepted. Waiting for recruiter to schedule.', 'success');
   await loadConversations();
@@ -582,10 +583,10 @@ async function acceptInterview(convId) {
 async function rejectInterview(convId) {
   if (!convId) return;
   if (!confirm('Reject this interview request?')) return;
-  const { data: interview, error: findErr } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
-  if (findErr) { showToast('Failed to reject: ' + findErr.message, 'error'); return; }
-  if (!interview) { showToast('Interview not found', 'error'); return; }
-  const { error } = await window.sb.from('interviews').update({ status: 'rejected' }).eq('id', interview.id);
+  const { error } = await window.sb.rpc('respond_to_interview_request', {
+    p_conversation_id: convId,
+    p_decision: 'rejected'
+  });
   if (error) { showToast('Failed to reject interview: ' + error.message, 'error'); return; }
   showToast('Interview rejected.', 'warn');
   await loadConversations();
@@ -621,22 +622,25 @@ async function loadConversationMessages(convId) {
   if (!conv) return;
   const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
   const fk = conv.threadType === 'creator' ? 'creator_conversation_id' : 'conversation_id';
-  const { data, error } = await window.sb.from(table).select('*').eq(fk, convId).order('created_at', { ascending: true });
+  const { data, error } = await window.sb.from(table).select('*').eq(fk, convId).order('created_at', { ascending: false }).range(0, MESSAGE_PAGE_SIZE - 1);
   if (error) { showToast('Failed to load thread', 'error'); return; }
-  const unreadIncoming = (data || []).filter(m => m.sender_id !== currentUser.id && !m.read).map(m => m.id);
+  const ordered = [...(data || [])].reverse();
+  const unreadIncoming = ordered.filter(m => m.sender_id !== currentUser.id && !m.read).map(m => m.id);
   if (unreadIncoming.length) {
-    const { error: readError } = await window.sb.from(table).update({ read: true }).in('id', unreadIncoming);
+    const rpcName = conv.threadType === 'creator' ? 'mark_creator_conversation_read' : 'mark_conversation_read';
+    const argName = conv.threadType === 'creator' ? 'p_creator_conversation_id' : 'p_conversation_id';
+    const { error: readError } = await window.sb.rpc(rpcName, { [argName]: convId });
     if (readError) console.warn('Failed to mark thread as read', readError);
-    (data || []).forEach(m => {
+    ordered.forEach(m => {
       if (unreadIncoming.includes(m.id)) m.read = true;
     });
   }
   const pane = document.getElementById('chat-messages');
-  if (!data?.length) {
+  if (!ordered.length) {
     pane.innerHTML = '<div class="chat-empty">No messages in this thread yet.</div>';
     return;
   }
-  pane.innerHTML = (data || []).map(m => `
+  pane.innerHTML = ordered.map(m => `
     <div class="chat-row ${m.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
       <div class="chat-bubble ${m.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
         <div class="chat-bubble__text">${escHtml(m.body)}</div>
@@ -647,7 +651,7 @@ async function loadConversationMessages(convId) {
   pane.scrollTop = pane.scrollHeight;
   const activeThread = myMessages.find(message => message.id === convId);
   if (activeThread) {
-    activeThread.message_feed = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    activeThread.message_feed = [...ordered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     activeThread.last_message = activeThread.message_feed[0] || null;
     activeThread.unread_count = 0;
   }
@@ -722,6 +726,27 @@ function getThreadStatus(conversation) {
   if (conversation.unread_count > 0) return conversation.unread_count === 1 ? 'New reply' : `${conversation.unread_count} unread`;
   if (last.sender_id === currentUser.id) return last.read ? 'Seen' : 'Sent';
   return 'Replied';
+}
+
+function subscribeToStudentThread(conversation) {
+  if (!window.sb || !conversation?.id) return;
+  if (studentThreadChannel) {
+    studentThreadChannel.unsubscribe();
+    studentThreadChannel = null;
+  }
+
+  const table = conversation.threadType === 'creator' ? 'creator_messages' : 'messages';
+  const key = conversation.threadType === 'creator' ? 'creator_conversation_id' : 'conversation_id';
+  studentThreadChannel = window.sb
+    .channel(`student-thread-${conversation.threadType}-${conversation.id}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table, filter: `${key}=eq.${conversation.id}` }, () => {
+      loadConversations();
+      loadConversationMessages(conversation.id);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'interviews', filter: `conversation_id=eq.${conversation.id}` }, () => {
+      if (conversation.threadType === 'recruiter') renderStudentInterviewUI(myMessages.find(item => item.id === conversation.id));
+    })
+    .subscribe();
 }
 
 function openCreatorComposer(projectId) {
@@ -836,15 +861,13 @@ function getThreadInitials(name) {
 
 function startConversationRefresh() {
   stopConversationRefresh();
-  conversationRefreshTimer = window.setInterval(() => {
-    if (document.visibilityState === 'visible') {
-      loadConversations();
-      loadNotifications();
-    }
-  }, 15000);
 }
 
 function stopConversationRefresh() {
+  if (studentThreadChannel) {
+    studentThreadChannel.unsubscribe();
+    studentThreadChannel = null;
+  }
   if (conversationRefreshTimer) {
     window.clearInterval(conversationRefreshTimer);
     conversationRefreshTimer = null;
@@ -855,11 +878,10 @@ function startRealtimeSync() {
   if (!window.sb || !currentUser?.id || studentRealtimeChannel) return;
   studentRealtimeChannel = window.sb
     .channel(`student-live-${currentUser.id}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_messages' }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations' }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
     .subscribe();
 }
 

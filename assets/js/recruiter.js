@@ -14,6 +14,11 @@ let currentConversation = null;
 let chatRefreshTimer = null;
 let composeTarget = null;
 let recruiterRealtimeChannel = null;
+let recruiterThreadChannel = null;
+
+const PROJECT_PAGE_SIZE = 24;
+const CONVERSATION_PAGE_SIZE = 25;
+const MESSAGE_PAGE_SIZE = 50;
 
 function normalizeProfileJoin(profileJoin) {
   if (Array.isArray(profileJoin)) return profileJoin[0] || null;
@@ -39,6 +44,10 @@ function isSearchReadyProfile(profile = {}) {
 
 function getUnreadCountFromFeed(messageFeed = []) {
   return messageFeed.filter(message => message.sender_id !== currentUser?.id && !message.read).length;
+}
+
+function isValidMeetLink(link) {
+  return /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i.test((link || '').trim());
 }
 
 async function initRecruiter() {
@@ -125,18 +134,10 @@ async function loadAllProjects() {
   const loadingEl = document.getElementById('students-loading');
   if (loadingEl) loadingEl.classList.remove('hidden');
 
-  const { data, error } = await window.sb
-    .from('projects')
-    .select(`
-      *,
-      users:user_id (
-        id, full_name, email,
-        student_profiles (headline, bio, location, age, availability, skills, avatar_url, visibility, discoverable, featured, review_status)
-      )
-    `)
-    .eq('visible', true)
-    .eq('review_status', 'active')
-    .order('created_at', { ascending: false });
+  const { data, error } = await window.sb.rpc('list_discoverable_projects', {
+    p_limit: PROJECT_PAGE_SIZE,
+    p_offset: 0
+  });
 
   if (loadingEl) loadingEl.classList.add('hidden');
   if (error) {
@@ -144,39 +145,38 @@ async function loadAllProjects() {
     return;
   }
 
-  allProjects = (data || []).map(p => {
-    const profile = normalizeProfileJoin(p.users?.student_profiles);
-    return {
-      id: p.id,
-      userId: p.user_id,
-      title: p.title,
-      description: p.description || '',
-      tech_stack: p.tech_stack || [],
-      project_type: p.project_type || 'Side Project',
-      image_url: p.image_url || '',
-      demo_link: p.demo_link || '',
-      github_link: p.github_link || '',
-      created_at: p.created_at,
-      builderName: p.users?.full_name || 'Anonymous',
-      builderEmail: p.users?.email || '',
-      builderHeadline: profile?.headline || '',
-      builderLocation: profile?.location || '',
-      builderAge: profile?.age || null,
-      builderAvailability: profile?.availability || '',
-      builderSkills: profile?.skills || [],
-      builderAvatar: profile?.avatar_url || '',
-      builderVisibility: profile?.visibility || 'public',
-      builderDiscoverable: Boolean(profile?.discoverable),
-      builderFeatured: Boolean(profile?.featured),
-      builderReviewStatus: profile?.review_status || 'pending',
-      builderSearchReady: isSearchReadyProfile(profile),
-      builderScore: calculateDiscoverabilityScore(profile || {})
-    };
-  }).filter(project =>
-    project.builderVisibility === 'public' &&
-    project.builderReviewStatus !== 'flagged' &&
-    project.builderSearchReady
-  );
+  allProjects = (data || []).map(project => ({
+    id: project.id,
+    userId: project.user_id,
+    title: project.title,
+    description: project.description || '',
+    tech_stack: project.tech_stack || [],
+    project_type: project.project_type || 'Side Project',
+    image_url: project.image_url || '',
+    demo_link: project.demo_link || '',
+    github_link: project.github_link || '',
+    created_at: project.created_at,
+    builderName: project.builder_name || 'Anonymous',
+    builderEmail: '',
+    builderHeadline: project.builder_headline || '',
+    builderLocation: project.builder_location || '',
+    builderAge: project.builder_age || null,
+    builderAvailability: project.builder_availability || '',
+    builderSkills: project.builder_skills || [],
+    builderAvatar: project.builder_avatar || '',
+    builderVisibility: 'public',
+    builderDiscoverable: Boolean(project.builder_discoverable),
+    builderFeatured: Boolean(project.builder_featured),
+    builderReviewStatus: 'approved',
+    builderSearchReady: true,
+    builderScore: calculateDiscoverabilityScore({
+      headline: project.builder_headline,
+      location: project.builder_location,
+      availability: project.builder_availability,
+      skills: project.builder_skills,
+      avatar_url: project.builder_avatar
+    })
+  }));
 
   document.getElementById('student-count').textContent = allProjects.length;
   renderProjects(allProjects);
@@ -494,7 +494,8 @@ async function loadConversations(preserveSelection = true) {
       last_message:messages(id, body, created_at, sender_id, read)
     `)
     .eq('recruiter_id', currentUser.id)
-    .order('created_at', { ascending: false });
+    .order('last_message_at', { ascending: false })
+    .range(0, CONVERSATION_PAGE_SIZE - 1);
 
   if (error) {
     showToast('Failed to load messages', 'error');
@@ -583,6 +584,7 @@ async function openConversation(convId) {
   renderChatActions(conv);
   // render interview UI (if any)
   renderRecruiterInterviewUI(conv);
+  subscribeToRecruiterThread(convId);
   await loadConversationMessages(convId);
 }
 
@@ -623,7 +625,7 @@ async function renderRecruiterInterviewUI(conv) {
 
   const statusLabel = `<span class="role-badge role-badge--grey">${escHtml(interview.status)}</span>`;
   let meetPart = '';
-  if (interview.meet_link && interview.status === 'scheduled') {
+  if (interview.meet_link && interview.status === 'scheduled' && isValidMeetLink(interview.meet_link)) {
     const safeLink = escHtml(interview.meet_link);
     meetPart = `<a class="btn btn--sm btn--outline" href="${safeLink}" target="_blank" rel="noopener">Join Interview</a>`;
   }
@@ -649,13 +651,9 @@ async function requestInterview(convId) {
   const confirmReq = confirm('Send interview request to this student?');
   if (!confirmReq) return;
 
-  const { data, error } = await window.sb.from('interviews').insert({
-    conversation_id: convId,
-    project_id: conv.project_id || conv.project?.id,
-    recruiter_id: currentUser.id,
-    student_id: conv.student?.id,
-    status: 'requested'
-  }).select().maybeSingle();
+  const { error } = await window.sb.rpc('request_interview', {
+    p_conversation_id: convId
+  });
 
   if (error) { showToast('Failed to request interview: ' + error.message, 'error'); return; }
   showToast('Interview requested.', 'success');
@@ -667,10 +665,11 @@ async function setMeetLink(convId) {
   const input = document.getElementById('meet-link-input');
   if (!input) return showToast('Enter a meet link first', 'error');
   const link = input.value.trim();
-  if (!link) return showToast('Enter a valid link', 'error');
-  const { data: existing } = await window.sb.from('interviews').select('*').eq('conversation_id', convId).limit(1).maybeSingle();
-  if (!existing) return showToast('Interview record missing', 'error');
-  const { error } = await window.sb.from('interviews').update({ meet_link: link, status: 'scheduled' }).eq('id', existing.id);
+  if (!isValidMeetLink(link)) return showToast('Enter a valid https://meet.google.com link', 'error');
+  const { error } = await window.sb.rpc('schedule_interview', {
+    p_conversation_id: convId,
+    p_meet_link: link
+  });
   if (error) { showToast('Failed to save meet link: ' + error.message, 'error'); return; }
   showToast('Meet link saved and interview scheduled.', 'success');
   await loadConversations(true);
@@ -711,7 +710,8 @@ async function loadConversationMessages(convId) {
     .from('messages')
     .select('*')
     .eq('conversation_id', convId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false })
+    .range(0, MESSAGE_PAGE_SIZE - 1);
 
   if (error) {
     showToast('Failed to load thread', 'error');
@@ -720,21 +720,22 @@ async function loadConversationMessages(convId) {
 
   const pane = document.getElementById('chat-messages');
   if (!pane) return;
-  const unreadIncoming = (data || []).filter(message => message.sender_id !== currentUser.id && !message.read).map(message => message.id);
+  const ordered = [...(data || [])].reverse();
+  const unreadIncoming = ordered.filter(message => message.sender_id !== currentUser.id && !message.read).map(message => message.id);
   if (unreadIncoming.length) {
-    const { error: readError } = await window.sb.from('messages').update({ read: true }).in('id', unreadIncoming);
+    const { error: readError } = await window.sb.rpc('mark_conversation_read', { p_conversation_id: convId });
     if (readError) console.warn('Failed to mark recruiter thread as read', readError);
-    (data || []).forEach(message => {
+    ordered.forEach(message => {
       if (unreadIncoming.includes(message.id)) message.read = true;
     });
   }
 
-  if (!data?.length) {
+  if (!ordered.length) {
     pane.innerHTML = '<div class="chat-empty">No messages in this thread yet.</div>';
     return;
   }
 
-  pane.innerHTML = data.map(message => {
+  pane.innerHTML = ordered.map(message => {
     const mine = message.sender_id === currentUser.id;
     return `
       <div class="chat-row ${mine ? 'chat-row--mine' : ''}">
@@ -749,7 +750,7 @@ async function loadConversationMessages(convId) {
   pane.scrollTop = pane.scrollHeight;
   const activeThread = myMessages.find(message => message.id === convId);
   if (activeThread) {
-    activeThread.message_feed = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    activeThread.message_feed = [...ordered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     activeThread.last_message = activeThread.message_feed[0] || null;
     activeThread.unread_count = 0;
   }
@@ -837,27 +838,41 @@ function getThreadStatus(conversation) {
   return 'Replied';
 }
 
+function subscribeToRecruiterThread(convId) {
+  if (!window.sb || !convId) return;
+  if (recruiterThreadChannel) {
+    recruiterThreadChannel.unsubscribe();
+    recruiterThreadChannel = null;
+  }
+
+  recruiterThreadChannel = window.sb
+    .channel(`recruiter-thread-${convId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, () => {
+      loadConversations(true);
+      loadConversationMessages(convId);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'interviews', filter: `conversation_id=eq.${convId}` }, () => renderRecruiterInterviewUI(myMessages.find(conv => conv.id === convId)))
+    .subscribe();
+}
+
 function startRealtimeSync() {
   if (!window.sb || !currentUser?.id || recruiterRealtimeChannel) return;
   recruiterRealtimeChannel = window.sb
     .channel(`recruiter-live-${currentUser.id}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
     .subscribe();
 }
 
 function startChatRefresh() {
   stopChatRefresh();
-  chatRefreshTimer = window.setInterval(() => {
-    if (document.visibilityState === 'visible') {
-      loadConversations();
-      loadNotifications();
-    }
-  }, 15000);
 }
 
 function stopChatRefresh() {
+  if (recruiterThreadChannel) {
+    recruiterThreadChannel.unsubscribe();
+    recruiterThreadChannel = null;
+  }
   if (chatRefreshTimer) {
     window.clearInterval(chatRefreshTimer);
     chatRefreshTimer = null;
@@ -962,7 +977,8 @@ async function loadNotifications() {
     .from('notifications')
     .select('*')
     .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(0, CONVERSATION_PAGE_SIZE - 1);
 
   if (error) {
     showToast('Failed to load notifications', 'error');
