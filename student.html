@@ -294,13 +294,24 @@
     <section class="dash-section" id="section-community">
       <div class="section-header">
         <h1 class="section-header__title">Creator Community</h1>
-        <p class="section-header__sub">Explore public builder projects and start direct creator-to-creator discussions.</p>
+        <p class="section-header__sub">Search creators by product, name, skills, handle, or user ID, then connect through real project context.</p>
       </div>
 
       <div class="search-bar">
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" id="community-search-input" class="input" placeholder="Search projects, creators, or technologies...">
+          <input type="text" id="community-search-input" class="input" placeholder="Search products, creator name, skills, handle, or user ID...">
+        </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-bottom:20px">
+        <div class="card__title">Creator directory</div>
+        <p class="card__sub" style="margin-top:6px">Find other builders by identity and skills, then start a creator-to-creator conversation from one of their public projects.</p>
+        <div class="students-grid" id="creator-directory-grid" style="margin-top:18px"></div>
+        <div class="empty-state hidden" id="creator-directory-empty">
+          <div class="empty-state__icon">O</div>
+          <div class="empty-state__title">No creator matches found</div>
+          <div class="empty-state__sub">Try another creator name, skill, handle, product title, or user ID.</div>
         </div>
       </div>
 
@@ -518,6 +529,7 @@
 <script src="/assets/js/app.js"></script>
 <script src="/assets/js/auth.js"></script>
 <script src="/assets/js/student.js"></script>
+<script src="/assets/js/marketing.js"></script>
 <script>
   // Set overview name after profile loads
   document.addEventListener('DOMContentLoaded', () => {

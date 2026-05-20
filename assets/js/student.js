@@ -11,6 +11,7 @@ let myNotifications = [];
 let myMessages = [];
 let myActivity = [];
 let communityProjects = [];
+let communityCreators = [];
 let profileSkills = [];
 let projectSkills = [];
 let editProjectSkills = [];
@@ -56,7 +57,7 @@ async function initStudent() {
 
   initForms();
   await loadStudentProfile();
-  await Promise.all([loadProjects(), loadCommunityProjects(), loadNotifications(), loadActivity(), loadConversations()]);
+  await Promise.all([loadProjects(), loadCommunityProjects(), loadCommunityCreators(), loadNotifications(), loadActivity(), loadConversations()]);
   setupMessagingComposer();
   startRealtimeSync();
   // Set overview name reliably (not via setTimeout in HTML)
@@ -326,18 +327,54 @@ async function loadCommunityProjects() {
   renderCommunityProjects();
 }
 
+async function loadCommunityCreators() {
+  const { data, error } = await window.sb.rpc('list_creator_directory', {
+    p_limit: COMMUNITY_PAGE_SIZE * 2,
+    p_offset: 0
+  });
+
+  if (error) {
+    console.warn('Failed to load creator directory', error);
+    return;
+  }
+
+  communityCreators = (data || []).map(creator => ({
+    userId: creator.user_id,
+    handle: creator.handle || '',
+    creatorName: creator.creator_name || 'Creator',
+    creatorHeadline: creator.creator_headline || '',
+    creatorLocation: creator.creator_location || '',
+    creatorAvailability: creator.creator_availability || '',
+    creatorAvatar: creator.creator_avatar || '',
+    creatorFeatured: Boolean(creator.creator_featured),
+    creatorDiscoverable: Boolean(creator.creator_discoverable),
+    creatorReviewStatus: creator.creator_review_status || 'pending',
+    creatorVisibility: creator.creator_visibility || 'public',
+    githubUsername: creator.github_username || '',
+    skills: creator.skills || [],
+    projectTitles: creator.project_titles || [],
+    projectCount: Number(creator.project_count || 0),
+    primaryProjectId: creator.primary_project_id || null,
+    primaryProjectTitle: creator.primary_project_title || '',
+    primaryProjectType: creator.primary_project_type || 'Project'
+  })).filter(creator => creator.userId !== currentUser.id && creator.creatorVisibility === 'public' && creator.creatorReviewStatus !== 'flagged');
+
+  renderCommunityCreators();
+}
+
 function renderCommunityProjects() {
   const grid = document.getElementById('community-grid');
   const empty = document.getElementById('community-empty');
   if (!grid) return;
 
-  const q = document.getElementById('community-search-input')?.value.trim().toLowerCase() || '';
+  const q = getCommunityQuery();
   const filtered = communityProjects.filter(project => {
     if (!q) return true;
     return project.title.toLowerCase().includes(q)
       || project.creatorName.toLowerCase().includes(q)
       || project.description.toLowerCase().includes(q)
-      || project.tech_stack.some(skill => skill.toLowerCase().includes(q));
+      || project.tech_stack.some(skill => skill.toLowerCase().includes(q))
+      || String(project.userId || '').toLowerCase().includes(q);
   });
 
   if (!filtered.length) {
@@ -375,6 +412,68 @@ function renderCommunityProjects() {
       </div>
     </div>
   `).join('');
+}
+
+function renderCommunityCreators() {
+  const grid = document.getElementById('creator-directory-grid');
+  const empty = document.getElementById('creator-directory-empty');
+  if (!grid) return;
+
+  const q = getCommunityQuery();
+  const filtered = communityCreators.filter(creator => {
+    if (!q) return true;
+    return creator.creatorName.toLowerCase().includes(q)
+      || creator.creatorHeadline.toLowerCase().includes(q)
+      || creator.handle.toLowerCase().includes(q)
+      || String(creator.userId || '').toLowerCase().includes(q)
+      || creator.skills.some(skill => skill.toLowerCase().includes(q))
+      || creator.projectTitles.some(title => title.toLowerCase().includes(q));
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    empty?.classList.remove('hidden');
+    return;
+  }
+
+  empty?.classList.add('hidden');
+  grid.innerHTML = filtered.map(creator => `
+    <div class="student-card animate-fade-up" style="cursor:default">
+      <div class="student-card__top">
+        <div class="student-avatar">${getThreadInitials(creator.creatorName)}</div>
+        <div class="student-card__info">
+          <h3 class="student-card__name">${escHtml(creator.creatorName)}</h3>
+          <p class="student-card__headline">${escHtml(creator.creatorHeadline || (creator.handle ? '@' + creator.handle : 'Student creator'))}</p>
+          <div class="student-card__meta">
+            ${creator.creatorFeatured ? '<span class="role-badge role-badge--recruiter">Featured</span>' : ''}
+            ${creator.creatorDiscoverable ? '<span class="role-badge role-badge--success">Discoverable</span>' : '<span class="role-badge role-badge--grey">Community member</span>'}
+            ${creator.handle ? `<span class="role-badge role-badge--grey">@${escHtml(creator.handle)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <p class="student-card__summary">${escHtml(creator.creatorHeadline || 'Browse this creator through skills, products, and project context.')}</p>
+      <div class="skill-chips-row skill-chips-row--sm" style="margin:8px 0 10px">
+        ${(creator.skills || []).slice(0, 5).map(skill => `<span class="skill-chip skill-chip--sm">${escHtml(skill)}</span>`).join('')}
+      </div>
+      <div class="muted">User ID: ${escHtml(String(creator.userId).slice(0, 8))}${String(creator.userId).length > 8 ? '...' : ''}</div>
+      <div class="muted">${creator.projectCount} public project${creator.projectCount === 1 ? '' : 's'}${creator.primaryProjectTitle ? ` · Latest: ${escHtml(creator.primaryProjectTitle)}` : ''}</div>
+      <div class="student-card__footer">
+        ${creator.creatorLocation ? `<span class="muted">${escHtml(creator.creatorLocation)}</span>` : '<span class="muted">Location not shared</span>'}
+        ${creator.creatorAvailability ? `<span class="role-badge role-badge--${creator.creatorAvailability === 'available' ? 'success' : 'grey'}">${escHtml(creator.creatorAvailability)}</span>` : ''}
+      </div>
+      <div class="student-card__actions">
+        ${creator.githubUsername ? `<a class="btn btn--sm btn--outline" href="https://github.com/${escHtml(creator.githubUsername)}" target="_blank" rel="noopener">GitHub</a>` : '<button class="btn btn--sm btn--outline" disabled>No GitHub</button>'}
+        <button class="btn btn--sm btn--primary" onclick="openCreatorConnection('${creator.userId}')"
+          ${creator.primaryProjectId ? '' : 'disabled'}>
+          ${creator.primaryProjectId ? 'Connect with creator' : 'No public project yet'}
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function getCommunityQuery() {
+  return document.getElementById('community-search-input')?.value.trim().toLowerCase() || '';
 }
 async function loadConversations() {
   const { data, error } = await window.sb
@@ -766,6 +865,41 @@ function openCreatorComposer(projectId) {
   input?.focus();
 }
 
+function openCreatorConnection(userId) {
+  const creator = communityCreators.find(item => item.userId === userId);
+  if (!creator?.primaryProjectId) {
+    showToast('This creator does not have a public project to connect through yet.', 'warn');
+    return;
+  }
+
+  creatorComposeTarget = {
+    id: creator.primaryProjectId,
+    userId: creator.userId,
+    title: creator.primaryProjectTitle || 'Public project',
+    project_type: creator.primaryProjectType || 'Project',
+    creatorName: creator.creatorName,
+    creatorHeadline: creator.creatorHeadline,
+    creatorLocation: creator.creatorLocation,
+    creatorAvailability: creator.creatorAvailability,
+    creatorFeatured: creator.creatorFeatured,
+    creatorDiscoverable: creator.creatorDiscoverable
+  };
+
+  const modal = document.getElementById('creator-compose-modal');
+  const avatar = document.getElementById('creator-compose-avatar');
+  const name = document.getElementById('creator-compose-name');
+  const meta = document.getElementById('creator-compose-meta');
+  const copy = document.getElementById('creator-compose-copy');
+  const input = document.getElementById('creator-compose-input');
+  if (avatar) avatar.textContent = getThreadInitials(creator.creatorName);
+  if (name) name.textContent = creator.creatorName;
+  if (meta) meta.textContent = `${creator.primaryProjectTitle || 'Public project'} · ${creator.primaryProjectType || 'Project'}`;
+  if (copy) copy.textContent = `Start a direct creator-to-creator conversation with ${creator.creatorName} based on one of their public products.`;
+  if (input) input.value = '';
+  modal?.classList.remove('hidden');
+  input?.focus();
+}
+
 function closeCreatorComposer() {
   document.getElementById('creator-compose-modal')?.classList.add('hidden');
   creatorComposeTarget = null;
@@ -1075,7 +1209,10 @@ function showSection(section) {
   if (navEl) navEl.classList.add('active');
 
   if (section === 'activity') loadActivity();
-  if (section === 'community') renderCommunityProjects();
+  if (section === 'community') {
+    renderCommunityCreators();
+    renderCommunityProjects();
+  }
   if (section === 'messages') {
     renderConversations();
     if (!currentConversation) renderEmptyConversation();
@@ -1112,7 +1249,10 @@ function initForms() {
     max: 10
   });
 
-  document.getElementById('community-search-input')?.addEventListener('input', renderCommunityProjects);
+  document.getElementById('community-search-input')?.addEventListener('input', () => {
+    renderCommunityCreators();
+    renderCommunityProjects();
+  });
 }
 
 // ── SAVE PROFILE ─────────────────────────────────────────
@@ -1273,6 +1413,7 @@ async function logout() {
 
 // ── BOOT ─────────────────────────────────────────────────
 window.openCreatorComposer = openCreatorComposer;
+window.openCreatorConnection = openCreatorConnection;
 window.closeCreatorComposer = closeCreatorComposer;
 
 document.addEventListener('DOMContentLoaded', initStudent);

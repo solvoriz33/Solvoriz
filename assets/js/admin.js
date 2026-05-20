@@ -5,6 +5,7 @@
 let currentAdmin = null;
 let allUsers = [];
 let allProjects = [];
+let allFeedback = [];
 
 function isPendingRecruiter(user) {
   return user?.requested_role === 'recruiter' && user?.role !== 'recruiter';
@@ -17,7 +18,7 @@ async function initAdmin() {
   currentAdmin = result.profile;
   document.getElementById('admin-name').textContent = currentAdmin.full_name || 'Admin';
 
-  await Promise.all([loadStats(), loadUsers(), loadAllProjects(), loadModerationQueue()]);
+  await Promise.all([loadStats(), loadUsers(), loadAllProjects(), loadModerationQueue(), loadFeedbackInbox()]);
   showSection('overview');
 
   document.addEventListener('click', event => {
@@ -225,6 +226,41 @@ async function loadModerationQueue() {
   renderOverviewQueues(recruiters, queuedProjects, profiles);
 }
 
+async function loadFeedbackInbox() {
+  const { data, error } = await window.sb
+    .from('feedback')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.warn('Failed to load feedback inbox', error);
+    return;
+  }
+
+  const feedbackRows = data || [];
+  const userIds = [...new Set(feedbackRows.map(item => item.user_id).filter(Boolean))];
+  let usersById = {};
+
+  if (userIds.length) {
+    const { data: users, error: userError } = await window.sb
+      .from('users')
+      .select('id, full_name, email')
+      .in('id', userIds);
+    if (userError) {
+      console.warn('Failed to hydrate feedback senders', userError);
+    } else {
+      usersById = Object.fromEntries((users || []).map(user => [user.id, user]));
+    }
+  }
+
+  allFeedback = feedbackRows.map(item => ({
+    ...item,
+    user: item.user_id ? usersById[item.user_id] || null : null
+  }));
+  renderFeedbackInbox(allFeedback);
+}
+
 function renderOverviewQueues(recruiters, projects, profiles) {
   const approvals = document.getElementById('overview-approvals');
   const discoverability = document.getElementById('overview-discoverability');
@@ -388,6 +424,57 @@ function renderModerationReports(reports) {
       </div>
     `;
   }).join('');
+}
+
+function renderFeedbackInbox(items) {
+  const container = document.getElementById('feedback-inbox');
+  const empty = document.getElementById('feedback-inbox-empty');
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = '';
+    empty?.classList.remove('hidden');
+    return;
+  }
+
+  empty?.classList.add('hidden');
+  container.innerHTML = items.map(item => {
+    const senderName = item.user?.full_name || item.user?.email || 'Anonymous visitor';
+    return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:240px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <strong>${escHtml(senderName)}</strong>
+              <span class="role-badge role-badge--grey">${escHtml(item.type || 'Feedback')}</span>
+            </div>
+            <div class="muted">Submitted: ${fmtDateTime(item.created_at)}</div>
+            <div class="muted">Page: ${escHtml(item.page_path || 'Unknown')}</div>
+            ${item.user?.id ? `<div class="muted">User ID: ${escHtml(item.user.id)}</div>` : ''}
+            ${item.screenshot_url ? `<div class="muted" style="margin-top:6px">Screenshot: <a href="${escHtml(item.screenshot_url)}" target="_blank" rel="noopener">${escHtml(item.screenshot_url)}</a></div>` : ''}
+            <p style="margin-top:12px;white-space:pre-wrap">${escHtml(item.message || '')}</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${item.screenshot_url ? `<a class="btn btn--outline btn--sm" href="${escHtml(item.screenshot_url)}" target="_blank" rel="noopener">Open screenshot</a>` : ''}
+            <button class="btn btn--ghost btn--sm" onclick="copyFeedbackMessage(${item.id})">Copy text</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function copyFeedbackMessage(feedbackId) {
+  const item = allFeedback.find(entry => entry.id === feedbackId);
+  if (!item) return;
+
+  try {
+    await navigator.clipboard.writeText(item.message || '');
+    showToast('Feedback message copied.', 'success');
+  } catch (error) {
+    console.warn('Clipboard copy failed', error);
+    showToast('Could not copy feedback text.', 'error');
+  }
 }
 
 async function reviewReport(reportId, action) {
@@ -613,5 +700,7 @@ async function logout() {
   await Auth.signOut();
   window.location.href = '/index.html';
 }
+
+window.copyFeedbackMessage = copyFeedbackMessage;
 
 document.addEventListener('DOMContentLoaded', initAdmin);

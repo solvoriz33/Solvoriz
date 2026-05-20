@@ -2035,6 +2035,99 @@ AS $$
   OFFSET GREATEST(COALESCE(p_offset, 0), 0);
 $$;
 
+CREATE OR REPLACE FUNCTION public.list_creator_directory(p_limit integer DEFAULT 48, p_offset integer DEFAULT 0)
+RETURNS TABLE (
+  user_id uuid,
+  handle text,
+  creator_name text,
+  creator_headline text,
+  creator_location text,
+  creator_availability text,
+  creator_avatar text,
+  creator_discoverable boolean,
+  creator_featured boolean,
+  creator_review_status text,
+  creator_visibility text,
+  github_username text,
+  skills text[],
+  project_count integer,
+  project_titles text[],
+  primary_project_id uuid,
+  primary_project_title text,
+  primary_project_type text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH creator_rows AS (
+    SELECT
+      sp.user_id,
+      sp.handle,
+      COALESCE(u.full_name, 'Creator') AS creator_name,
+      COALESCE(sp.headline, '') AS creator_headline,
+      COALESCE(sp.location, '') AS creator_location,
+      COALESCE(sp.availability, '') AS creator_availability,
+      COALESCE(sp.avatar_url, '') AS creator_avatar,
+      COALESCE(sp.discoverable, false) AS creator_discoverable,
+      COALESCE(sp.featured, false) AS creator_featured,
+      COALESCE(sp.review_status, 'pending') AS creator_review_status,
+      COALESCE(sp.visibility, 'public') AS creator_visibility,
+      COALESCE(sp.github_username, '') AS github_username,
+      COALESCE(sp.skills, '{}'::text[]) AS skills,
+      COUNT(p.id)::integer AS project_count,
+      COALESCE(
+        ARRAY_AGG(p.title ORDER BY p.created_at DESC) FILTER (WHERE p.id IS NOT NULL),
+        '{}'::text[]
+      ) AS project_titles
+    FROM public.student_profiles sp
+    JOIN public.users u ON u.id = sp.user_id
+    LEFT JOIN public.projects p
+      ON p.user_id = sp.user_id
+     AND p.visible = true
+     AND COALESCE(p.review_status, 'active') <> 'flagged'
+    WHERE COALESCE(sp.visibility, 'public') = 'public'
+      AND COALESCE(sp.review_status, 'pending') <> 'flagged'
+    GROUP BY
+      sp.user_id, sp.handle, u.full_name, sp.headline, sp.location, sp.availability,
+      sp.avatar_url, sp.discoverable, sp.featured, sp.review_status, sp.visibility,
+      sp.github_username, sp.skills
+  )
+  SELECT
+    c.user_id,
+    c.handle,
+    c.creator_name,
+    c.creator_headline,
+    c.creator_location,
+    c.creator_availability,
+    c.creator_avatar,
+    c.creator_discoverable,
+    c.creator_featured,
+    c.creator_review_status,
+    c.creator_visibility,
+    c.github_username,
+    c.skills,
+    c.project_count,
+    c.project_titles,
+    latest.id AS primary_project_id,
+    latest.title AS primary_project_title,
+    latest.project_type AS primary_project_type
+  FROM creator_rows c
+  LEFT JOIN LATERAL (
+    SELECT p.id, p.title, p.project_type
+    FROM public.projects p
+    WHERE p.user_id = c.user_id
+      AND p.visible = true
+      AND COALESCE(p.review_status, 'active') <> 'flagged'
+    ORDER BY p.created_at DESC
+    LIMIT 1
+  ) latest ON true
+  ORDER BY c.creator_featured DESC, c.project_count DESC, c.creator_name ASC
+  LIMIT LEAST(GREATEST(COALESCE(p_limit, 48), 1), 100)
+  OFFSET GREATEST(COALESCE(p_offset, 0), 0);
+$$;
+
 CREATE OR REPLACE FUNCTION public.get_public_profile(p_handle text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -2441,7 +2534,49 @@ GRANT EXECUTE ON FUNCTION public.admin_suspend_user(uuid, timestamptz, text) TO 
 GRANT EXECUTE ON FUNCTION public.send_platform_notification(uuid, text, jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.list_discoverable_projects(integer, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.list_creator_projects(integer, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_creator_directory(integer, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_public_profile(text) TO authenticated, anon;
+
+CREATE TABLE IF NOT EXISTS public.feedback (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  type text NOT NULL CHECK (type IN ('Bug', 'Feature Request', 'Confusing UI', 'General Feedback')),
+  message text NOT NULL,
+  screenshot_url text,
+  page_path text,
+  created_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+GRANT INSERT ON public.feedback TO anon, authenticated;
+GRANT SELECT, UPDATE, DELETE ON public.feedback TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.feedback_id_seq TO anon, authenticated;
+
+DROP POLICY IF EXISTS "feedback_insert_public" ON public.feedback;
+CREATE POLICY "feedback_insert_public"
+  ON public.feedback FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (user_id IS NULL OR user_id = auth.uid());
+
+DROP POLICY IF EXISTS "feedback_select_own_or_admin" ON public.feedback;
+CREATE POLICY "feedback_select_own_or_admin"
+  ON public.feedback FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid() OR public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "feedback_admin_update" ON public.feedback;
+CREATE POLICY "feedback_admin_update"
+  ON public.feedback FOR UPDATE
+  TO authenticated
+  USING (public.get_my_role() = 'admin')
+  WITH CHECK (public.get_my_role() = 'admin');
+
+DROP POLICY IF EXISTS "feedback_admin_delete" ON public.feedback;
+CREATE POLICY "feedback_admin_delete"
+  ON public.feedback FOR DELETE
+  TO authenticated
+  USING (public.get_my_role() = 'admin');
 
 
 -- ============================================================

@@ -3,154 +3,336 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solvoriz — Where Student Builders Get Found</title>
-  <meta name="description" content="The proof-of-work hiring platform that connects student builders with recruiters who care about what you've shipped.">
+  <title>Solvoriz | Project-First Hiring for Student Builders and Recruiters</title>
+  <meta name="description" content="Solvoriz is a project-first builder network where student creators showcase GitHub repos, live demos, skills, and availability so recruiters can discover and message real builders through projects instead of resumes.">
+  <meta name="keywords" content="student builders, project-first hiring, GitHub portfolio, recruiter discovery, student creator community, live demos, builder network">
+  <meta property="og:title" content="Solvoriz | Project-First Hiring for Student Builders">
+  <meta property="og:description" content="Student creators share real projects, GitHub repos, live demos, and skills. Recruiters search, shortlist, and chat with builders through work instead of resumes.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://solvoriz.com/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Solvoriz | Project-First Hiring for Student Builders">
+  <meta name="twitter:description" content="A builder network for students and recruiters built around shipped projects, GitHub links, demos, and direct messaging.">
+  <link rel="canonical" href="https://solvoriz.com/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/style.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Solvoriz",
+    "url": "https://solvoriz.com/",
+    "description": "A project-first builder network for student creators and recruiters.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://solvoriz.com/recruiter.html",
+      "query-input": "required name=student builders"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is Solvoriz?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Solvoriz is a project-first builder network where student creators showcase real work, GitHub repos, live demos, skills, and availability so recruiters can discover and contact them through projects instead of resumes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Solvoriz free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Student accounts are free to use. Recruiter access may be beta, custom, or invite-based, and any future paid plans will show pricing and billing terms clearly before purchase."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do recruiters hire creators on Solvoriz?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Recruiters search by skills, projects, and availability, review live demos and GitHub links, shortlist strong builders, and start direct chats with creators inside the platform."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What makes Solvoriz different from a resume platform?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Solvoriz centers proof of work. Instead of relying on resumes alone, students are evaluated through shipped projects, code, demos, and active builder signals."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can users contact support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Users can contact support through the Support page or by emailing the listed support inbox. Billing and platform questions are routed through the same support channel."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
-
-<!-- NAV -->
-<nav class="landing-nav">
-  <a class="landing-logo" href="/index.html">
-    <span>Solvoriz</span><span class="dot">.</span>
-  </a>
-  <div class="nav-actions">
-    <a href="/auth.html?mode=login" class="btn btn--ghost">Log in</a>
-    <a href="/auth.html?mode=signup&role=student" class="btn btn--outline">Join as Student</a>
-    <a href="/auth.html?mode=signup&role=recruiter" class="btn btn--primary">Hire Talent →</a>
-  </div>
-</nav>
-
-<!-- HERO -->
-<section class="landing-hero animate-fade-up">
-  <div class="hero-badge">
-    <span class="hero-badge__dot"></span>
-    Proof-of-work hiring — no fluff resumes
-  </div>
-
-  <h1 class="hero-title">
-    Hire students who<br>
-    actually <span class="accent-text">build</span> things<span class="warm-text">.</span>
-  </h1>
-
-  <p class="hero-sub">
-    Solvoriz connects student builders with recruiters who value real projects over polished PDFs.
-    Show your work. Get noticed. Get hired.
-  </p>
-
-  <div class="hero-ctas">
-    <a href="/auth.html?mode=signup&role=student" class="btn btn--primary btn--lg">
-      🚀 Create your builder profile
+  <nav class="landing-nav">
+    <a class="landing-logo" href="/index.html" aria-label="Solvoriz home">
+      <span>Solvoriz</span><span class="dot">.</span>
     </a>
-    <a href="/auth.html?mode=signup&role=recruiter" class="btn btn--outline btn--lg">
-      Browse student talent →
-    </a>
-  </div>
+    <div class="landing-nav__links">
+      <a href="#for-builders">Builders</a>
+      <a href="#for-recruiters">Recruiters</a>
+      <a href="#community">Community</a>
+      <a href="#faq">FAQ</a>
+      <a href="/pricing.html">Pricing</a>
+      <a href="/support.html">Support</a>
+    </div>
+    <div class="nav-actions">
+      <a href="/auth.html?mode=login" class="btn btn--ghost">Log in</a>
+      <a href="/auth.html?mode=signup&role=student" class="btn btn--outline">Join as Student</a>
+      <a href="/auth.html?mode=signup&role=recruiter" class="btn btn--primary">Hire Talent</a>
+    </div>
+  </nav>
 
-  <div class="hero-social-proof">
-    <div class="avatar-stack">
-      <div class="avatar-stack__item">AK</div>
-      <div class="avatar-stack__item" style="background:#0e7a50">MR</div>
-      <div class="avatar-stack__item" style="background:#c97a00">SP</div>
-      <div class="avatar-stack__item" style="background:#c92f2f">LJ</div>
-    </div>
-    <span>Join 400+ students who've already shipped</span>
-  </div>
-</section>
-
-<!-- FEATURES -->
-<section class="landing-features">
-  <div class="features-header">
-    <h2>Built for builders, not resume spam</h2>
-    <p>Everything you need to get discovered — or discover the next great hire.</p>
-  </div>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-card__icon">⚡</div>
-      <div class="feature-card__title">Project-first profiles</div>
-      <div class="feature-card__desc">No resume templates. Show your GitHub repos, live demos, and what you actually built.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-card__icon">🔍</div>
-      <div class="feature-card__title">Skill-based discovery</div>
-      <div class="feature-card__desc">Recruiters search by tech stack — if you built with it, you'll be found.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-card__icon">🎯</div>
-      <div class="feature-card__title">Availability signals</div>
-      <div class="feature-card__desc">Set your status: actively looking, open to offers, or currently busy. No ghosting.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-card__icon">📍</div>
-      <div class="feature-card__title">Location-aware search</div>
-      <div class="feature-card__desc">Find remote-ready talent or hire in your city. Flexible by design.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-card__icon">🛡</div>
-      <div class="feature-card__title">Verified roles</div>
-      <div class="feature-card__desc">Students, recruiters, and admins each have secure, role-based access to the platform.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-card__icon">📬</div>
-      <div class="feature-card__title">Direct contact</div>
-      <div class="feature-card__desc">Recruiters contact students directly. No middleman. No paywalls. Just talent.</div>
-    </div>
-  </div>
-</section>
-
-<!-- ROLES -->
-<section class="landing-roles">
-  <h2 class="roles-title">Pick your side of the table</h2>
-  <div class="roles-grid">
-    <div class="role-card role-card--student">
-      <div class="role-card__header">
-        <span class="role-card__icon">🎓</span>
-        <span class="role-card__title">For Students</span>
+  <main>
+    <section class="landing-hero animate-fade-up">
+      <div class="hero-badge">
+        <span class="hero-badge__dot"></span>
+        Project-first hiring for student builders
       </div>
-      <p class="role-card__desc">
-        Your GitHub is your resume. Add your projects, list your skills, and get found by recruiters who care about what you've actually shipped.
+
+      <h1 class="hero-title">
+        Solvoriz helps student creators get discovered through
+        <span class="accent-text">projects</span>, GitHub, and proof of work<span class="warm-text">.</span>
+      </h1>
+
+      <p class="hero-sub hero-sub--wide">
+        Solvoriz is a project-first builder network where student creators showcase real work, collaborate with other builders, and connect with recruiters through projects instead of resumes.
       </p>
-      <ul class="role-card__features">
-        <li>Builder profile with live project links</li>
-        <li>Skill tags recruiters actually search</li>
-        <li>Availability status you control</li>
-        <li>100% free — always</li>
-      </ul>
-      <a href="/auth.html?mode=signup&role=student" class="btn btn--primary">Create builder profile →</a>
-    </div>
-    <div class="role-card role-card--recruiter">
-      <div class="role-card__header">
-        <span class="role-card__icon">🏢</span>
-        <span class="role-card__title">For Recruiters</span>
+
+      <div class="hero-ctas">
+        <a href="/auth.html?mode=signup&role=student" class="btn btn--primary btn--lg">Create your builder profile</a>
+        <a href="/auth.html?mode=signup&role=recruiter" class="btn btn--outline btn--lg">Browse student talent</a>
       </div>
-      <p class="role-card__desc">
-        Skip the cover letters. Browse students who've actually built things with the tech your team uses. Filter, shortlist, and reach out directly.
-      </p>
-      <ul class="role-card__features">
-        <li>Search by skills, location, availability</li>
-        <li>View full project portfolios</li>
-        <li>Shortlist your top candidates</li>
-        <li>Direct email contact</li>
-      </ul>
-      <a href="/auth.html?mode=signup&role=recruiter" class="btn btn--outline">Find talent →</a>
+
+      <div class="hero-highlights" aria-label="How Solvoriz works">
+        <article class="hero-highlight">
+          <strong>1. Builders show real work</strong>
+          <span>Publish project portfolios with live demos, GitHub links, skill tags, and availability status.</span>
+        </article>
+        <article class="hero-highlight">
+          <strong>2. Recruiters search by proof</strong>
+          <span>Find student builders by stack, project type, and readiness instead of filtering resumes alone.</span>
+        </article>
+        <article class="hero-highlight">
+          <strong>3. Conversations happen directly</strong>
+          <span>Shortlist creators, send messages, and start meaningful hiring conversations inside the platform.</span>
+        </article>
+      </div>
+
+      <div class="hero-social-proof">
+        <div class="avatar-stack" aria-hidden="true">
+          <div class="avatar-stack__item">AK</div>
+          <div class="avatar-stack__item" style="background:#0e7a50">MR</div>
+          <div class="avatar-stack__item" style="background:#c97a00">SP</div>
+          <div class="avatar-stack__item" style="background:#c92f2f">LJ</div>
+        </div>
+        <span>Built for student builders, creator communities, and recruiters who want signal over resume polish.</span>
+      </div>
+    </section>
+
+    <section class="landing-band" aria-labelledby="how-solvoriz-works">
+      <div class="landing-band__inner">
+        <div class="section-kicker">How it works</div>
+        <h2 id="how-solvoriz-works" class="section-title">A clearer path from shipped work to real opportunities</h2>
+        <p class="section-copy">Solvoriz gives student creators one place to present projects, code, demos, skills, and collaboration activity, while giving recruiters a cleaner way to discover talent through actual output.</p>
+        <div class="pill-row">
+          <span class="pill-chip">Project portfolios</span>
+          <span class="pill-chip">Live demos</span>
+          <span class="pill-chip">GitHub repos</span>
+          <span class="pill-chip">Skill tags</span>
+          <span class="pill-chip">Availability status</span>
+          <span class="pill-chip">Recruiter messaging</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-features" id="for-builders" aria-labelledby="builders-heading">
+      <div class="features-header">
+        <div class="section-kicker">For builders</div>
+        <h2 id="builders-heading">Show what you build, not just what you list on a resume</h2>
+        <p>Student creators can present their work in a format that is easier for recruiters, collaborators, and AI systems to understand.</p>
+      </div>
+      <div class="features-grid">
+        <article class="feature-card">
+          <div class="feature-card__icon">Portfolio</div>
+          <div class="feature-card__title">Project-first portfolios</div>
+          <div class="feature-card__desc">Create a builder profile centered on shipped work, project summaries, and the context behind what you built.</div>
+        </article>
+        <article class="feature-card">
+          <div class="feature-card__icon">Demo</div>
+          <div class="feature-card__title">Live demos and GitHub links</div>
+          <div class="feature-card__desc">Attach demos, repositories, and project types so recruiters can inspect the work directly instead of relying on a PDF resume.</div>
+        </article>
+        <article class="feature-card">
+          <div class="feature-card__icon">Skills</div>
+          <div class="feature-card__title">Skill tags that match discovery</div>
+          <div class="feature-card__desc">Add stack-specific tags so the right recruiters and builder collaborators can find you by the tools you actually use.</div>
+        </article>
+        <article class="feature-card">
+          <div class="feature-card__icon">Status</div>
+          <div class="feature-card__title">Availability status</div>
+          <div class="feature-card__desc">Signal whether you are actively looking, open to opportunities, or currently focused on ongoing work.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-roles" id="for-recruiters" aria-labelledby="recruiters-heading">
+      <div class="features-header">
+        <div class="section-kicker">For recruiters</div>
+        <h2 id="recruiters-heading">Discover student builders through projects, not resume formatting</h2>
+        <p>Recruiters get a cleaner evaluation surface with portfolios, code links, demos, shortlisting, and direct creator chat.</p>
+      </div>
+      <div class="roles-grid">
+        <article class="role-card role-card--student">
+          <div class="role-card__header">
+            <span class="role-card__icon">Search</span>
+            <span class="role-card__title">Recruiter discovery tools</span>
+          </div>
+          <p class="role-card__desc">Search builder profiles by skills, project focus, location context, and availability to identify creators who match the work your team needs.</p>
+          <ul class="role-card__features">
+            <li>Search builders by stack and profile signals</li>
+            <li>Review project portfolios with demo and GitHub links</li>
+            <li>See what students have actually shipped</li>
+          </ul>
+        </article>
+        <article class="role-card role-card--recruiter">
+          <div class="role-card__header">
+            <span class="role-card__icon">Chat</span>
+            <span class="role-card__title">Shortlist and message</span>
+          </div>
+          <p class="role-card__desc">Save promising creators, keep track of top candidates, and reach out directly when a project or profile stands out.</p>
+          <ul class="role-card__features">
+            <li>Shortlist builders for faster follow-up</li>
+            <li>Start direct chats inside the platform</li>
+            <li>Keep communication tied to real work and context</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-grid-section" id="community" aria-labelledby="community-heading">
+      <div class="landing-grid-section__intro">
+        <div class="section-kicker">Community and trust</div>
+        <h2 id="community-heading" class="section-title">A builder network, not just a talent database</h2>
+        <p class="section-copy">Solvoriz combines hiring discovery with creator discussions and moderation systems so students can connect with each other and recruiters in a safer, more useful environment.</p>
+      </div>
+      <div class="info-grid">
+        <article class="info-panel">
+          <h3>Community features</h3>
+          <p>Creators can discuss projects, ask technical questions, share feedback, and build relationships with other student builders.</p>
+          <ul class="info-list">
+            <li>Creator-to-creator discussions</li>
+            <li>Project conversations and feedback</li>
+            <li>Collaboration-friendly builder network</li>
+          </ul>
+        </article>
+        <article class="info-panel">
+          <h3>Trust and safety</h3>
+          <p>Moderation tools help keep hiring and community conversations professional, relevant, and easier to manage.</p>
+          <ul class="info-list">
+            <li>Block and report user flows</li>
+            <li>Guideline acceptance and moderation systems</li>
+            <li>Safer direct messaging for creators and recruiters</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-band landing-band--soft" aria-labelledby="pricing-clarity-heading">
+      <div class="landing-band__inner landing-band__inner--split">
+        <div>
+          <div class="section-kicker">Pricing clarity</div>
+          <h2 id="pricing-clarity-heading" class="section-title">Free for students. Clear terms for recruiter access.</h2>
+          <p class="section-copy">Student builders use Solvoriz for free. Recruiter pricing can be beta, custom, or invite-based during early rollout, and any future billing terms will be displayed clearly before payment.</p>
+        </div>
+        <div class="band-actions">
+          <a href="/pricing.html" class="btn btn--primary">View pricing</a>
+          <a href="/refund-policy.html" class="btn btn--outline">Refund policy</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-faq" id="faq" aria-labelledby="faq-heading">
+      <div class="features-header">
+        <div class="section-kicker">FAQ</div>
+        <h2 id="faq-heading">Common questions about Solvoriz</h2>
+        <p>Clear answers for builders, recruiters, and anyone evaluating how the platform works.</p>
+      </div>
+      <div class="faq-list">
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What is Solvoriz?</button>
+          <div class="faq-answer hidden">Solvoriz is a project-first builder network where student creators showcase real work, GitHub repos, live demos, skills, and availability so recruiters can find and contact them through projects instead of resumes.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">Is Solvoriz free?</button>
+          <div class="faq-answer hidden">Student accounts are free. Recruiter access may be custom, beta, or invite-based during early rollout, and paid terms will be shown clearly if billing is introduced.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">How do recruiters hire creators on Solvoriz?</button>
+          <div class="faq-answer hidden">Recruiters search student builders by skills, project portfolios, availability, and other profile signals, then shortlist strong matches and start direct chats inside the platform.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What makes Solvoriz different?</button>
+          <div class="faq-answer hidden">Solvoriz focuses on proof of work. Instead of evaluating students only through resumes, recruiters can review what they have built, shipped, and linked through demos and GitHub.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">How does project-first hiring work?</button>
+          <div class="faq-answer hidden">Students create profiles around projects, skills, demos, and repositories. Recruiters evaluate that evidence directly, which creates a hiring flow based on real output rather than resume wording alone.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">How can users contact support?</button>
+          <div class="faq-answer hidden">Support details are available on the Support page, including contact categories, expected response times, and a support email placeholder for platform and billing questions.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">Are there paid plans?</button>
+          <div class="faq-answer hidden">Students use Solvoriz for free. Recruiter pricing may be custom or invite-based during beta, and any future paid plan will display pricing and billing terms up front.</div>
+        </article>
+        <article class="faq-item">
+          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What are the refund terms?</button>
+          <div class="faq-answer hidden">There are currently no student fees. If paid recruiter plans are introduced, cancellation timing, billing terms, and refund handling will be stated clearly, and billing issues can be routed through support.</div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="landing-footer">
+    <div>
+      <strong>Solvoriz</strong>
+      <div>Project-first hiring and builder collaboration for student creators.</div>
     </div>
-  </div>
-</section>
+    <div class="footer-links">
+      <a href="/pricing.html">Pricing</a>
+      <a href="/support.html">Support</a>
+      <a href="/refund-policy.html">Refund Policy</a>
+      <a href="/auth.html?mode=login">Log in</a>
+      <a href="/auth.html?mode=signup&role=student">Sign up</a>
+    </div>
+  </footer>
 
-<!-- FOOTER -->
-<footer class="landing-footer">
-  <span>© 2025 Solvoriz. Built for builders.</span>
-  <div style="display:flex;gap:20px">
-    <a href="/auth.html?mode=login" style="color:var(--ink-3)">Log in</a>
-    <a href="/auth.html?mode=signup&role=student" style="color:var(--ink-3)">Sign up</a>
-  </div>
-</footer>
+  <div id="toast-container"></div>
 
-<!-- TOAST -->
-<div id="toast-container"></div>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase.js"></script>
+  <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/marketing.js"></script>
 </body>
 </html>
