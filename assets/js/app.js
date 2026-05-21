@@ -74,10 +74,10 @@ function setBtnLoading(btn, loading, label = '') {
 
 async function createNotification(userId, type, payload = {}) {
   if (!userId) return;
-  const { error } = await window.sb.from('notifications').insert({
-    user_id: userId,
-    type,
-    payload: { ...payload, delivered: false }
+  const { error } = await window.sb.rpc('send_platform_notification', {
+    p_target_user_id: userId,
+    p_type: type,
+    p_payload: { ...payload, delivered: false }
   });
   if (error) {
     console.warn('Notification insert failed', error);
@@ -188,6 +188,13 @@ async function requireAuth(expectedRole, redirectTo = '/auth.html') {
   if (!profile) {
     // Profile row missing (e.g. email not yet confirmed or DB insert failed).
     // Sign out and send to auth so they can try again.
+    await Auth.signOut();
+    window.location.href = redirectTo;
+    return null;
+  }
+
+  if (profile.suspended_until && new Date(profile.suspended_until) > new Date()) {
+    showToast('This account is currently suspended.', 'error');
     await Auth.signOut();
     window.location.href = redirectTo;
     return null;

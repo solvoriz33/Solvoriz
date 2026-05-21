@@ -24,7 +24,7 @@ const Auth = (() => {
         email,
         password,
         options: {
-          data: { full_name: fullName, role }
+          data: { full_name: fullName, requested_role: role || 'student' }
         }
       });
       if (error) throw formatAuthError(error);
@@ -45,7 +45,7 @@ const Auth = (() => {
           id: user.id,
           full_name: fullName,
           email,
-          role
+          requested_role: role === 'recruiter' ? 'recruiter' : 'student'
         });
         // Ignore duplicate-key errors (user already exists)
         if (dbErr && dbErr.code !== '23505') throw dbErr;
@@ -110,6 +110,7 @@ const Auth = (() => {
   async function createUserProfileFromSession(user) {
     if (!window.sb || !user) return null;
     const role = user.user_metadata?.role || 'student';
+    const requested_role = user.user_metadata?.requested_role || role || 'student';
     const full_name = user.user_metadata?.full_name || user.email?.split('@')[0] || '';
     const email = user.email || '';
     if (!user.id || !email) return null;
@@ -118,7 +119,7 @@ const Auth = (() => {
       id: user.id,
       full_name,
       email,
-      role
+      requested_role: requested_role === 'recruiter' ? 'recruiter' : 'student'
     }).select().maybeSingle();
 
     if (error) {

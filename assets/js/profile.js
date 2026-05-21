@@ -10,19 +10,12 @@ async function initPublicProfile() {
     return;
   }
 
-  const { data, error } = await window.sb
-    .from('student_profiles')
-    .select(`*, users:user_id(id, full_name, email), projects:user_id(*)`)
-    .eq('handle', handle)
-    .single();
+  const { data, error } = await window.sb.rpc('get_public_profile', {
+    p_handle: handle
+  });
 
   if (error || !data) {
     renderNotFound('Profile not found or not visible.');
-    return;
-  }
-
-  if (data.visibility === 'hidden' || !data.discoverable || data.review_status === 'flagged') {
-    renderNotFound('This profile is not currently public.');
     return;
   }
 
@@ -45,7 +38,7 @@ function renderNotFound(message) {
 function renderProfile(profile) {
   const card = document.getElementById('profile-card');
   if (!card) return;
-  const name = profile.users?.full_name || 'Builder';
+  const name = profile.full_name || 'Builder';
   const skills = (profile.skills || []).map(s => `<span class="skill-chip">${escHtml(s)}</span>`).join('');
   const visibleProjects = (profile.projects || [])
     .filter(project => project.visible && project.review_status !== 'flagged')
