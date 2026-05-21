@@ -21,6 +21,8 @@ let conversationRefreshTimer = null;
 let creatorComposeTarget = null;
 let studentRealtimeChannel = null;
 let studentThreadChannel = null;
+let filterCommunitySkills = [];      // for server-side skills filtering
+let communitySearchTimer = null;     // debounce timer
 
 const COMMUNITY_PAGE_SIZE = 24;
 const CONVERSATION_PAGE_SIZE = 25;
@@ -60,7 +62,6 @@ async function initStudent() {
   await Promise.all([loadProjects(), loadCommunityProjects(), loadCommunityCreators(), loadNotifications(), loadActivity(), loadConversations()]);
   setupMessagingComposer();
   startRealtimeSync();
-  // Set overview name reliably (not via setTimeout in HTML)
   const ovName = document.getElementById('overview-name');
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
   showSection('overview');
@@ -113,18 +114,45 @@ async function acceptStudentPolicy() {
 }
 
 // ── LOAD STUDENT PROFILE ─────────────────────────────────
+// FIX: uses maybeSingle() instead of single(), and upserts a
+// blank row when none exists so saves never silently fail.
 async function loadStudentProfile() {
   const { data, error } = await window.sb
     .from('student_profiles')
     .select('*')
     .eq('user_id', currentUser.id)
-    .single();
+    .maybeSingle();
 
-  if (data) {
-    currentProfile = { ...currentProfile, ...data };
-    populateProfileForm(data);
-    updateOverviewCard(data);
+  if (error) {
+    console.warn('Failed to load student profile', error);
+    return;
   }
+
+  if (!data) {
+    // No profile row yet — create one so subsequent saves work.
+    const { error: insertError } = await window.sb
+      .from('student_profiles')
+      .insert({ user_id: currentUser.id });
+    if (insertError && insertError.code !== '23505') {
+      console.warn('Failed to create profile row', insertError);
+    }
+    // Re-fetch after insert
+    const { data: fresh } = await window.sb
+      .from('student_profiles')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+    if (fresh) {
+      currentProfile = { ...currentProfile, ...fresh };
+      populateProfileForm(fresh);
+      updateOverviewCard(fresh);
+    }
+    return;
+  }
+
+  currentProfile = { ...currentProfile, ...data };
+  populateProfileForm(data);
+  updateOverviewCard(data);
 }
 
 function populateProfileForm(profile) {
@@ -148,7 +176,7 @@ function populateProfileForm(profile) {
   // Populate skills
   profileSkills.length = 0;
   document.getElementById('profile-skills-wrap')
-    .querySelectorAll('.skill-tag').forEach(t => t.remove());
+    ?.querySelectorAll('.skill-tag').forEach(t => t.remove());
 
   if (profile.skills?.length) {
     profile.skills.forEach(s => profileSkillsInput?.addSkillTag(s));
@@ -228,6 +256,7 @@ function updateProfilePrompt(profile, score = calculateProfileScore(profile)) {
   prompt.style.background = 'linear-gradient(135deg, rgba(24,71,248,.08) 0%, rgba(24,71,248,.04) 100%)';
 }
 
+// FIX: uses upsert so it works even when no profile row exists yet
 async function syncDiscoverability() {
   const score = calculateProfileScore(currentProfile || {});
   const visibleProjectCount = myProjects.filter(project => project.visible).length;
@@ -238,8 +267,7 @@ async function syncDiscoverability() {
   if (!currentUser?.id) return;
   const { error } = await window.sb
     .from('student_profiles')
-    .update({ discoverable })
-    .eq('user_id', currentUser.id);
+    .upsert({ user_id: currentUser.id, discoverable }, { onConflict: 'user_id' });
 
   if (error) {
     console.warn('Failed to sync discoverability', error);
@@ -290,6 +318,7 @@ async function loadNotifications() {
   renderNotifications();
 }
 
+// ── COMMUNITY: LOAD PROJECTS ──────────────────────────────
 async function loadCommunityProjects() {
   const { data, error } = await window.sb.rpc('list_creator_projects', {
     p_limit: COMMUNITY_PAGE_SIZE,
@@ -313,7 +342,6 @@ async function loadCommunityProjects() {
     github_link: project.github_link || '',
     created_at: project.created_at,
     creatorName: project.creator_name || 'Creator',
-    creatorEmail: '',
     creatorHeadline: project.creator_headline || '',
     creatorLocation: project.creator_location || '',
     creatorAvailability: project.creator_availability || '',
@@ -322,15 +350,25 @@ async function loadCommunityProjects() {
     creatorDiscoverable: Boolean(project.creator_discoverable),
     creatorReviewStatus: project.creator_review_status || 'pending',
     creatorVisibility: project.creator_visibility || 'public'
-  })).filter(project => project.userId !== currentUser.id && project.creatorVisibility === 'public' && project.creatorReviewStatus !== 'flagged');
+  })).filter(project =>
+    project.userId !== currentUser.id &&
+    project.creatorVisibility === 'public' &&
+    project.creatorReviewStatus !== 'flagged'
+  );
 
   renderCommunityProjects();
 }
 
-async function loadCommunityCreators() {
+// ── COMMUNITY: LOAD CREATORS (server-side search) ─────────
+// FIX: now passes p_search, p_skills, p_availability to the DB
+// instead of loading everything and filtering client-side.
+async function loadCommunityCreators(searchQuery = '', availFilter = '') {
   const { data, error } = await window.sb.rpc('list_creator_directory', {
     p_limit: COMMUNITY_PAGE_SIZE * 2,
-    p_offset: 0
+    p_offset: 0,
+    p_search: searchQuery || null,
+    p_skills: filterCommunitySkills.length ? filterCommunitySkills : null,
+    p_availability: availFilter || null
   });
 
   if (error) {
@@ -357,24 +395,29 @@ async function loadCommunityCreators() {
     primaryProjectId: creator.primary_project_id || null,
     primaryProjectTitle: creator.primary_project_title || '',
     primaryProjectType: creator.primary_project_type || 'Project'
-  })).filter(creator => creator.userId !== currentUser.id && creator.creatorVisibility === 'public' && creator.creatorReviewStatus !== 'flagged');
+  })).filter(creator =>
+    creator.userId !== currentUser.id &&
+    creator.creatorVisibility === 'public' &&
+    creator.creatorReviewStatus !== 'flagged'
+  );
 
   renderCommunityCreators();
 }
 
+// ── COMMUNITY: RENDER PROJECTS ────────────────────────────
 function renderCommunityProjects() {
   const grid = document.getElementById('community-grid');
   const empty = document.getElementById('community-empty');
   if (!grid) return;
 
+  // Projects still filter client-side (small set, fast)
   const q = getCommunityQuery();
   const filtered = communityProjects.filter(project => {
     if (!q) return true;
     return project.title.toLowerCase().includes(q)
       || project.creatorName.toLowerCase().includes(q)
       || project.description.toLowerCase().includes(q)
-      || project.tech_stack.some(skill => skill.toLowerCase().includes(q))
-      || String(project.userId || '').toLowerCase().includes(q);
+      || project.tech_stack.some(skill => skill.toLowerCase().includes(q));
   });
 
   if (!filtered.length) {
@@ -414,30 +457,21 @@ function renderCommunityProjects() {
   `).join('');
 }
 
+// ── COMMUNITY: RENDER CREATORS ────────────────────────────
 function renderCommunityCreators() {
   const grid = document.getElementById('creator-directory-grid');
   const empty = document.getElementById('creator-directory-empty');
   if (!grid) return;
 
-  const q = getCommunityQuery();
-  const filtered = communityCreators.filter(creator => {
-    if (!q) return true;
-    return creator.creatorName.toLowerCase().includes(q)
-      || creator.creatorHeadline.toLowerCase().includes(q)
-      || creator.handle.toLowerCase().includes(q)
-      || String(creator.userId || '').toLowerCase().includes(q)
-      || creator.skills.some(skill => skill.toLowerCase().includes(q))
-      || creator.projectTitles.some(title => title.toLowerCase().includes(q));
-  });
-
-  if (!filtered.length) {
+  // Creators are already filtered server-side; just render what came back.
+  if (!communityCreators.length) {
     grid.innerHTML = '';
     empty?.classList.remove('hidden');
     return;
   }
 
   empty?.classList.add('hidden');
-  grid.innerHTML = filtered.map(creator => `
+  grid.innerHTML = communityCreators.map(creator => `
     <div class="student-card animate-fade-up" style="cursor:default">
       <div class="student-card__top">
         <div class="student-avatar">${getThreadInitials(creator.creatorName)}</div>
@@ -451,11 +485,10 @@ function renderCommunityCreators() {
           </div>
         </div>
       </div>
-      <p class="student-card__summary">${escHtml(creator.creatorHeadline || 'Browse this creator through skills, products, and project context.')}</p>
+      <p class="student-card__summary">${escHtml(creator.creatorHeadline || 'Browse this creator through skills, projects, and availability.')}</p>
       <div class="skill-chips-row skill-chips-row--sm" style="margin:8px 0 10px">
         ${(creator.skills || []).slice(0, 5).map(skill => `<span class="skill-chip skill-chip--sm">${escHtml(skill)}</span>`).join('')}
       </div>
-      <div class="muted">User ID: ${escHtml(String(creator.userId).slice(0, 8))}${String(creator.userId).length > 8 ? '...' : ''}</div>
       <div class="muted">${creator.projectCount} public project${creator.projectCount === 1 ? '' : 's'}${creator.primaryProjectTitle ? ` · Latest: ${escHtml(creator.primaryProjectTitle)}` : ''}</div>
       <div class="student-card__footer">
         ${creator.creatorLocation ? `<span class="muted">${escHtml(creator.creatorLocation)}</span>` : '<span class="muted">Location not shared</span>'}
@@ -475,6 +508,8 @@ function renderCommunityCreators() {
 function getCommunityQuery() {
   return document.getElementById('community-search-input')?.value.trim().toLowerCase() || '';
 }
+
+// ── CONVERSATIONS ─────────────────────────────────────────
 async function loadConversations() {
   const { data, error } = await window.sb
     .from('conversations')
@@ -601,7 +636,6 @@ async function openConversation(convId) {
     badge.className = 'thread-status-badge thread-status-badge--ok';
   }
   renderStudentChatActions(conv);
-  // render interview UI (if any)
   renderStudentInterviewUI(conv);
   subscribeToStudentThread(conv);
   await loadConversationMessages(convId);
@@ -611,10 +645,7 @@ async function openConversation(convId) {
 function renderStudentChatActions(conv) {
   const container = document.getElementById('chat-actions-top');
   if (!container) return;
-  if (!conv) {
-    container.innerHTML = '';
-    return;
-  }
+  if (!conv) { container.innerHTML = ''; return; }
 
   let partnerId = null;
   if (conv.threadType === 'creator') {
@@ -640,7 +671,6 @@ async function renderStudentInterviewUI(conv) {
   const container = document.getElementById('chat-actions-top');
   if (!container || !conv) return;
   const interview = await loadInterviewForStudent(conv.id);
-  // keep existing actions and append interview UI
   let extra = '';
   if (!interview) {
     extra = `<span style="margin-left:8px" class="muted">No interview requested</span>`;
@@ -713,7 +743,8 @@ async function studentBlockConversationPartner(blockedUserId) {
   if (error) { showToast('Failed to block user: ' + error.message, 'error'); return; }
   showToast('User blocked.', 'warn');
   await loadConversations();
-  document.getElementById('chat-actions-top').innerHTML = '';
+  const container = document.getElementById('chat-actions-top');
+  if (container) container.innerHTML = '';
 }
 
 async function loadConversationMessages(convId) {
@@ -730,11 +761,10 @@ async function loadConversationMessages(convId) {
     const argName = conv.threadType === 'creator' ? 'p_creator_conversation_id' : 'p_conversation_id';
     const { error: readError } = await window.sb.rpc(rpcName, { [argName]: convId });
     if (readError) console.warn('Failed to mark thread as read', readError);
-    ordered.forEach(m => {
-      if (unreadIncoming.includes(m.id)) m.read = true;
-    });
+    ordered.forEach(m => { if (unreadIncoming.includes(m.id)) m.read = true; });
   }
   const pane = document.getElementById('chat-messages');
+  if (!pane) return;
   if (!ordered.length) {
     pane.innerHTML = '<div class="chat-empty">No messages in this thread yet.</div>';
     return;
@@ -762,7 +792,7 @@ async function sendStudentMessage() {
   if (!input || !input.value.trim() || !currentConversation) return;
   const conv = myMessages.find(c => c.id === currentConversation);
   if (!conv) return;
-  const body = input.value.trim().slice(0,1000);
+  const body = input.value.trim().slice(0, 1000);
   const sendBtn = document.getElementById('chat-send-btn');
   setBtnLoading(sendBtn, true, 'Sending...');
   const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
@@ -785,16 +815,10 @@ function setupMessagingComposer() {
   if (creatorComposeBtn) creatorComposeBtn.onclick = sendCreatorComposeMessage;
   if (!input) return;
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendStudentMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendStudentMessage(); }
   });
   creatorComposeInput?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendCreatorComposeMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCreatorComposeMessage(); }
   });
 }
 
@@ -805,10 +829,7 @@ function renderEmptyConversation() {
   const badge = document.getElementById('chat-trust-badge');
   if (title) title.textContent = 'Select a thread';
   if (meta) meta.textContent = 'Recruiter outreach and creator discussions stay private inside Solvoriz.';
-  if (badge) {
-    badge.textContent = 'Protected inbox';
-    badge.className = 'thread-status-badge thread-status-badge--ok';
-  }
+  if (badge) { badge.textContent = 'Protected inbox'; badge.className = 'thread-status-badge thread-status-badge--ok'; }
   if (pane) {
     pane.innerHTML = `
       <div class="chat-empty">
@@ -829,10 +850,7 @@ function getThreadStatus(conversation) {
 
 function subscribeToStudentThread(conversation) {
   if (!window.sb || !conversation?.id) return;
-  if (studentThreadChannel) {
-    studentThreadChannel.unsubscribe();
-    studentThreadChannel = null;
-  }
+  if (studentThreadChannel) { studentThreadChannel.unsubscribe(); studentThreadChannel = null; }
 
   const table = conversation.threadType === 'creator' ? 'creator_messages' : 'messages';
   const key = conversation.threadType === 'creator' ? 'creator_conversation_id' : 'conversation_id';
@@ -848,6 +866,7 @@ function subscribeToStudentThread(conversation) {
     .subscribe();
 }
 
+// ── CREATOR COMPOSE MODAL ─────────────────────────────────
 function openCreatorComposer(projectId) {
   const project = communityProjects.find(item => item.id === projectId);
   if (!project) return;
@@ -894,7 +913,7 @@ function openCreatorConnection(userId) {
   if (avatar) avatar.textContent = getThreadInitials(creator.creatorName);
   if (name) name.textContent = creator.creatorName;
   if (meta) meta.textContent = `${creator.primaryProjectTitle || 'Public project'} · ${creator.primaryProjectType || 'Project'}`;
-  if (copy) copy.textContent = `Start a direct creator-to-creator conversation with ${creator.creatorName} based on one of their public products.`;
+  if (copy) copy.textContent = `Start a direct creator-to-creator conversation with ${creator.creatorName} based on one of their public projects.`;
   if (input) input.value = '';
   modal?.classList.remove('hidden');
   input?.focus();
@@ -915,10 +934,7 @@ async function sendCreatorComposeMessage() {
   setBtnLoading(sendBtn, true, 'Sending...');
 
   const conversation = await ensureCreatorConversation(creatorComposeTarget.userId, creatorComposeTarget.id);
-  if (!conversation) {
-    setBtnLoading(sendBtn, false);
-    return;
-  }
+  if (!conversation) { setBtnLoading(sendBtn, false); return; }
 
   const { error } = await window.sb.from('creator_messages').insert({
     creator_conversation_id: conversation.id,
@@ -927,10 +943,7 @@ async function sendCreatorComposeMessage() {
   });
 
   setBtnLoading(sendBtn, false);
-  if (error) {
-    showToast(`Failed to send: ${error.message}`, 'error');
-    return;
-  }
+  if (error) { showToast(`Failed to send: ${error.message}`, 'error'); return; }
 
   await createNotification(creatorComposeTarget.userId, 'creator_discussion', {
     creator_id: currentUser.id,
@@ -964,10 +977,7 @@ async function ensureCreatorConversation(otherCreatorId, projectId) {
     .eq('project_id', projectId)
     .limit(1);
 
-  if (existingError) {
-    showToast(`Failed to open creator discussion: ${existingError.message}`, 'error');
-    return null;
-  }
+  if (existingError) { showToast(`Failed to open creator discussion: ${existingError.message}`, 'error'); return null; }
   if (existing?.length) return existing[0];
 
   const { data: created, error: createError } = await window.sb
@@ -981,50 +991,36 @@ async function ensureCreatorConversation(otherCreatorId, projectId) {
     .select()
     .single();
 
-  if (createError) {
-    showToast(`Failed to start creator discussion: ${createError.message}`, 'error');
-    return null;
-  }
-
+  if (createError) { showToast(`Failed to start creator discussion: ${createError.message}`, 'error'); return null; }
   return created;
 }
 
-function getThreadInitials(name) {
-  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-}
-
+// ── REALTIME ──────────────────────────────────────────────
 function startConversationRefresh() {
   stopConversationRefresh();
 }
 
 function stopConversationRefresh() {
-  if (studentThreadChannel) {
-    studentThreadChannel.unsubscribe();
-    studentThreadChannel = null;
-  }
-  if (conversationRefreshTimer) {
-    window.clearInterval(conversationRefreshTimer);
-    conversationRefreshTimer = null;
-  }
+  if (studentThreadChannel) { studentThreadChannel.unsubscribe(); studentThreadChannel = null; }
+  if (conversationRefreshTimer) { window.clearInterval(conversationRefreshTimer); conversationRefreshTimer = null; }
 }
 
 function startRealtimeSync() {
   if (!window.sb || !currentUser?.id || studentRealtimeChannel) return;
   studentRealtimeChannel = window.sb
     .channel(`student-live-${currentUser.id}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => loadConversations(true))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => loadConversations())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => loadConversations())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
     .subscribe();
 }
 
+// ── ACTIVITY ──────────────────────────────────────────────
 async function loadActivity() {
   const { data, error } = await window.sb
     .from('activity_log')
-    .select(`*, 
-      actor:actor_id (id, full_name, email, student_profiles(headline, location))
-    `)
+    .select(`*, actor:actor_id (id, full_name, email, student_profiles(headline, location))`)
     .eq('target_user_id', currentUser.id)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -1037,13 +1033,13 @@ function renderActivity() {
   const list = document.getElementById('activity-list');
   const empty = document.getElementById('activity-empty');
   if (!list) return;
-  
+
   if (!myActivity.length) {
     list.innerHTML = '';
-    empty.classList.remove('hidden');
+    if (empty) empty.classList.remove('hidden');
     return;
   }
-  empty.classList.add('hidden');
+  if (empty) empty.classList.add('hidden');
 
   list.innerHTML = myActivity.map(act => {
     let icon, title, desc;
@@ -1051,27 +1047,11 @@ function renderActivity() {
     const actorName = actor?.full_name || actor?.email || 'Someone';
     const actorHeadline = actor?.student_profiles?.[0]?.headline || '';
 
-    if (act.action_type === 'profile_view') {
-      icon = '👀';
-      title = 'Profile viewed';
-      desc = `${actorName} viewed your profile`;
-    } else if (act.action_type === 'project_view') {
-      icon = '🔍';
-      title = 'Project viewed';
-      desc = `${actorName} viewed your project`;
-    } else if (act.action_type === 'shortlist') {
-      icon = '⭐';
-      title = 'Added to shortlist';
-      desc = `${actorName} shortlisted your project`;
-    } else if (act.action_type === 'contact_sent') {
-      icon = '💬';
-      title = 'Message received';
-      desc = `${actorName} sent you a message`;
-    } else {
-      icon = '📌';
-      title = 'Activity';
-      desc = `${act.action_type}`;
-    }
+    if (act.action_type === 'profile_view') { icon = '👀'; title = 'Profile viewed'; desc = `${actorName} viewed your profile`; }
+    else if (act.action_type === 'project_view') { icon = '🔍'; title = 'Project viewed'; desc = `${actorName} viewed your project`; }
+    else if (act.action_type === 'shortlist') { icon = '⭐'; title = 'Added to shortlist'; desc = `${actorName} shortlisted your project`; }
+    else if (act.action_type === 'contact_sent') { icon = '💬'; title = 'Message received'; desc = `${actorName} sent you a message`; }
+    else { icon = '📌'; title = 'Activity'; desc = act.action_type; }
 
     return `
       <div class="card animate-fade-up">
@@ -1089,29 +1069,7 @@ function renderActivity() {
   }).join('');
 }
 
-// Trust & Safety UI helpers for student
-async function studentReportMessage(messageId, conversationId, reportedUserId) {
-  const reason = prompt('Why are you reporting this message? (optional)') || '';
-  const { error } = await window.sb.from('moderation_reports').insert({
-    reporter_id: currentUser.id,
-    reported_user_id: reportedUserId,
-    reported_message_id: messageId,
-    conversation_id: conversationId,
-    reason_detail: reason || null,
-    reason_category: 'Other'
-  });
-  if (error) { showToast('Failed to submit report: ' + error.message, 'error'); return; }
-  showToast('Report submitted. Thank you.', 'success');
-}
-
-async function studentBlockUser(blockedUserId) {
-  if (!confirm('Block this user? You will no longer receive messages from them.')) return;
-  const { error } = await window.sb.from('blocked_users').insert({ blocker_id: currentUser.id, blocked_id: blockedUserId });
-  if (error) { showToast('Failed to block user: ' + error.message, 'error'); return; }
-  showToast('User blocked', 'warn');
-  await loadConversations();
-}
-
+// ── NOTIFICATIONS ─────────────────────────────────────────
 function renderNotifications() {
   const list = document.getElementById('notifications-list');
   const empty = document.getElementById('notifications-empty');
@@ -1131,7 +1089,7 @@ function renderNotifications() {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
             <div>
               <strong>💬 New message from recruiter</strong>
-              <div class="muted" style="margin-top:6px;max-width:400px">"${escHtml(note.payload?.recruiter_name || 'A recruiter')}"</div>
+              <div class="muted" style="margin-top:6px;max-width:400px">${escHtml(note.payload?.recruiter_name || 'A recruiter')}</div>
               <div style="margin-top:8px;padding:10px;background:var(--surface-2);border-radius:6px;font-size:.95rem">
                 ${escHtml(note.payload?.message || 'No message text')}
               </div>
@@ -1141,11 +1099,9 @@ function renderNotifications() {
         </div>
       `;
     }
-    const title = note.type === 'project_feature'
-      ? 'Project updated'
-      : note.type === 'recruiter_verified'
-        ? 'Recruiter status updated'
-        : 'Notification';
+    const title = note.type === 'project_feature' ? 'Project updated'
+      : note.type === 'recruiter_verified' ? 'Recruiter status updated'
+      : 'Notification';
     const body = note.payload?.message || note.payload?.title || note.payload?.detail || 'You have a new update.';
     return `
       <div class="card notification-card animate-fade-up">
@@ -1158,16 +1114,17 @@ function renderNotifications() {
   }).join('');
 }
 
+// ── PROJECTS RENDER ───────────────────────────────────────
 function renderProjects() {
   const grid = document.getElementById('projects-grid');
   const empty = document.getElementById('projects-empty');
 
   if (!myProjects.length) {
     grid.innerHTML = '';
-    empty.classList.remove('hidden');
+    if (empty) empty.classList.remove('hidden');
     return;
   }
-  empty.classList.add('hidden');
+  if (empty) empty.classList.add('hidden');
 
   grid.innerHTML = myProjects.map(p => `
     <div class="project-card animate-fade-up" data-id="${p.id}">
@@ -1198,7 +1155,7 @@ function renderProjects() {
   `).join('');
 }
 
-// ── SECTION NAVIGATION ───────────────────────────────────
+// ── SECTION NAVIGATION ────────────────────────────────────
 function showSection(section) {
   document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1219,7 +1176,7 @@ function showSection(section) {
   }
 }
 
-// ── FORMS ────────────────────────────────────────────────
+// ── FORMS ─────────────────────────────────────────────────
 let profileSkillsInput = null;
 let addProjectSkillsInput = null;
 let editProjectSkillsInput = null;
@@ -1249,13 +1206,26 @@ function initForms() {
     max: 10
   });
 
-  document.getElementById('community-search-input')?.addEventListener('input', () => {
-    renderCommunityCreators();
-    renderCommunityProjects();
-  });
+  // FIX: community search now triggers a debounced server-side re-query
+  // instead of just re-rendering the already-loaded local array.
+  const communitySearchEl = document.getElementById('community-search-input');
+  if (communitySearchEl) {
+    communitySearchEl.addEventListener('input', () => {
+      clearTimeout(communitySearchTimer);
+      communitySearchTimer = setTimeout(async () => {
+        const q = getCommunityQuery();
+        const avail = document.getElementById('community-availability-filter')?.value || '';
+        // Projects filter client-side (fast), creators re-query server-side
+        renderCommunityProjects();
+        await loadCommunityCreators(q, avail);
+      }, 300);
+    });
+  }
 }
 
-// ── SAVE PROFILE ─────────────────────────────────────────
+// ── SAVE PROFILE ──────────────────────────────────────────
+// FIX: uses upsert instead of check-then-insert/update branch,
+// so it always works whether or not a profile row already exists.
 async function saveProfile(e) {
   e.preventDefault();
   const btn = e.target.querySelector('[type="submit"]');
@@ -1275,18 +1245,9 @@ async function saveProfile(e) {
     skills: [...profileSkills]
   };
 
-  const { data: existing } = await window.sb
+  const { error } = await window.sb
     .from('student_profiles')
-    .select('id')
-    .eq('user_id', currentUser.id)
-    .single();
-
-  let error;
-  if (existing) {
-    ({ error } = await window.sb.from('student_profiles').update(payload).eq('user_id', currentUser.id));
-  } else {
-    ({ error } = await window.sb.from('student_profiles').insert(payload));
-  }
+    .upsert(payload, { onConflict: 'user_id' });
 
   setBtnLoading(btn, false);
   if (error) { showToast('Failed to save profile: ' + error.message, 'error'); return; }
@@ -1296,7 +1257,7 @@ async function saveProfile(e) {
   showSection('overview');
 }
 
-// ── ADD PROJECT ──────────────────────────────────────────
+// ── ADD PROJECT ───────────────────────────────────────────
 async function addProject(e) {
   e.preventDefault();
   if (myProjects.length >= STUDENT_PROJECT_CAP) {
@@ -1325,13 +1286,13 @@ async function addProject(e) {
   showToast('Project added!', 'success');
   e.target.reset();
   projectSkills.length = 0;
-  document.getElementById('add-proj-skills-wrap').querySelectorAll('.skill-tag').forEach(t => t.remove());
+  document.getElementById('add-proj-skills-wrap')?.querySelectorAll('.skill-tag').forEach(t => t.remove());
   await loadProjects();
   await loadStudentProfile();
   showSection('projects');
 }
 
-// ── EDIT PROJECT ─────────────────────────────────────────
+// ── EDIT PROJECT ──────────────────────────────────────────
 function openEditProject(id) {
   const project = myProjects.find(p => p.id === id);
   if (!project) return;
@@ -1346,14 +1307,14 @@ function openEditProject(id) {
   document.getElementById('edit-proj-github').value = project.github_link || '';
 
   editProjectSkills.length = 0;
-  document.getElementById('edit-proj-skills-wrap').querySelectorAll('.skill-tag').forEach(t => t.remove());
+  document.getElementById('edit-proj-skills-wrap')?.querySelectorAll('.skill-tag').forEach(t => t.remove());
   (project.tech_stack || []).forEach(s => editProjectSkillsInput?.addSkillTag(s));
 
-  document.getElementById('edit-project-modal').classList.remove('hidden');
+  document.getElementById('edit-project-modal')?.classList.remove('hidden');
 }
 
 function closeEditModal() {
-  document.getElementById('edit-project-modal').classList.add('hidden');
+  document.getElementById('edit-project-modal')?.classList.add('hidden');
   editingProjectId = null;
 }
 
@@ -1384,7 +1345,7 @@ async function saveEditProject(e) {
   await loadStudentProfile();
 }
 
-// ── DELETE PROJECT ───────────────────────────────────────
+// ── DELETE PROJECT ────────────────────────────────────────
 async function deleteProject(id) {
   if (!confirm('Delete this project? This cannot be undone.')) return;
   const { error } = await window.sb.from('projects').delete().eq('id', id);
@@ -1394,7 +1355,7 @@ async function deleteProject(id) {
   await loadStudentProfile();
 }
 
-// ── PUBLIC PROFILE LINK ─────────────────────────────────
+// ── PUBLIC PROFILE LINK ───────────────────────────────────
 function openPublicProfile() {
   const handle = currentProfile?.handle;
   if (handle) {
@@ -1404,17 +1365,61 @@ function openPublicProfile() {
   showToast('Set a public handle on your profile to preview it.', 'info');
 }
 
-// ── LOGOUT ───────────────────────────────────────────────
+// ── TRUST & SAFETY ────────────────────────────────────────
+async function studentReportMessage(messageId, conversationId, reportedUserId) {
+  const reason = prompt('Why are you reporting this message? (optional)') || '';
+  const { error } = await window.sb.from('moderation_reports').insert({
+    reporter_id: currentUser.id,
+    reported_user_id: reportedUserId,
+    reported_message_id: messageId,
+    conversation_id: conversationId,
+    reason_detail: reason || null,
+    reason_category: 'Other'
+  });
+  if (error) { showToast('Failed to submit report: ' + error.message, 'error'); return; }
+  showToast('Report submitted. Thank you.', 'success');
+}
+
+async function studentBlockUser(blockedUserId) {
+  if (!confirm('Block this user? You will no longer receive messages from them.')) return;
+  const { error } = await window.sb.from('blocked_users').insert({ blocker_id: currentUser.id, blocked_id: blockedUserId });
+  if (error) { showToast('Failed to block user: ' + error.message, 'error'); return; }
+  showToast('User blocked', 'warn');
+  await loadConversations();
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function getThreadInitials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+// ── LOGOUT ────────────────────────────────────────────────
 async function logout() {
   stopConversationRefresh();
+  if (studentRealtimeChannel) { studentRealtimeChannel.unsubscribe(); studentRealtimeChannel = null; }
   await Auth.signOut();
   window.location.href = '/index.html';
 }
 
-// ── BOOT ─────────────────────────────────────────────────
+// ── GLOBAL EXPORTS ────────────────────────────────────────
 window.openCreatorComposer = openCreatorComposer;
 window.openCreatorConnection = openCreatorConnection;
 window.closeCreatorComposer = closeCreatorComposer;
+window.openEditProject = openEditProject;
+window.closeEditModal = closeEditModal;
+window.saveEditProject = saveEditProject;
+window.deleteProject = deleteProject;
+window.openPublicProfile = openPublicProfile;
+window.showSection = showSection;
+window.logout = logout;
+window.saveProfile = saveProfile;
+window.addProject = addProject;
+window.acceptInterview = acceptInterview;
+window.rejectInterview = rejectInterview;
+window.studentReportConversation = studentReportConversation;
+window.studentBlockConversationPartner = studentBlockConversationPartner;
+window.openConversation = openConversation;
 
+// ── BOOT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudent);
 window.addEventListener('beforeunload', stopConversationRefresh);
