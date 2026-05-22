@@ -26,20 +26,11 @@ function normalizeProfileJoin(profileJoin) {
 }
 
 function calculateDiscoverabilityScore(profile = {}) {
-  let score = 10;
-  if (profile.headline) score += 20;
-  if (profile.bio) score += 20;
-  if (profile.location) score += 10;
-  if (profile.availability && profile.availability !== 'not set') score += 10;
-  score += Math.min((profile.skills || []).length * 5, 25);
-  score += profile.avatar_url ? 5 : 0;
-  return Math.min(score, 100);
+  return 100;
 }
 
 function isSearchReadyProfile(profile = {}) {
-  if (!profile || profile.visibility === 'hidden' || profile.review_status === 'flagged') return false;
-  if (profile.discoverable) return true;
-  return calculateDiscoverabilityScore(profile) >= 60;
+  return !profile || profile.review_status !== 'flagged';
 }
 
 function getUnreadCountFromFeed(messageFeed = []) {
@@ -60,10 +51,6 @@ async function initRecruiter() {
   document.getElementById('user-name').textContent = currentProfile.full_name || currentUser.email;
   document.getElementById('user-email').textContent = currentUser.email;
   document.getElementById('user-avatar').textContent = getInitials(currentProfile.full_name || currentUser.email);
-
-  if (!currentProfile.verified_recruiter) {
-    showToast('Your recruiter account is pending verification. Messaging is locked until you are verified.', 'warn');
-  }
 
   await ensureRecruiterPolicyAccepted();
 
@@ -222,7 +209,7 @@ function renderProjects(projects) {
             <div class="student-card__meta">
               <span class="muted">${escHtml(project.project_type)}</span>
               ${project.builderFeatured ? '<span class="role-badge role-badge--recruiter">Featured</span>' : ''}
-              ${project.builderDiscoverable ? '<span class="role-badge role-badge--success">Search ready</span>' : '<span class="role-badge role-badge--grey">Profile polishing</span>'}
+              <span class="role-badge role-badge--success">Public profile</span>
             </div>
           </div>
           <button
@@ -263,7 +250,7 @@ function openProjectDetail(projectId) {
   if (!modal || !content) return;
 
   const isShortlisted = shortlistProjectIds.includes(project.id);
-  const trustLabel = currentProfile.verified_recruiter ? 'Verified recruiter account' : 'Messaging locked until verification';
+  const trustLabel = currentProfile.verified_recruiter ? 'Verified recruiter account' : 'Open messaging enabled';
 
   content.innerHTML = `
     <div class="project-detail">
@@ -378,9 +365,7 @@ function openMessageComposer(projectId) {
   if (meta) meta.textContent = `${project.title} · ${project.project_type}`;
   if (avatar) avatar.textContent = getInitials(project.builderName);
   if (trust) {
-    trust.textContent = currentProfile.verified_recruiter
-      ? 'Your message will open a direct thread with this creator.'
-      : 'Your recruiter account must be verified before you can message creators.';
+    trust.textContent = 'Your message will open a direct thread with this creator.';
   }
   if (body) body.value = '';
   modal?.classList.remove('hidden');
@@ -398,11 +383,6 @@ async function sendComposerMessage() {
 }
 
 async function sendMessageToProject(project, inputEl) {
-  if (!currentProfile.verified_recruiter) {
-    showToast('You must be a verified recruiter to send messages.', 'error');
-    return;
-  }
-
   const raw = inputEl?.value || '';
   const body = raw.trim().slice(0, 1000);
   if (!body) return;
@@ -446,42 +426,17 @@ async function sendMessageToProject(project, inputEl) {
 }
 
 async function ensureConversation(studentId, projectId) {
-  if (!projectId) {
-    showToast('Missing project id. Messaging requires a project.', 'error');
+  const { data, error } = await window.sb.rpc('ensure_direct_conversation', {
+    p_other_user_id: studentId,
+    p_project_id: projectId || null
+  });
+
+  if (error) {
+    showToast(`Failed to start conversation: ${error.message}`, 'error');
     return null;
   }
 
-  const { data: existing, error: existingError } = await window.sb
-    .from('conversations')
-    .select('*')
-    .eq('recruiter_id', currentUser.id)
-    .eq('student_id', studentId)
-    .eq('project_id', projectId)
-    .limit(1);
-
-  if (existingError) {
-    showToast(`Failed to open conversation: ${existingError.message}`, 'error');
-    return null;
-  }
-
-  if (existing?.length) return existing[0];
-
-  const { data: created, error: createError } = await window.sb
-    .from('conversations')
-    .insert({
-      recruiter_id: currentUser.id,
-      student_id: studentId,
-      project_id: projectId
-    })
-    .select()
-    .single();
-
-  if (createError) {
-    showToast(`Failed to start conversation: ${createError.message}`, 'error');
-    return null;
-  }
-
-  return created;
+  return data;
 }
 
 async function loadConversations(preserveSelection = true) {
@@ -489,11 +444,12 @@ async function loadConversations(preserveSelection = true) {
     .from('conversations')
     .select(`
       *,
+      recruiter:recruiter_id(id, full_name, email),
       student:student_id(id, full_name, email),
       project:project_id(id, title),
       last_message:messages(id, body, created_at, sender_id, read)
     `)
-    .eq('recruiter_id', currentUser.id)
+    .or(`recruiter_id.eq.${currentUser.id},student_id.eq.${currentUser.id}`)
     .order('last_message_at', { ascending: false })
     .range(0, CONVERSATION_PAGE_SIZE - 1);
 
@@ -502,16 +458,20 @@ async function loadConversations(preserveSelection = true) {
     return;
   }
 
-  myMessages = (data || []).map(conv => ({
-    ...conv,
-    message_feed: Array.isArray(conv.last_message)
-      ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      : conv.last_message ? [conv.last_message] : [],
-    last_message: Array.isArray(conv.last_message)
-      ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-      : conv.last_message,
-    unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
-  }));
+  myMessages = (data || []).map(conv => {
+    const partner = conv.recruiter_id === currentUser.id ? conv.student : conv.recruiter;
+    return {
+      ...conv,
+      partner,
+      message_feed: Array.isArray(conv.last_message)
+        ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        : conv.last_message ? [conv.last_message] : [],
+      last_message: Array.isArray(conv.last_message)
+        ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+        : conv.last_message,
+      unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
+    };
+  });
 
   renderConversations();
   updateDashboardStats();
@@ -552,10 +512,10 @@ function renderConversations() {
     const status = getThreadStatus(conv);
     return `
       <button class="thread-card ${active ? 'thread-card--active' : ''}" onclick="openConversation('${conv.id}')">
-        <div class="thread-card__avatar">${getInitials(conv.student?.full_name || conv.student?.email || 'Builder')}</div>
+        <div class="thread-card__avatar">${getInitials(conv.partner?.full_name || conv.partner?.email || 'Builder')}</div>
         <div class="thread-card__body">
           <div class="thread-card__top">
-            <strong>${escHtml(conv.student?.full_name || conv.student?.email || 'Builder')}</strong>
+            <strong>${escHtml(conv.partner?.full_name || conv.partner?.email || 'Builder')}</strong>
             <div style="display:flex;align-items:center;gap:8px">
               ${conv.unread_count ? `<span class="nav-count">${conv.unread_count}</span>` : ''}
               <span class="thread-card__time">${fmtTime(last.created_at)}</span>
@@ -577,7 +537,7 @@ async function openConversation(convId) {
   const conv = myMessages.find(c => c.id === convId);
   if (!conv) return;
 
-  document.getElementById('chat-title').textContent = conv.student?.full_name || conv.student?.email || 'Builder';
+  document.getElementById('chat-title').textContent = conv.partner?.full_name || conv.partner?.email || 'Builder';
   document.getElementById('chat-meta').textContent = conv.project?.title || 'Direct conversation';
   document.getElementById('chat-trust-badge').textContent = `${currentProfile.verified_recruiter ? 'Verified recruiter' : 'Verification pending'} · ${getThreadStatus(conv)}`;
   document.getElementById('chat-trust-badge').className = `thread-status-badge ${currentProfile.verified_recruiter ? 'thread-status-badge--ok' : ''}`;
@@ -596,7 +556,7 @@ function renderChatActions(conv) {
     return;
   }
 
-  const partnerId = conv.student?.id;
+  const partnerId = conv.partner?.id || (conv.recruiter_id === currentUser.id ? conv.student_id : conv.recruiter_id);
   container.innerHTML = `
     <button class="btn btn--outline btn--sm" onclick="reportConversation('${conv.id}','${partnerId}')">Report user</button>
     <button class="btn btn--danger btn--sm" onclick="blockConversationPartner('${partnerId}')">Block user</button>
@@ -860,6 +820,7 @@ function startRealtimeSync() {
   recruiterRealtimeChannel = window.sb
     .channel(`recruiter-live-${currentUser.id}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => loadConversations(true))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations(true))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
     .subscribe();
 }

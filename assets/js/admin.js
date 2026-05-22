@@ -126,6 +126,7 @@ function renderUsersTable(users) {
       <td>
         ${user.id === currentAdmin.id ? '<span class="muted">You</span>' : `
           ${(user.role === 'recruiter' || isPendingRecruiter(user)) ? `<button class="btn btn--sm btn--outline" onclick="toggleRecruiterVerification('${user.id}', ${user.verified_recruiter}, ${isPendingRecruiter(user)})">${user.verified_recruiter ? 'Revoke' : 'Approve'}</button>` : ''}
+          <button class="btn btn--sm btn--primary" onclick="adminMessageUser('${user.id}')">Message</button>
         `}
       </td>
     </tr>
@@ -676,7 +677,7 @@ async function toggleFeature(id) {
 async function deleteProject(id) {
   if (!confirm('Delete this project?')) return;
 
-  const { error } = await window.sb.from('projects').delete().eq('id', id);
+  const { error } = await window.sb.rpc('delete_project_secure', { p_project_id: id });
   if (error) {
     showToast('Failed: ' + error.message, 'error');
     return;
@@ -687,6 +688,32 @@ async function deleteProject(id) {
   allProjects = allProjects.filter(project => project.id !== id);
   renderProjectsTable(allProjects);
   await Promise.all([loadModerationQueue(), loadStats()]);
+}
+
+async function adminMessageUser(userId) {
+  if (!userId || userId === currentAdmin.id) return;
+  const body = (prompt('Message this user from admin:') || '').trim().slice(0, 1000);
+  if (!body) return;
+
+  const { data: conversation, error: conversationError } = await window.sb.rpc('ensure_direct_conversation', {
+    p_other_user_id: userId,
+    p_project_id: null
+  });
+  if (conversationError) {
+    showToast('Failed to open conversation: ' + conversationError.message, 'error');
+    return;
+  }
+
+  const { error: messageError } = await window.sb.from('messages').insert({
+    conversation_id: conversation.id,
+    sender_id: currentAdmin.id,
+    body
+  });
+  if (messageError) {
+    showToast('Failed to send message: ' + messageError.message, 'error');
+    return;
+  }
+  showToast('Admin message sent.', 'success');
 }
 
 function showSection(section) {
@@ -702,5 +729,6 @@ async function logout() {
 }
 
 window.copyFeedbackMessage = copyFeedbackMessage;
+window.adminMessageUser = adminMessageUser;
 
 document.addEventListener('DOMContentLoaded', initAdmin);

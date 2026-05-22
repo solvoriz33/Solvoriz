@@ -17,14 +17,37 @@ const Auth = (() => {
   }
 
   // ── Sign Up ─────────────────────────────────────────────
-  async function signUp({ email, password, fullName, role }) {
+  function normalizeUsername(username) {
+    return String(username || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '');
+  }
+
+  async function isUsernameAvailable(username) {
+    if (!window.sb) return false;
+    const normalized = normalizeUsername(username);
+    if (normalized.length < 3 || normalized.length > 30) return false;
+    const { data, error } = await window.sb.rpc('is_username_available', { p_username: normalized });
+    if (error) return false;
+    return Boolean(data);
+  }
+
+  // â”€â”€ Sign Up â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function signUp({ email, password, username }) {
     if (!window.sb || !window.sb.auth) return { data: null, error: new Error('Supabase client not initialized') };
     try {
+      const normalizedUsername = normalizeUsername(username);
+      if (normalizedUsername.length < 3 || normalizedUsername.length > 30) {
+        throw new Error('Choose a username with 3-30 letters, numbers, or underscores.');
+      }
+
       const { data, error } = await window.sb.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName, requested_role: role || 'student' }
+          data: {
+            username: normalizedUsername,
+            full_name: normalizedUsername,
+            requested_role: 'student'
+          }
         }
       });
       if (error) throw formatAuthError(error);
@@ -43,9 +66,11 @@ const Auth = (() => {
         const user = data.session.user;
         const { error: dbErr } = await window.sb.from('users').insert({
           id: user.id,
-          full_name: fullName,
+          full_name: normalizedUsername,
+          display_name: normalizedUsername,
+          username: normalizedUsername,
           email,
-          requested_role: role === 'recruiter' ? 'recruiter' : 'student'
+          requested_role: 'student'
         });
         // Ignore duplicate-key errors (user already exists)
         if (dbErr && dbErr.code !== '23505') throw dbErr;
@@ -111,13 +136,16 @@ const Auth = (() => {
     if (!window.sb || !user) return null;
     const role = user.user_metadata?.role || 'student';
     const requested_role = user.user_metadata?.requested_role || role || 'student';
-    const full_name = user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+    const username = normalizeUsername(user.user_metadata?.username || user.email?.split('@')[0] || '');
+    const full_name = user.user_metadata?.full_name || username || user.email?.split('@')[0] || '';
     const email = user.email || '';
     if (!user.id || !email) return null;
 
     const { data, error } = await window.sb.from('users').insert({
       id: user.id,
       full_name,
+      display_name: full_name,
+      username,
       email,
       requested_role: requested_role === 'recruiter' ? 'recruiter' : 'student'
     }).select().maybeSingle();
@@ -143,7 +171,7 @@ const Auth = (() => {
     return window.sb.auth.onAuthStateChange(callback);
   }
 
-  return { signUp, signIn, signOut, getSession, getUserRole, getUserProfile, createUserProfileFromSession, onAuthStateChange };
+  return { signUp, signIn, signOut, getSession, getUserRole, getUserProfile, createUserProfileFromSession, onAuthStateChange, normalizeUsername, isUsernameAvailable };
 })();
 
 window.Auth = Auth;

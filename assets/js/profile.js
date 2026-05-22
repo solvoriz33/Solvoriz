@@ -68,7 +68,6 @@ function renderProfile(profile) {
     </div>
   `).join('');
   const headline = profile.headline || 'Project-first creator profile';
-  const score = calculateProfileStrength(profile, profile.projects || []);
   const visibleProjectCount = visibleProjects.length;
   const reviewCopy = profile.review_status === 'approved'
     ? 'Admin reviewed'
@@ -130,10 +129,10 @@ function renderProfile(profile) {
             </div>
           </div>
           <div class="card">
-            <div class="card__title">Profile strength</div>
-            <div class="muted" style="margin-top:6px">A stronger public profile earns more recruiter trust.</div>
-            <div class="progress-bar" style="margin-top:14px"><div class="progress-fill" style="width:${score}%"></div></div>
-            <div class="muted" style="margin-top:10px">${score}/100 strength score</div>
+            <div class="card__title">Profile status</div>
+            <div class="muted" style="margin-top:6px">This profile is visible. More details simply give builders and recruiters better context.</div>
+            <div class="progress-bar" style="margin-top:14px"><div class="progress-fill" style="width:100%"></div></div>
+            <div class="muted" style="margin-top:10px">Live and searchable</div>
           </div>
           <div class="card">
             <h4>Skills</h4>
@@ -150,7 +149,7 @@ function renderProfile(profile) {
           <div class="card">
             <h4>Trust signals</h4>
             <ul class="clean">
-              <li>${profile.discoverable ? 'Profile is visible in recruiter search' : 'Profile is not discoverable yet'}</li>
+              <li>Profile is visible in Solvoriz discovery</li>
               <li>${profile.review_status === 'approved' ? 'Reviewed by Solvoriz admin' : 'Pending manual profile review'}</li>
               <li>${profile.featured ? 'Currently featured by Solvoriz' : 'Not currently featured'}</li>
             </ul>
@@ -159,18 +158,6 @@ function renderProfile(profile) {
       </div>
     </div>
   `;
-}
-
-function calculateProfileStrength(profile, projects) {
-  let score = 20;
-  if (profile.headline) score += 20;
-  if (profile.bio) score += 15;
-  if (profile.location) score += 10;
-  if (profile.avatar_url) score += 5;
-  if (profile.github_username) score += 5;
-  score += Math.min((profile.skills || []).length * 3, 20);
-  score += Math.min((projects || []).filter(project => project.visible && project.review_status !== 'flagged').length * 8, 25);
-  return Math.min(score, 100);
 }
 
 function getInitials(name) {

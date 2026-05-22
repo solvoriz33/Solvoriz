@@ -86,7 +86,7 @@
             </div>
           </div>
           <div class="overview-profile-card__progress">
-            <div class="progress-label">Profile score</div>
+            <div class="progress-label">Profile status</div>
             <div class="progress-bar"><div id="overview-score-bar" class="progress-fill" style="width:0%"></div></div>
           </div>
           <div class="overview-profile-card__link">
@@ -164,7 +164,7 @@
               <label for="profile-visibility">Profile visibility</label>
               <select id="profile-visibility" class="select input">
                 <option value="public">Public</option>
-                <option value="hidden">Hidden from recruiter search</option>
+                <option value="hidden">Public (profile remains searchable)</option>
               </select>
             </div>
           </div>
@@ -294,19 +294,53 @@
     <section class="dash-section" id="section-community">
       <div class="section-header">
         <h1 class="section-header__title">Creator Community</h1>
-        <p class="section-header__sub">Search creators by product, name, skills, handle, or user ID, then connect through real project context.</p>
+        <p class="section-header__sub">Search creators by username, display name, skills, or account ID, then start a low-friction conversation.</p>
       </div>
 
       <div class="search-bar">
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" id="community-search-input" class="input" placeholder="Search products, creator name, skills, handle, or user ID...">
+          <input type="text" id="community-search-input" class="input" placeholder="Search username, display name, skills, or account ID...">
+        </div>
+      </div>
+
+      <div class="card animate-fade-up" style="margin-bottom:20px">
+        <div class="card__title">Community groups</div>
+        <p class="card__sub" style="margin-top:6px">Create casual creator spaces, join open groups, and chat about ideas.</p>
+        <form id="group-create-form" onsubmit="createCommunityGroup(event)" class="form-row" style="margin-top:16px">
+          <div class="form-group">
+            <label for="group-name">Group name</label>
+            <input type="text" id="group-name" class="input" placeholder="Indie AI builders" maxlength="80" required>
+          </div>
+          <div class="form-group">
+            <label for="group-description">Description</label>
+            <input type="text" id="group-description" class="input" placeholder="What should people discuss here?" maxlength="180">
+          </div>
+          <button class="btn btn--primary" type="submit" style="align-self:end">Create group</button>
+        </form>
+        <div id="groups-list" style="display:grid;gap:10px;margin-top:16px"></div>
+        <div id="group-chat-panel" class="hidden" style="margin-top:18px">
+          <div class="messages-sidebar__header">
+            <div>
+              <strong id="group-chat-title">Group chat</strong>
+              <div class="muted" id="group-chat-meta"></div>
+            </div>
+            <span class="thread-status-badge thread-status-badge--ok">Live</span>
+          </div>
+          <div id="group-chat-messages" class="chat-messages" style="max-height:280px"></div>
+          <div class="chat-composer" style="margin-top:10px">
+            <textarea id="group-chat-input" class="input chat-composer__input" placeholder="Share an idea, ask for feedback, or riff with builders..." rows="2"></textarea>
+            <div class="chat-composer__actions">
+              <div class="muted">Open community chat</div>
+              <button type="button" class="btn btn--primary" id="group-chat-send-btn" onclick="sendGroupMessage()">Send</button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="card animate-fade-up" style="margin-bottom:20px">
         <div class="card__title">Creator directory</div>
-        <p class="card__sub" style="margin-top:6px">Find other builders by identity and skills, then start a creator-to-creator conversation from one of their public projects.</p>
+        <p class="card__sub" style="margin-top:6px">Find builders quickly and message anyone. Profiles stay discoverable even if they finish details later.</p>
         <div class="students-grid" id="creator-directory-grid" style="margin-top:18px"></div>
         <div class="empty-state hidden" id="creator-directory-empty">
           <div class="empty-state__icon">O</div>

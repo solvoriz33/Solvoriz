@@ -12,6 +12,7 @@ let myMessages = [];
 let myActivity = [];
 let communityProjects = [];
 let communityCreators = [];
+let communityGroups = [];
 let profileSkills = [];
 let projectSkills = [];
 let editProjectSkills = [];
@@ -21,6 +22,8 @@ let conversationRefreshTimer = null;
 let creatorComposeTarget = null;
 let studentRealtimeChannel = null;
 let studentThreadChannel = null;
+let groupRealtimeChannel = null;
+let currentGroupId = null;
 let filterCommunitySkills = [];      // for server-side skills filtering
 let communitySearchTimer = null;     // debounce timer
 
@@ -59,7 +62,7 @@ async function initStudent() {
 
   initForms();
   await loadStudentProfile();
-  await Promise.all([loadProjects(), loadCommunityProjects(), loadCommunityCreators(), loadNotifications(), loadActivity(), loadConversations()]);
+  await Promise.all([loadProjects(), loadCommunityProjects(), loadCommunityCreators(), loadCommunityGroups(), loadNotifications(), loadActivity(), loadConversations()]);
   setupMessagingComposer();
   startRealtimeSync();
   const ovName = document.getElementById('overview-name');
@@ -198,69 +201,53 @@ function updateOverviewCard(profile) {
 
   const visibility = document.getElementById('visibility-status');
   if (visibility) {
-    visibility.textContent = profile.discoverable ? 'Live' : profile.visibility === 'hidden' ? 'Hidden' : 'Private';
-    visibility.title = profile.discoverable
-      ? 'Discoverable in recruiter search'
-      : profile.visibility === 'hidden'
-        ? 'Hidden from recruiter search'
-        : 'Profile is public but not discoverable yet';
+    visibility.textContent = 'Live';
+    visibility.title = 'Your profile is visible and searchable. Add more details whenever you want.';
   }
 
-  const score = calculateProfileScore(profile);
   const scoreBar = document.getElementById('overview-score-bar');
-  if (scoreBar) scoreBar.style.width = `${score}%`;
-  updateProfilePrompt(profile, score);
+  if (scoreBar) scoreBar.style.width = '100%';
+  updateProfilePrompt(profile);
 }
 
 function calculateProfileScore(profile) {
-  let score = 10;
-  if (profile.headline) score += 20;
-  if (profile.bio) score += 20;
-  if (profile.location) score += 10;
-  if (profile.availability && profile.availability !== 'not set') score += 10;
-  score += Math.min((profile.skills || []).length * 5, 25);
-  score += profile.handle ? 5 : 0;
-  score += profile.avatar_url ? 5 : 0;
-  return Math.min(score, 100);
+  return 100;
 }
 
-function updateProfilePrompt(profile, score = calculateProfileScore(profile)) {
+function updateProfilePrompt(profile) {
   const prompt = document.getElementById('profile-prompt');
   if (!prompt) return;
   const strong = prompt.querySelector('.prompt-banner__text strong');
   const span = prompt.querySelector('.prompt-banner__text span');
   const actionBtn = prompt.querySelector('.btn');
-  const projectCount = myProjects.filter(project => project.visible).length;
-  const discoverable = Boolean(profile?.discoverable);
+  const discoverable = true;
 
   if (discoverable) {
-    if (strong) strong.textContent = 'You are discoverable';
-    if (span) span.textContent = 'Your profile is strong enough to appear in recruiter searches. Keep your projects updated.';
-    if (actionBtn) actionBtn.textContent = 'Polish profile';
+    if (strong) strong.textContent = 'You are live on Solvoriz';
+    if (span) span.textContent = 'Your profile is searchable now. Add bio, avatar, skills, and projects later to give people more context.';
+    if (actionBtn) actionBtn.textContent = profile?.headline || profile?.bio ? 'Polish profile' : 'Add details';
     prompt.style.borderColor = 'rgba(14,122,80,.2)';
     prompt.style.background = 'linear-gradient(135deg, rgba(14,122,80,.08) 0%, rgba(14,122,80,.04) 100%)';
     return;
   }
 
   const missing = [];
-  if (score < 70) missing.push('raise profile score to 70+');
+  if (false) missing.push('add a few more profile details');
   if ((profile?.visibility || 'public') === 'hidden') missing.push('switch visibility to public');
-  if (projectCount < 1) missing.push('add at least one visible project');
+  if (false) missing.push('add at least one visible project');
 
   if (strong) strong.textContent = 'Complete your profile to get discovered';
   if (span) span.textContent = missing.length
     ? `Before recruiters can find you, you still need to ${missing.join(', ')}.`
-    : 'Add a headline, skills, and at least one project to appear in recruiter searches.';
-  if (actionBtn) actionBtn.textContent = projectCount < 1 ? 'Add project' : 'Complete →';
+    : 'Add a headline, skills, and a project when you are ready.';
+  if (actionBtn) actionBtn.textContent = 'Add details';
   prompt.style.borderColor = 'rgba(24,71,248,.2)';
   prompt.style.background = 'linear-gradient(135deg, rgba(24,71,248,.08) 0%, rgba(24,71,248,.04) 100%)';
 }
 
 // FIX: uses upsert so it works even when no profile row exists yet
 async function syncDiscoverability() {
-  const score = calculateProfileScore(currentProfile || {});
-  const visibleProjectCount = myProjects.filter(project => project.visible).length;
-  const discoverable = score >= 70 && (currentProfile?.visibility || 'public') === 'public' && visibleProjectCount > 0;
+  const discoverable = true;
 
   if (currentProfile) currentProfile.discoverable = discoverable;
 
@@ -404,6 +391,149 @@ async function loadCommunityCreators(searchQuery = '', availFilter = '') {
   renderCommunityCreators();
 }
 
+async function loadCommunityGroups() {
+  const [{ data: groups, error: groupsError }, { data: memberships, error: membersError }] = await Promise.all([
+    window.sb.from('groups').select('*, creator:creator_id(id, full_name, email)').order('created_at', { ascending: false }).limit(24),
+    window.sb.from('group_members').select('group_id, role').eq('user_id', currentUser.id)
+  ]);
+
+  if (groupsError) {
+    console.warn('Failed to load groups', groupsError);
+    return;
+  }
+  if (membersError) console.warn('Failed to load group memberships', membersError);
+
+  const membershipByGroup = Object.fromEntries((memberships || []).map(item => [item.group_id, item]));
+  communityGroups = (groups || []).map(group => ({
+    ...group,
+    joined: Boolean(membershipByGroup[group.id]),
+    role: membershipByGroup[group.id]?.role || null
+  }));
+  renderCommunityGroups();
+}
+
+function renderCommunityGroups() {
+  const list = document.getElementById('groups-list');
+  if (!list) return;
+
+  if (!communityGroups.length) {
+    list.innerHTML = '<div class="muted">No groups yet. Create the first one and set the room tone.</div>';
+    return;
+  }
+
+  list.innerHTML = communityGroups.map(group => `
+    <div class="creator-search-item">
+      <div class="student-avatar">${getThreadInitials(group.name)}</div>
+      <div class="creator-search-item__body">
+        <div class="creator-search-item__top">
+          <strong>${escHtml(group.name)}</strong>
+          <span class="muted">${group.joined ? escHtml(group.role || 'member') : 'open group'}</span>
+        </div>
+        <div class="creator-search-item__bio">${escHtml(group.description || 'Casual builder discussion space.')}</div>
+        <div class="muted">Created by ${escHtml(group.creator?.full_name || group.creator?.email || 'a Solvoriz builder')}</div>
+      </div>
+      ${group.joined
+        ? `<button class="btn btn--sm btn--primary" onclick="openGroupChat('${group.id}')">Open chat</button>`
+        : `<button class="btn btn--sm btn--outline" onclick="joinCommunityGroup('${group.id}')">Join</button>`}
+    </div>
+  `).join('');
+}
+
+async function createCommunityGroup(event) {
+  event.preventDefault();
+  const name = document.getElementById('group-name')?.value.trim();
+  const description = document.getElementById('group-description')?.value.trim();
+  if (!name) return;
+
+  const btn = event.target.querySelector('[type="submit"]');
+  setBtnLoading(btn, true, 'Creating...');
+  const { data, error } = await window.sb.rpc('create_group', {
+    p_name: name,
+    p_description: description || null
+  });
+  setBtnLoading(btn, false);
+
+  if (error) { showToast(`Failed to create group: ${error.message}`, 'error'); return; }
+  event.target.reset();
+  showToast('Group created. The room is yours.', 'success');
+  await loadCommunityGroups();
+  if (data?.id) await openGroupChat(data.id);
+}
+
+async function joinCommunityGroup(groupId) {
+  const { error } = await window.sb.rpc('join_group', { p_group_id: groupId });
+  if (error) { showToast(`Failed to join group: ${error.message}`, 'error'); return; }
+  showToast('Joined group.', 'success');
+  await loadCommunityGroups();
+  await openGroupChat(groupId);
+}
+
+async function openGroupChat(groupId) {
+  currentGroupId = groupId;
+  const group = communityGroups.find(item => item.id === groupId);
+  document.getElementById('group-chat-panel')?.classList.remove('hidden');
+  const title = document.getElementById('group-chat-title');
+  const meta = document.getElementById('group-chat-meta');
+  if (title) title.textContent = group?.name || 'Group chat';
+  if (meta) meta.textContent = group?.description || 'Creator discussion space';
+
+  subscribeToGroupChat(groupId);
+  await loadGroupMessages(groupId);
+}
+
+async function loadGroupMessages(groupId) {
+  const { data, error } = await window.sb
+    .from('group_messages')
+    .select('*, sender:sender_id(id, full_name, email)')
+    .eq('group_id', groupId)
+    .order('created_at', { ascending: true })
+    .limit(60);
+
+  if (error) { showToast('Failed to load group chat', 'error'); return; }
+  const pane = document.getElementById('group-chat-messages');
+  if (!pane) return;
+  if (!data?.length) {
+    pane.innerHTML = '<div class="chat-empty">No messages yet. Drop the first idea.</div>';
+    return;
+  }
+  pane.innerHTML = data.map(message => `
+    <div class="chat-row ${message.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
+      <div class="chat-bubble ${message.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
+        <div class="chat-bubble__meta">${escHtml(message.sender?.full_name || message.sender?.email || 'Builder')} · ${fmtTime(message.created_at)}</div>
+        <div class="chat-bubble__text">${escHtml(message.body)}</div>
+      </div>
+    </div>
+  `).join('');
+  pane.scrollTop = pane.scrollHeight;
+}
+
+async function sendGroupMessage() {
+  const input = document.getElementById('group-chat-input');
+  const body = input?.value.trim().slice(0, 1000) || '';
+  if (!currentGroupId || !body) return;
+
+  const btn = document.getElementById('group-chat-send-btn');
+  setBtnLoading(btn, true, 'Sending...');
+  const { error } = await window.sb.from('group_messages').insert({
+    group_id: currentGroupId,
+    sender_id: currentUser.id,
+    body
+  });
+  setBtnLoading(btn, false);
+  if (error) { showToast(`Failed to send: ${error.message}`, 'error'); return; }
+  if (input) input.value = '';
+  await loadGroupMessages(currentGroupId);
+}
+
+function subscribeToGroupChat(groupId) {
+  if (!window.sb || !groupId) return;
+  if (groupRealtimeChannel) { groupRealtimeChannel.unsubscribe(); groupRealtimeChannel = null; }
+  groupRealtimeChannel = window.sb
+    .channel(`group-chat-${groupId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` }, () => loadGroupMessages(groupId))
+    .subscribe();
+}
+
 // ── COMMUNITY: RENDER PROJECTS ────────────────────────────
 function renderCommunityProjects() {
   const grid = document.getElementById('community-grid');
@@ -496,10 +626,7 @@ function renderCommunityCreators() {
       </div>
       <div class="student-card__actions">
         ${creator.githubUsername ? `<a class="btn btn--sm btn--outline" href="https://github.com/${escHtml(creator.githubUsername)}" target="_blank" rel="noopener">GitHub</a>` : '<button class="btn btn--sm btn--outline" disabled>No GitHub</button>'}
-        <button class="btn btn--sm btn--primary" onclick="openCreatorConnection('${creator.userId}')"
-          ${creator.primaryProjectId ? '' : 'disabled'}>
-          ${creator.primaryProjectId ? 'Connect with creator' : 'No public project yet'}
-        </button>
+        <button class="btn btn--sm btn--primary" onclick="openCreatorConnection('${creator.userId}')">Message</button>
       </div>
     </div>
   `).join('');
@@ -513,8 +640,8 @@ function getCommunityQuery() {
 async function loadConversations() {
   const { data, error } = await window.sb
     .from('conversations')
-    .select(`*, recruiter:recruiter_id(id, full_name, email), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
-    .eq('student_id', currentUser.id)
+    .select(`*, recruiter:recruiter_id(id, full_name, email), student:student_id(id, full_name, email), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
+    .or(`student_id.eq.${currentUser.id},recruiter_id.eq.${currentUser.id}`)
     .order('last_message_at', { ascending: false })
     .range(0, CONVERSATION_PAGE_SIZE - 1);
 
@@ -535,19 +662,23 @@ async function loadConversations() {
   if (error) { console.warn('Failed to load recruiter conversations', error); }
   if (creatorError) { console.warn('Failed to load creator conversations', creatorError); }
 
-  const recruiterMessages = (data || []).map(conv => ({
-    ...conv,
-    threadType: 'recruiter',
-    partnerName: conv.recruiter?.full_name || conv.recruiter?.email || 'Recruiter',
-    partnerRoleLabel: 'Recruiter thread',
-    message_feed: Array.isArray(conv.last_message)
-      ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      : conv.last_message ? [conv.last_message] : [],
-    last_message: Array.isArray(conv.last_message)
-      ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-      : conv.last_message,
-    unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
-  }));
+  const recruiterMessages = (data || []).map(conv => {
+    const partner = conv.recruiter_id === currentUser.id ? conv.student : conv.recruiter;
+    return {
+      ...conv,
+      threadType: 'direct',
+      partnerId: partner?.id || (conv.recruiter_id === currentUser.id ? conv.student_id : conv.recruiter_id),
+      partnerName: partner?.full_name || partner?.email || 'Solvoriz user',
+      partnerRoleLabel: 'Direct message',
+      message_feed: Array.isArray(conv.last_message)
+        ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        : conv.last_message ? [conv.last_message] : [],
+      last_message: Array.isArray(conv.last_message)
+        ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+        : conv.last_message,
+      unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
+    };
+  });
 
   const creatorMessages = (creatorData || []).map(conv => {
     const partner = conv.creator_one_id === currentUser.id ? conv.creator_two : conv.creator_one;
@@ -632,7 +763,7 @@ async function openConversation(convId) {
   document.getElementById('chat-meta').textContent = conv.project?.title || 'Direct conversation';
   const badge = document.getElementById('chat-trust-badge');
   if (badge) {
-    badge.textContent = conv.threadType === 'creator' ? `Creator discussion · ${getThreadStatus(conv)}` : `Recruiter thread · ${getThreadStatus(conv)}`;
+    badge.textContent = `${conv.partnerRoleLabel || 'Direct message'} · ${getThreadStatus(conv)}`;
     badge.className = 'thread-status-badge thread-status-badge--ok';
   }
   renderStudentChatActions(conv);
@@ -648,7 +779,9 @@ function renderStudentChatActions(conv) {
   if (!conv) { container.innerHTML = ''; return; }
 
   let partnerId = null;
-  if (conv.threadType === 'creator') {
+  if (conv.threadType === 'direct') {
+    partnerId = conv.partnerId;
+  } else if (conv.threadType === 'creator') {
     partnerId = conv.creator_one_id === currentUser.id ? conv.creator_two_id : conv.creator_one_id;
   } else {
     partnerId = conv.recruiter?.id;
@@ -886,15 +1019,15 @@ function openCreatorComposer(projectId) {
 
 function openCreatorConnection(userId) {
   const creator = communityCreators.find(item => item.userId === userId);
-  if (!creator?.primaryProjectId) {
-    showToast('This creator does not have a public project to connect through yet.', 'warn');
+  if (!creator) {
+    showToast('Creator not found.', 'warn');
     return;
   }
 
   creatorComposeTarget = {
-    id: creator.primaryProjectId,
+    id: creator.primaryProjectId || null,
     userId: creator.userId,
-    title: creator.primaryProjectTitle || 'Public project',
+    title: creator.primaryProjectTitle || 'Direct message',
     project_type: creator.primaryProjectType || 'Project',
     creatorName: creator.creatorName,
     creatorHeadline: creator.creatorHeadline,
@@ -913,7 +1046,7 @@ function openCreatorConnection(userId) {
   if (avatar) avatar.textContent = getThreadInitials(creator.creatorName);
   if (name) name.textContent = creator.creatorName;
   if (meta) meta.textContent = `${creator.primaryProjectTitle || 'Public project'} · ${creator.primaryProjectType || 'Project'}`;
-  if (copy) copy.textContent = `Start a direct creator-to-creator conversation with ${creator.creatorName} based on one of their public projects.`;
+  if (copy) copy.textContent = `Start a direct conversation with ${creator.creatorName}. No project context required.`;
   if (input) input.value = '';
   modal?.classList.remove('hidden');
   input?.focus();
@@ -936,8 +1069,8 @@ async function sendCreatorComposeMessage() {
   const conversation = await ensureCreatorConversation(creatorComposeTarget.userId, creatorComposeTarget.id);
   if (!conversation) { setBtnLoading(sendBtn, false); return; }
 
-  const { error } = await window.sb.from('creator_messages').insert({
-    creator_conversation_id: conversation.id,
+  const { error } = await window.sb.from('messages').insert({
+    conversation_id: conversation.id,
     sender_id: currentUser.id,
     body
   });
@@ -961,38 +1094,13 @@ async function sendCreatorComposeMessage() {
 }
 
 async function ensureCreatorConversation(otherCreatorId, projectId) {
-  if (!projectId) {
-    showToast('Missing project id. Creator discussions must be tied to a project.', 'error');
-    return null;
-  }
+  const { data, error } = await window.sb.rpc('ensure_direct_conversation', {
+    p_other_user_id: otherCreatorId,
+    p_project_id: projectId || null
+  });
 
-  const creatorOneId = [currentUser.id, otherCreatorId].sort()[0];
-  const creatorTwoId = [currentUser.id, otherCreatorId].sort()[1];
-
-  const { data: existing, error: existingError } = await window.sb
-    .from('creator_conversations')
-    .select('*')
-    .eq('creator_one_id', creatorOneId)
-    .eq('creator_two_id', creatorTwoId)
-    .eq('project_id', projectId)
-    .limit(1);
-
-  if (existingError) { showToast(`Failed to open creator discussion: ${existingError.message}`, 'error'); return null; }
-  if (existing?.length) return existing[0];
-
-  const { data: created, error: createError } = await window.sb
-    .from('creator_conversations')
-    .insert({
-      creator_one_id: creatorOneId,
-      creator_two_id: creatorTwoId,
-      initiator_id: currentUser.id,
-      project_id: projectId
-    })
-    .select()
-    .single();
-
-  if (createError) { showToast(`Failed to start creator discussion: ${createError.message}`, 'error'); return null; }
-  return created;
+  if (error) { showToast(`Failed to start conversation: ${error.message}`, 'error'); return null; }
+  return data;
 }
 
 // ── REALTIME ──────────────────────────────────────────────
@@ -1002,6 +1110,7 @@ function startConversationRefresh() {
 
 function stopConversationRefresh() {
   if (studentThreadChannel) { studentThreadChannel.unsubscribe(); studentThreadChannel = null; }
+  if (groupRealtimeChannel) { groupRealtimeChannel.unsubscribe(); groupRealtimeChannel = null; }
   if (conversationRefreshTimer) { window.clearInterval(conversationRefreshTimer); conversationRefreshTimer = null; }
 }
 
@@ -1010,6 +1119,7 @@ function startRealtimeSync() {
   studentRealtimeChannel = window.sb
     .channel(`student-live-${currentUser.id}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => loadConversations())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => loadConversations())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => loadConversations())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
@@ -1167,6 +1277,7 @@ function showSection(section) {
 
   if (section === 'activity') loadActivity();
   if (section === 'community') {
+    loadCommunityGroups();
     renderCommunityCreators();
     renderCommunityProjects();
   }
@@ -1348,9 +1459,11 @@ async function saveEditProject(e) {
 // ── DELETE PROJECT ────────────────────────────────────────
 async function deleteProject(id) {
   if (!confirm('Delete this project? This cannot be undone.')) return;
-  const { error } = await window.sb.from('projects').delete().eq('id', id);
+  const { error } = await window.sb.rpc('delete_project_secure', { p_project_id: id });
   if (error) { showToast('Failed to delete: ' + error.message, 'error'); return; }
   showToast('Project deleted', 'warn');
+  myProjects = myProjects.filter(project => project.id !== id);
+  renderProjects();
   await loadProjects();
   await loadStudentProfile();
 }
@@ -1402,6 +1515,36 @@ async function logout() {
 }
 
 // ── GLOBAL EXPORTS ────────────────────────────────────────
+// Compact Instagram-style profile lookup. This intentionally overrides the
+// older card renderer without changing the surrounding community section.
+function renderCommunityCreators() {
+  const grid = document.getElementById('creator-directory-grid');
+  const empty = document.getElementById('creator-directory-empty');
+  if (!grid) return;
+
+  if (!communityCreators.length) {
+    grid.innerHTML = '';
+    empty?.classList.remove('hidden');
+    return;
+  }
+
+  empty?.classList.add('hidden');
+  grid.innerHTML = communityCreators.map(creator => `
+    <div class="creator-search-item animate-fade-up">
+      <div class="student-avatar">${getThreadInitials(creator.creatorName)}</div>
+      <div class="creator-search-item__body">
+        <div class="creator-search-item__top">
+          <strong>${escHtml(creator.handle ? '@' + creator.handle : creator.creatorName)}</strong>
+          <span class="muted">${escHtml(creator.creatorName)}</span>
+        </div>
+        <div class="creator-search-item__bio">${escHtml(creator.creatorHeadline || 'Profile details can be added later.')}</div>
+        <div class="muted">${escHtml(creator.userId)}${creator.creatorLocation ? ` · ${escHtml(creator.creatorLocation)}` : ''}</div>
+      </div>
+      <button class="btn btn--sm btn--primary" onclick="openCreatorConnection('${creator.userId}')">Message</button>
+    </div>
+  `).join('');
+}
+
 window.openCreatorComposer = openCreatorComposer;
 window.openCreatorConnection = openCreatorConnection;
 window.closeCreatorComposer = closeCreatorComposer;
@@ -1419,6 +1562,10 @@ window.rejectInterview = rejectInterview;
 window.studentReportConversation = studentReportConversation;
 window.studentBlockConversationPartner = studentBlockConversationPartner;
 window.openConversation = openConversation;
+window.createCommunityGroup = createCommunityGroup;
+window.joinCommunityGroup = joinCommunityGroup;
+window.openGroupChat = openGroupChat;
+window.sendGroupMessage = sendGroupMessage;
 
 // ── BOOT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudent);

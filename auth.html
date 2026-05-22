@@ -20,7 +20,7 @@
     <!-- LOGIN FORM -->
     <div id="login-panel">
       <h1 class="auth-title">Sign in to Solvoriz</h1>
-      <p class="auth-sub">Access your profile, projects, and recruiting dashboard.</p>
+      <p class="auth-sub">Access your profile, projects, communities, and messages.</p>
 
       <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
@@ -47,33 +47,13 @@
     <!-- SIGNUP FORM -->
     <div id="signup-panel" class="hidden">
       <h1 class="auth-title">Create your account</h1>
-      <p class="auth-sub">Sign up as a student or recruiter and get started quickly.</p>
+      <p class="auth-sub">Pick a username, create the account, and start using Solvoriz.</p>
 
       <form id="signup-form" onsubmit="handleSignup(event)">
-        <!-- Role selector -->
-        <div style="margin-bottom:20px">
-          <label style="display:block;margin-bottom:10px;font-size:13px;font-weight:500;color:var(--ink-2)">I am a...</label>
-          <div class="role-select-group">
-            <div>
-              <input type="radio" name="role" id="role-student" value="student" class="role-option" checked>
-              <label for="role-student" class="role-option-label">
-                <span class="role-icon">S</span>
-                <span class="role-name">Student</span>
-              </label>
-            </div>
-            <div>
-              <input type="radio" name="role" id="role-recruiter" value="recruiter" class="role-option">
-              <label for="role-recruiter" class="role-option-label">
-                <span class="role-icon">R</span>
-                <span class="role-name">Recruiter</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
         <div class="form-group">
-          <label for="signup-name">Full name</label>
-          <input type="text" id="signup-name" class="input" placeholder="Alex Kim" required>
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" class="input" placeholder="alexbuilds" minlength="3" maxlength="30" required>
+          <div class="muted" id="username-status">Letters, numbers, and underscores only.</div>
         </div>
         <div class="form-group">
           <label for="signup-email">Email</label>
@@ -105,7 +85,7 @@
         <li><span>⚡</span><span>Project-first builder profiles</span></li>
         <li><span>🔍</span><span>Skill-based recruiter search</span></li>
         <li><span>🎯</span><span>Availability signals</span></li>
-        <li><span>📬</span><span>Direct recruiter contact</span></li>
+        <li><span>📬</span><span>Open DMs and creator communities</span></li>
       </ul>
     </div>
   </div>
@@ -129,12 +109,7 @@
   function initAuthPage() {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode') || 'login';
-    const role = params.get('role');
     showPanel(mode);
-    if (role === 'recruiter') {
-      const r = document.getElementById('role-recruiter');
-      if (r) r.checked = true;
-    }
   }
 
   // ── Handle login ──
@@ -165,12 +140,18 @@
     const btn = document.getElementById('signup-btn');
     setBtnLoading(btn, true, 'Creating account...');
 
-    const fullName = document.getElementById('signup-name').value.trim();
+    const username = Auth.normalizeUsername(document.getElementById('signup-username').value);
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
-    const role = document.querySelector('input[name="role"]:checked').value;
 
-    const { data, error } = await Auth.signUp({ email, password, fullName, role });
+    const usernameAvailable = await Auth.isUsernameAvailable(username);
+    if (!usernameAvailable) {
+      setBtnLoading(btn, false);
+      showToast('That username is unavailable. Try another one.', 'error');
+      return;
+    }
+
+    const { error } = await Auth.signUp({ email, password, username });
     setBtnLoading(btn, false);
 
     if (error) {
@@ -178,12 +159,8 @@
       return;
     }
 
-    const nextRole = data?.user?.user_metadata?.requested_role === 'recruiter' ? 'student' : 'student';
-    showToast(role === 'recruiter'
-      ? 'Account created. Recruiter access stays locked until an admin promotes and verifies you.'
-      : 'Account created! Redirecting...',
-      role === 'recruiter' ? 'warn' : 'success');
-    setTimeout(() => redirect(nextRole), 1200);
+    showToast('Account created. Start exploring Solvoriz.', 'success');
+    setTimeout(() => redirect('student'), 1000);
   }
 
   function redirect(role) {
@@ -203,6 +180,22 @@
   document.addEventListener('DOMContentLoaded', () => {
     initAuthPage();
     checkExistingSession();
+    const usernameInput = document.getElementById('signup-username');
+    const status = document.getElementById('username-status');
+    let usernameTimer = null;
+    usernameInput?.addEventListener('input', () => {
+      const normalized = Auth.normalizeUsername(usernameInput.value);
+      if (usernameInput.value !== normalized) usernameInput.value = normalized;
+      clearTimeout(usernameTimer);
+      if (!normalized) {
+        if (status) status.textContent = 'Letters, numbers, and underscores only.';
+        return;
+      }
+      usernameTimer = setTimeout(async () => {
+        const available = await Auth.isUsernameAvailable(normalized);
+        if (status) status.textContent = available ? 'Username available.' : 'Username unavailable.';
+      }, 250);
+    });
   });
 </script>
 </body>
