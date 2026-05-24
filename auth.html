@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="experience-body auth-experience-body">
 
 <div class="auth-page">
   <!-- LEFT: Forms -->
@@ -46,14 +46,37 @@
 
     <!-- SIGNUP FORM -->
     <div id="signup-panel" class="hidden">
-      <h1 class="auth-title">Create your account</h1>
-      <p class="auth-sub">Pick a username, create the account, and start using Solvoriz.</p>
+      <h1 class="auth-title">Find your builder circle</h1>
+      <p class="auth-sub">Tell Solvoriz what you are building so your feed, collaborators, and launch path start with signal.</p>
 
       <form id="signup-form" onsubmit="handleSignup(event)">
         <div class="form-group">
           <label for="signup-username">Username</label>
           <input type="text" id="signup-username" class="input" placeholder="alexbuilds" minlength="3" maxlength="30" required>
           <div class="muted" id="username-status">Letters, numbers, and underscores only.</div>
+        </div>
+        <div class="form-group">
+          <label for="signup-building">What are you building?</label>
+          <input type="text" id="signup-building" class="input" placeholder="An AI study tool, a design system, a SaaS idea...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signup-builder-role">Builder role</label>
+            <select id="signup-builder-role" class="select input">
+              <option>Founder</option>
+              <option>Developer</option>
+              <option>Designer</option>
+              <option>Content creator</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="signup-collab">Looking for teammates?</label>
+            <select id="signup-collab" class="select input">
+              <option>Yes, actively</option>
+              <option>Open to it</option>
+              <option>Not right now</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
           <label for="signup-email">Email</label>
@@ -79,8 +102,8 @@
   <!-- RIGHT: Marketing -->
   <div class="auth-right">
     <div class="auth-right-content">
-      <h2>Proof-of-work hiring starts here.</h2>
-      <p>Your projects speak louder than any resume. Showcase what you've built and get discovered by companies who care.</p>
+      <h2>Your internet home for building in public.</h2>
+      <p>Join discussions, launch products, meet collaborators, and turn proof of work into a living builder identity.</p>
       <ul class="auth-feature-list">
         <li><span>⚡</span><span>Project-first builder profiles</span></li>
         <li><span>🔍</span><span>Skill-based recruiter search</span></li>

@@ -57,6 +57,10 @@ async function initStudent() {
   const initials = (currentProfile.full_name || currentUser.email)
     .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
+  const composerAvatar = document.getElementById('composer-avatar');
+  if (composerAvatar) composerAvatar.textContent = initials;
+  const profileAvatarPreview = document.getElementById('profile-avatar-preview');
+  if (profileAvatarPreview) profileAvatarPreview.textContent = initials;
 
   await ensureStudentPolicyAccepted();
 
@@ -171,6 +175,7 @@ function populateProfileForm(profile) {
   if (ageEl) ageEl.value = profile.age || '';
   const avatarEl = document.getElementById('profile-avatar');
   if (avatarEl) avatarEl.value = profile.avatar_url || '';
+  updateAvatarPreview(profile.avatar_url, profile.full_name || currentProfile?.full_name || currentUser?.email);
   const visibilityEl = document.getElementById('profile-visibility');
   if (visibilityEl) visibilityEl.value = profile.visibility || 'public';
   const githubEl = document.getElementById('profile-github');
@@ -208,6 +213,19 @@ function updateOverviewCard(profile) {
   const scoreBar = document.getElementById('overview-score-bar');
   if (scoreBar) scoreBar.style.width = '100%';
   updateProfilePrompt(profile);
+}
+
+function updateAvatarPreview(url, name) {
+  const targets = [
+    document.getElementById('user-avatar'),
+    document.getElementById('composer-avatar'),
+    document.getElementById('profile-avatar-preview')
+  ].filter(Boolean);
+  const initials = getThreadInitials(name || currentUser?.email || 'Builder');
+  targets.forEach(target => {
+    target.textContent = url ? '' : initials;
+    target.style.backgroundImage = url ? `url("${url}")` : '';
+  });
 }
 
 function calculateProfileScore(profile) {
@@ -1332,6 +1350,54 @@ function initForms() {
       }, 300);
     });
   }
+
+  const avatarFile = document.getElementById('profile-avatar-file');
+  if (avatarFile) {
+    avatarFile.addEventListener('change', () => {
+      const file = avatarFile.files?.[0];
+      if (!file) return;
+      updateAvatarPreview(URL.createObjectURL(file), currentProfile?.full_name || currentUser?.email);
+    });
+  }
+}
+
+async function compressAvatarFile(file) {
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const scale = Math.max(size / image.width, size / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  ctx.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.82));
+}
+
+async function uploadAvatarIfNeeded() {
+  const fileInput = document.getElementById('profile-avatar-file');
+  const hiddenInput = document.getElementById('profile-avatar');
+  const file = fileInput?.files?.[0];
+  if (!file) return hiddenInput?.value.trim() || null;
+
+  const compressed = await compressAvatarFile(file);
+  const path = `${currentUser.id}/avatar-${Date.now()}.webp`;
+  const { error } = await window.sb.storage
+    .from('avatars')
+    .upload(path, compressed || file, { contentType: 'image/webp', upsert: true });
+  if (error) throw error;
+
+  const { data } = window.sb.storage.from('avatars').getPublicUrl(path);
+  const publicUrl = data?.publicUrl || null;
+  if (hiddenInput) hiddenInput.value = publicUrl || '';
+  updateAvatarPreview(publicUrl, currentProfile?.full_name || currentUser?.email);
+  return publicUrl;
 }
 
 // ── SAVE PROFILE ──────────────────────────────────────────
@@ -1341,12 +1407,20 @@ async function saveProfile(e) {
   e.preventDefault();
   const btn = e.target.querySelector('[type="submit"]');
   setBtnLoading(btn, true, 'Saving...');
+  let avatarUrl = document.getElementById('profile-avatar')?.value.trim() || null;
+  try {
+    avatarUrl = await uploadAvatarIfNeeded();
+  } catch (error) {
+    setBtnLoading(btn, false);
+    showToast('Avatar upload failed: ' + error.message, 'error');
+    return;
+  }
 
   const payload = {
     user_id: currentUser.id,
     handle: document.getElementById('profile-handle').value.trim() || null,
     age: parseInt(document.getElementById('profile-age').value, 10) || null,
-    avatar_url: document.getElementById('profile-avatar').value.trim() || null,
+    avatar_url: avatarUrl,
     github_username: document.getElementById('profile-github').value.trim() || null,
     headline: document.getElementById('profile-headline').value.trim(),
     bio: document.getElementById('profile-bio').value.trim(),

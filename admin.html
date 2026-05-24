@@ -21,7 +21,7 @@
     }
   </style>
 </head>
-<body>
+<body class="experience-body">
 
 <div class="dash-layout">
   <!-- SIDEBAR -->
@@ -46,6 +46,9 @@
       </button>
       <button class="nav-item" data-section="moderation" onclick="showSection('moderation')">
         <span class="nav-icon">⚖</span> Moderation
+      </button>
+      <button class="nav-item" data-section="communications" onclick="showSection('communications')">
+        <span class="nav-icon">✉</span> Support inbox
       </button>
     </nav>
 
@@ -259,6 +262,42 @@
       </div>
     </section>
 
+    <section class="dash-section" id="section-communications">
+      <div class="section-header">
+        <h1 class="section-header__title">Admin Communications</h1>
+        <p class="section-header__sub">Support, modmail, announcements, and moderation communication tools in one operational inbox.</p>
+      </div>
+      <div class="messages-layout">
+        <aside class="messages-sidebar">
+          <div class="messages-sidebar__header">
+            <div>
+              <strong>Queues</strong>
+              <div class="muted">Support, moderation, launch reviews</div>
+            </div>
+            <span class="thread-status-badge thread-status-badge--ok">Prepared</span>
+          </div>
+          <div class="thread-list">
+            <button class="thread-item active"><strong>Support requests</strong><span>Billing, account, safety</span></button>
+            <button class="thread-item"><strong>Modmail</strong><span>Reports and appeals</span></button>
+            <button class="thread-item"><strong>Announcements</strong><span>Platform-wide broadcasts</span></button>
+          </div>
+        </aside>
+        <section class="chat-panel">
+          <div class="chat-panel__header">
+            <div>
+              <div>Communication command center</div>
+              <div class="muted">Connect this surface to admin-to-user threads, seen states, and announcement delivery.</div>
+            </div>
+          </div>
+          <div class="chat-messages">
+            <div class="chat-bubble">
+              <div class="chat-bubble__meta">System blueprint</div>
+              <div class="chat-bubble__text">Next database step: unify support tickets, admin announcements, and moderation reports into conversation-backed queues.</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
   </main>
 </div>
 

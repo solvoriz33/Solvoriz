@@ -68,6 +68,9 @@ function renderProfile(profile) {
     </div>
   `).join('');
   const headline = profile.headline || 'Project-first creator profile';
+  const avatarStyle = profile.avatar_url
+    ? `style="width:72px;height:72px;font-size:0;background-image:url('${escHtml(profile.avatar_url)}')"`
+    : 'style="width:72px;height:72px;font-size:28px"';
   const visibleProjectCount = visibleProjects.length;
   const reviewCopy = profile.review_status === 'approved'
     ? 'Admin reviewed'
@@ -86,7 +89,7 @@ function renderProfile(profile) {
       <div class="overview-profile-card animate-fade-up" style="margin-bottom:20px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-            <div class="user-avatar-sm" style="width:72px;height:72px;font-size:28px">${getInitials(name)}</div>
+            <div class="user-avatar-sm avatar-generated" ${avatarStyle}>${profile.avatar_url ? '' : getInitials(name)}</div>
             <div>
               <div class="muted">@${escHtml(profile.handle || 'profile')}</div>
               <h2 style="margin:4px 0 6px">${escHtml(name)}</h2>
@@ -129,10 +132,18 @@ function renderProfile(profile) {
             </div>
           </div>
           <div class="card">
-            <div class="card__title">Profile status</div>
-            <div class="muted" style="margin-top:6px">This profile is visible. More details simply give builders and recruiters better context.</div>
+            <div class="card__title">Builder identity</div>
+            <div class="muted" style="margin-top:6px">Currently building, collaboration status, launch history, and contribution signals all live here.</div>
             <div class="progress-bar" style="margin-top:14px"><div class="progress-fill" style="width:100%"></div></div>
             <div class="muted" style="margin-top:10px">Live and searchable</div>
+          </div>
+          <div class="card">
+            <h4>Collaboration</h4>
+            <ul class="clean">
+              <li>${profile.availability ? escHtml(profile.availability) : 'Availability not set yet'}</li>
+              <li>${visibleProjectCount ? `${visibleProjectCount} shipped project signals` : 'Project history still forming'}</li>
+              <li>Open to project-first discovery inside Solvoriz</li>
+            </ul>
           </div>
           <div class="card">
             <h4>Skills</h4>
