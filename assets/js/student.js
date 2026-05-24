@@ -606,7 +606,7 @@ function renderCommunityProjects() {
 }
 
 // ── COMMUNITY: RENDER CREATORS ────────────────────────────
-function renderCommunityCreators() {
+function renderCommunityCreatorsCardLayout() {
   const grid = document.getElementById('creator-directory-grid');
   const empty = document.getElementById('creator-directory-empty');
   if (!grid) return;
@@ -1346,6 +1346,7 @@ function initForms() {
         const avail = document.getElementById('community-availability-filter')?.value || '';
         // Projects filter client-side (fast), creators re-query server-side
         renderCommunityProjects();
+        renderCommunityCreators();
         await loadCommunityCreators(q, avail);
       }, 300);
     });
@@ -1589,21 +1590,34 @@ async function logout() {
 }
 
 // ── GLOBAL EXPORTS ────────────────────────────────────────
-// Compact Instagram-style profile lookup. This intentionally overrides the
-// older card renderer without changing the surrounding community section.
+// Compact profile lookup for the community search results.
 function renderCommunityCreators() {
   const grid = document.getElementById('creator-directory-grid');
   const empty = document.getElementById('creator-directory-empty');
   if (!grid) return;
+  const q = getCommunityQuery();
+  const visibleCreators = communityCreators.filter(creator => {
+    if (!q) return true;
+    return [
+      creator.handle,
+      creator.creatorName,
+      creator.creatorHeadline,
+      creator.creatorLocation,
+      creator.githubUsername,
+      creator.userId,
+      ...(creator.skills || []),
+      ...(creator.projectTitles || [])
+    ].some(value => String(value || '').toLowerCase().includes(q));
+  });
 
-  if (!communityCreators.length) {
+  if (!visibleCreators.length) {
     grid.innerHTML = '';
     empty?.classList.remove('hidden');
     return;
   }
 
   empty?.classList.add('hidden');
-  grid.innerHTML = communityCreators.map(creator => `
+  grid.innerHTML = visibleCreators.map(creator => `
     <div class="creator-search-item animate-fade-up">
       <div class="student-avatar">${getThreadInitials(creator.creatorName)}</div>
       <div class="creator-search-item__body">
