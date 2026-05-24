@@ -228,6 +228,14 @@ function updateAvatarPreview(url, name) {
   });
 }
 
+function getDisplayUsername(user) {
+  if (!user) return 'unknown';
+  if (user.username) return `@${user.username}`;
+  if (user.display_name) return user.display_name;
+  if (user.full_name) return user.full_name;
+  return user.email?.split('@')[0] || 'unknown';
+}
+
 function calculateProfileScore(profile) {
   return 100;
 }
@@ -502,7 +510,7 @@ async function openGroupChat(groupId) {
 async function loadGroupMessages(groupId) {
   const { data, error } = await window.sb
     .from('group_messages')
-    .select('*, sender:sender_id(id, full_name, email)')
+    .select('*, sender:sender_id(id, username, display_name, full_name, email)')
     .eq('group_id', groupId)
     .order('created_at', { ascending: true })
     .limit(60);
@@ -517,7 +525,7 @@ async function loadGroupMessages(groupId) {
   pane.innerHTML = data.map(message => `
     <div class="chat-row ${message.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
       <div class="chat-bubble ${message.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
-        <div class="chat-bubble__meta">${escHtml(message.sender?.full_name || message.sender?.email || 'Builder')} · ${fmtTime(message.created_at)}</div>
+        <div class="chat-bubble__meta">${escHtml(getDisplayUsername(message.sender))} · ${fmtTime(message.created_at)}</div>
         <div class="chat-bubble__text">${escHtml(message.body)}</div>
       </div>
     </div>
