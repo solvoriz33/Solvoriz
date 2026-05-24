@@ -13,6 +13,9 @@ let myActivity = [];
 let communityProjects = [];
 let communityCreators = [];
 let communityGroups = [];
+let socialPosts = [];
+let socialSchemaAvailable = true;
+let activeFeedFilter = 'all';
 let profileSkills = [];
 let projectSkills = [];
 let editProjectSkills = [];
@@ -66,11 +69,12 @@ async function initStudent() {
 
   initForms();
   await loadStudentProfile();
-  await Promise.all([loadProjects(), loadCommunityProjects(), loadCommunityCreators(), loadCommunityGroups(), loadNotifications(), loadActivity(), loadConversations()]);
+  await Promise.all([loadProjects(), loadCommunityProjects(), loadSocialFeed(), loadCommunityCreators(), loadCommunityGroups(), loadNotifications(), loadActivity(), loadConversations()]);
   setupMessagingComposer();
   startRealtimeSync();
   const ovName = document.getElementById('overview-name');
   if (ovName) ovName.textContent = currentProfile.full_name || currentUser.email;
+  renderFeed();
   showSection('overview');
   startConversationRefresh();
 }
@@ -249,8 +253,8 @@ function updateProfilePrompt(profile) {
   const discoverable = true;
 
   if (discoverable) {
-    if (strong) strong.textContent = 'You are live on Solvoriz';
-    if (span) span.textContent = 'Your profile is searchable now. Add bio, avatar, skills, and projects later to give people more context.';
+    if (strong) strong.textContent = 'Your builder identity is live';
+    if (span) span.textContent = 'Add your current build, collaboration asks, screenshots, demos, and GitHub so people know why to talk to you.';
     if (actionBtn) actionBtn.textContent = profile?.headline || profile?.bio ? 'Polish profile' : 'Add details';
     prompt.style.borderColor = 'rgba(14,122,80,.2)';
     prompt.style.background = 'linear-gradient(135deg, rgba(14,122,80,.08) 0%, rgba(14,122,80,.04) 100%)';
@@ -262,10 +266,10 @@ function updateProfilePrompt(profile) {
   if ((profile?.visibility || 'public') === 'hidden') missing.push('switch visibility to public');
   if (false) missing.push('add at least one visible project');
 
-  if (strong) strong.textContent = 'Complete your profile to get discovered';
+  if (strong) strong.textContent = 'Make your profile easier to trust';
   if (span) span.textContent = missing.length
-    ? `Before recruiters can find you, you still need to ${missing.join(', ')}.`
-    : 'Add a headline, skills, and a project when you are ready.';
+    ? `You still need to ${missing.join(', ')}.`
+    : 'Add a headline, skills, and a launch when you are ready.';
   if (actionBtn) actionBtn.textContent = 'Add details';
   prompt.style.borderColor = 'rgba(24,71,248,.2)';
   prompt.style.background = 'linear-gradient(135deg, rgba(24,71,248,.08) 0%, rgba(24,71,248,.04) 100%)';
@@ -298,8 +302,10 @@ async function loadProjects() {
   if (error) { showToast('Failed to load projects', 'error'); return; }
   myProjects = data || [];
 
-  document.getElementById('project-count').textContent = myProjects.length;
+  const projectCount = document.getElementById('project-count');
+  if (projectCount) projectCount.textContent = myProjects.length;
   renderProjects();
+  populateQuickPostProjectOptions();
   updateProjectLimitState();
   await syncDiscoverability();
   updateOverviewCard(currentProfile || {});
@@ -370,6 +376,54 @@ async function loadCommunityProjects() {
   );
 
   renderCommunityProjects();
+  renderFeed();
+  updateContextPanels();
+}
+
+async function loadSocialFeed() {
+  if (!window.sb) return;
+  const { data, error } = await window.sb
+    .from('social_posts')
+    .select(`
+      *,
+      author:author_id(id, full_name, email, username, display_name, student_profiles(handle, headline, avatar_url)),
+      project:project_id(id, title, project_type, demo_link, github_link),
+      comments:social_comments(
+        id,
+        post_id,
+        parent_id,
+        body,
+        created_at,
+        author_id,
+        author:author_id(id, full_name, email, username, display_name, student_profiles(handle, headline, avatar_url))
+      ),
+      reactions:social_reactions(id, target_type, target_id, reaction, user_id)
+    `)
+    .eq('visibility', 'public')
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  if (error) {
+    socialSchemaAvailable = false;
+    console.warn('Social feed tables are not available yet', error);
+    socialPosts = [];
+    renderFeed();
+    return;
+  }
+
+  socialSchemaAvailable = true;
+  socialPosts = data || [];
+  renderFeed();
+  updateContextPanels();
+}
+
+function populateQuickPostProjectOptions() {
+  const select = document.getElementById('quick-post-project');
+  if (!select) return;
+  select.innerHTML = '<option value="">No project attached</option>' + myProjects
+    .filter(project => project.visible)
+    .map(project => `<option value="${escHtml(project.id)}">${escHtml(project.title)}</option>`)
+    .join('');
 }
 
 // ── COMMUNITY: LOAD CREATORS (server-side search) ─────────
@@ -660,6 +714,263 @@ function renderCommunityCreatorsCardLayout() {
 
 function getCommunityQuery() {
   return document.getElementById('community-search-input')?.value.trim().toLowerCase() || '';
+}
+
+function focusQuickPost() {
+  showSection('overview');
+  const input = document.getElementById('quick-post-body');
+  input?.focus();
+  input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function setFeedFilter(filter) {
+  activeFeedFilter = filter || 'all';
+  document.querySelectorAll('[data-feed-filter]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.feedFilter === activeFeedFilter);
+  });
+  renderFeed();
+}
+
+async function createQuickPost(event) {
+  event.preventDefault();
+  const bodyEl = document.getElementById('quick-post-body');
+  const imageEl = document.getElementById('quick-post-image');
+  const kindEl = document.getElementById('quick-post-kind');
+  const body = bodyEl?.value.trim().slice(0, 1200) || '';
+  const imageUrl = imageEl?.value.trim() || null;
+  const kind = kindEl?.value || 'update';
+  if (!body) {
+    showToast('Write something first.', 'warn');
+    return;
+  }
+  if (!socialSchemaAvailable) {
+    showToast('Quick posts need the social feed migration to be applied first.', 'warn');
+    return;
+  }
+
+  const btn = event.target.querySelector('[type="submit"]');
+  setBtnLoading(btn, true, 'Posting...');
+  const { error } = await window.sb.from('social_posts').insert({
+    author_id: currentUser.id,
+    kind,
+    body,
+    image_url: imageUrl,
+    visibility: 'public'
+  });
+  setBtnLoading(btn, false);
+
+  if (error) {
+    socialSchemaAvailable = error.code === '42P01' ? false : socialSchemaAvailable;
+    showToast('Failed to post: ' + error.message, 'error');
+    return;
+  }
+
+  event.target.reset();
+  showToast('Posted to the feed.', 'success');
+  await loadSocialFeed();
+}
+
+function getFeedItems() {
+  const postItems = socialPosts.map(post => ({ type: post.kind || 'update', source: 'post', created_at: post.created_at, data: post }));
+  const postedProjectIds = new Set(socialPosts.map(post => post.project_id).filter(Boolean));
+  const launchItems = communityProjects
+    .filter(project => !postedProjectIds.has(project.id))
+    .map(project => ({ type: 'launch', source: 'project', created_at: project.created_at, data: project }));
+  return [...postItems, ...launchItems]
+    .filter(item => activeFeedFilter === 'all' || item.type === activeFeedFilter || (activeFeedFilter === 'question' && item.type === 'discussion'))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function renderFeed() {
+  const feed = document.getElementById('social-feed');
+  const empty = document.getElementById('feed-empty');
+  if (!feed) return;
+
+  const items = getFeedItems();
+  if (!items.length) {
+    feed.innerHTML = '';
+    empty?.classList.remove('hidden');
+    updateContextPanels();
+    return;
+  }
+
+  empty?.classList.add('hidden');
+  feed.innerHTML = items.map(item => item.source === 'project'
+    ? renderProjectFeedItem(item.data)
+    : renderSocialPostItem(item.data)
+  ).join('');
+  updateContextPanels();
+}
+
+function renderProjectFeedItem(project) {
+  const author = project.creatorName || 'Builder';
+  return `
+    <article class="feed-item feed-item--launch animate-fade-up">
+      <div class="feed-item__meta">
+        <div class="student-avatar">${getThreadInitials(author)}</div>
+        <div>
+          <strong>${escHtml(author)}</strong>
+          <span>${escHtml(project.project_type || 'Launch')} · ${fmtDate(project.created_at)}</span>
+        </div>
+      </div>
+      ${project.image_url ? `<div class="feed-item__image" style="background-image:url('${escHtml(project.image_url)}')"></div>` : ''}
+      <div class="post-type">Launch</div>
+      <h2>${escHtml(project.title)}</h2>
+      <p>${escHtml(project.description || 'No description added yet.')}</p>
+      <div class="project-card__skills">
+        ${(project.tech_stack || []).slice(0, 6).map(skill => `<span class="skill-chip skill-chip--sm">${escHtml(skill)}</span>`).join('')}
+      </div>
+      <div class="feed-item__actions">
+        ${project.demo_link ? `<a class="feed-action" href="${escHtml(project.demo_link)}" target="_blank" rel="noopener">Live demo</a>` : ''}
+        ${project.github_link ? `<a class="feed-action" href="${escHtml(project.github_link)}" target="_blank" rel="noopener">GitHub</a>` : ''}
+        <button class="feed-action" onclick="openCreatorComposer('${project.id}')">Discuss project</button>
+      </div>
+      <div class="comment-empty">${socialSchemaAvailable ? 'This launch does not have a public thread yet. Use Discuss project.' : 'Public comments for launches need the social feed migration. Until then, use Discuss project.'}</div>
+    </article>
+  `;
+}
+
+function renderSocialPostItem(post) {
+  const author = normalizePostAuthor(post.author);
+  const comments = Array.isArray(post.comments) ? [...post.comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) : [];
+  const topLevel = comments.filter(comment => !comment.parent_id);
+  const reactions = Array.isArray(post.reactions) ? post.reactions.filter(reaction => reaction.target_type === 'post') : [];
+  const kind = post.kind === 'build_log' ? 'Build log' : post.kind === 'question' ? 'Discussion' : post.kind === 'launch' ? 'Launch note' : 'Update';
+  return `
+    <article class="feed-item animate-fade-up" id="post-${escHtml(post.id)}">
+      <div class="feed-item__meta">
+        <div class="student-avatar" ${author.avatar ? `style="background-image:url('${escHtml(author.avatar)}')"` : ''}>${author.avatar ? '' : getThreadInitials(author.name)}</div>
+        <div>
+          <strong>${escHtml(author.handle || author.name)}</strong>
+          <span>${escHtml(kind)} · ${fmtDate(post.created_at)}</span>
+        </div>
+      </div>
+      <p class="feed-item__body">${escHtml(post.body)}</p>
+      ${post.image_url ? `<img class="feed-item__media" src="${escHtml(post.image_url)}" alt="">` : ''}
+      <div class="feed-item__actions">
+        <button class="feed-action" onclick="togglePostReaction('${post.id}', 'build')">Build ${reactions.length ? `(${reactions.length})` : ''}</button>
+        <button class="feed-action" onclick="focusComment('${post.id}')">Reply</button>
+      </div>
+      <div class="comments" id="comments-${escHtml(post.id)}">
+        ${topLevel.length ? topLevel.map(comment => renderComment(comment, comments, post.id, 0)).join('') : '<div class="comment-empty">No replies yet. Be useful first.</div>'}
+      </div>
+      <form class="comment-composer" onsubmit="createComment(event, '${post.id}', '')">
+        <textarea id="comment-input-${escHtml(post.id)}" class="comment-input" rows="2" maxlength="800" placeholder="Add a thoughtful reply..."></textarea>
+        <button class="btn btn--primary btn--sm" type="submit">Reply</button>
+      </form>
+    </article>
+  `;
+}
+
+function renderComment(comment, allComments, postId, depth) {
+  const author = normalizePostAuthor(comment.author);
+  const replies = allComments.filter(item => item.parent_id === comment.id);
+  const safeDepth = Math.min(depth, 3);
+  return `
+    <div class="comment" style="--depth:${safeDepth}">
+      <div class="comment__line"></div>
+      <div class="comment__body">
+        <div class="comment__meta"><strong>${escHtml(author.handle || author.name)}</strong><span>${fmtDate(comment.created_at)}</span></div>
+        <p>${escHtml(comment.body)}</p>
+        <button class="comment__reply" type="button" onclick="toggleReplyBox('${comment.id}')">Reply</button>
+        <form class="comment-composer comment-composer--nested hidden" id="reply-box-${escHtml(comment.id)}" onsubmit="createComment(event, '${postId}', '${comment.id}')">
+          <textarea class="comment-input" rows="2" maxlength="800" placeholder="Reply with context..."></textarea>
+          <button class="btn btn--primary btn--sm" type="submit">Reply</button>
+        </form>
+        ${replies.map(reply => renderComment(reply, allComments, postId, safeDepth + 1)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function normalizePostAuthor(authorJoin) {
+  const author = Array.isArray(authorJoin) ? authorJoin[0] : authorJoin;
+  const profile = Array.isArray(author?.student_profiles) ? author.student_profiles[0] : author?.student_profiles;
+  const name = author?.display_name || author?.full_name || author?.email?.split('@')[0] || 'Builder';
+  return {
+    name,
+    handle: profile?.handle ? `@${profile.handle}` : author?.username ? `@${author.username}` : '',
+    avatar: profile?.avatar_url || ''
+  };
+}
+
+function focusComment(postId) {
+  const input = document.getElementById(`comment-input-${postId}`);
+  input?.focus();
+}
+
+function toggleReplyBox(commentId) {
+  document.getElementById(`reply-box-${commentId}`)?.classList.toggle('hidden');
+}
+
+async function createComment(event, postId, parentId) {
+  event.preventDefault();
+  if (!socialSchemaAvailable) {
+    showToast('Comments need the social feed migration to be applied first.', 'warn');
+    return;
+  }
+  const input = event.target.querySelector('textarea');
+  const body = input?.value.trim().slice(0, 800) || '';
+  if (!body) return;
+  const btn = event.target.querySelector('[type="submit"]');
+  setBtnLoading(btn, true, 'Replying...');
+  const { error } = await window.sb.from('social_comments').insert({
+    post_id: postId,
+    parent_id: parentId || null,
+    author_id: currentUser.id,
+    body
+  });
+  setBtnLoading(btn, false);
+  if (error) {
+    showToast('Failed to reply: ' + error.message, 'error');
+    return;
+  }
+  if (input) input.value = '';
+  await loadSocialFeed();
+}
+
+async function togglePostReaction(postId, reaction) {
+  if (!socialSchemaAvailable) {
+    showToast('Reactions need the social feed migration to be applied first.', 'warn');
+    return;
+  }
+  const existing = socialPosts
+    .find(post => post.id === postId)
+    ?.reactions
+    ?.find(item => item.target_type === 'post' && item.user_id === currentUser.id && item.reaction === reaction);
+  const { error } = existing
+    ? await window.sb.from('social_reactions').delete().eq('id', existing.id)
+    : await window.sb.from('social_reactions').insert({ target_type: 'post', target_id: postId, user_id: currentUser.id, reaction });
+  if (error) {
+    showToast('Failed to save reaction: ' + error.message, 'error');
+    return;
+  }
+  await loadSocialFeed();
+}
+
+function updateContextPanels() {
+  const launchPanel = document.getElementById('launches-panel');
+  const discussionPanel = document.getElementById('active-discussions-panel');
+  const recentPanel = document.getElementById('recent-activity-panel');
+  const launches = communityProjects.slice(0, 3);
+  const discussions = socialPosts.filter(post => post.kind === 'question' || (post.comments || []).length).slice(0, 3);
+  const recent = getFeedItems().slice(0, 3);
+
+  if (launchPanel) {
+    launchPanel.innerHTML = launches.length
+      ? launches.map(project => `<button class="side-feed-link" onclick="setFeedFilter('launch')">${escHtml(project.title)}</button>`).join('')
+      : 'No launches yet.';
+  }
+  if (discussionPanel) {
+    discussionPanel.innerHTML = discussions.length
+      ? discussions.map(post => `<button class="side-feed-link" onclick="setFeedFilter('${escHtml(post.kind || 'all')}')">${escHtml(post.body.slice(0, 64))}${post.body.length > 64 ? '...' : ''}</button>`).join('')
+      : 'No discussions yet.';
+  }
+  if (recentPanel) {
+    recentPanel.innerHTML = recent.length
+      ? recent.map(item => `<span class="side-feed-chip">${escHtml(item.type === 'build_log' ? 'Build log' : item.type === 'question' ? 'Discussion' : item.type === 'launch' ? 'Launch' : 'Update')}</span>`).join('')
+      : 'No recent activity yet.';
+  }
 }
 
 // ── CONVERSATIONS ─────────────────────────────────────────
@@ -1148,6 +1459,9 @@ function startRealtimeSync() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => loadConversations())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => loadConversations())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => loadConversations())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => loadSocialFeed())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_comments' }, () => loadSocialFeed())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_reactions' }, () => loadSocialFeed())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
     .subscribe();
 }
@@ -1302,6 +1616,7 @@ function showSection(section) {
   if (navEl) navEl.classList.add('active');
 
   if (section === 'activity') loadActivity();
+  if (section === 'overview') renderFeed();
   if (section === 'community') {
     loadCommunityGroups();
     renderCommunityCreators();
@@ -1473,15 +1788,27 @@ async function addProject(e) {
     github_link: document.getElementById('proj-github').value.trim() || null
   };
 
-  const { error } = await window.sb.from('projects').insert(payload);
+  const { data: createdProject, error } = await window.sb.from('projects').insert(payload).select('id').maybeSingle();
   setBtnLoading(btn, false);
 
   if (error) { showToast('Failed to add project: ' + error.message, 'error'); return; }
-  showToast('Project added!', 'success');
+  if (createdProject?.id && socialSchemaAvailable) {
+    const { error: postError } = await window.sb.from('social_posts').insert({
+      author_id: currentUser.id,
+      project_id: createdProject.id,
+      kind: 'launch',
+      body: payload.description,
+      image_url: payload.image_url,
+      visibility: payload.visible ? 'public' : 'hidden'
+    });
+    if (postError && postError.code === '42P01') socialSchemaAvailable = false;
+  }
+  showToast('Project launched.', 'success');
   e.target.reset();
   projectSkills.length = 0;
   document.getElementById('add-proj-skills-wrap')?.querySelectorAll('.skill-tag').forEach(t => t.remove());
   await loadProjects();
+  await loadSocialFeed();
   await loadStudentProfile();
   showSection('projects');
 }
@@ -1662,6 +1989,13 @@ window.createCommunityGroup = createCommunityGroup;
 window.joinCommunityGroup = joinCommunityGroup;
 window.openGroupChat = openGroupChat;
 window.sendGroupMessage = sendGroupMessage;
+window.focusQuickPost = focusQuickPost;
+window.createQuickPost = createQuickPost;
+window.setFeedFilter = setFeedFilter;
+window.createComment = createComment;
+window.focusComment = focusComment;
+window.toggleReplyBox = toggleReplyBox;
+window.togglePostReaction = togglePostReaction;
 
 // ── BOOT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudent);

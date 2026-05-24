@@ -19,14 +19,14 @@
     </a>
 
     <nav class="experience-nav" aria-label="Primary navigation">
-      <button class="nav-item active" data-section="overview" onclick="showSection('overview')"><span class="nav-icon">#</span> Home</button>
-      <button class="nav-item" data-section="community" onclick="showSection('community')"><span class="nav-icon">/</span> Community</button>
-      <button class="nav-item" data-section="projects" onclick="showSection('projects')"><span class="nav-icon">P</span> Projects</button>
+      <button class="nav-item active" data-section="overview" onclick="showSection('overview')"><span class="nav-icon">#</span> Feed</button>
+      <button class="nav-item" data-section="community" onclick="showSection('community')"><span class="nav-icon">/</span> Browse</button>
+      <button class="nav-item" data-section="projects" onclick="showSection('projects')"><span class="nav-icon">L</span> Launches</button>
       <button class="nav-item" data-section="messages" onclick="showSection('messages')"><span class="nav-icon">M</span> Messages <span id="message-count" class="nav-count">0</span></button>
       <button class="nav-item" data-section="notifications" onclick="showSection('notifications')"><span class="nav-icon">N</span> Notifications <span id="notification-count" class="nav-count">0</span></button>
       <button class="nav-item" data-section="activity" onclick="showSection('activity')"><span class="nav-icon">A</span> Activity</button>
       <button class="nav-item" data-section="profile" onclick="showSection('profile')"><span class="nav-icon">@</span> Profile</button>
-      <button class="nav-item" data-section="add-project" onclick="showSection('add-project')"><span class="nav-icon">+</span> New post</button>
+      <button class="nav-item" data-section="add-project" onclick="showSection('add-project')"><span class="nav-icon">+</span> Launch</button>
     </nav>
 
     <div class="rail-panel">
@@ -51,7 +51,7 @@
       <div class="topbar-actions">
         <button class="icon-btn" title="Notifications" onclick="showSection('notifications')">N</button>
         <button class="icon-btn" title="Inbox" onclick="showSection('messages')">M</button>
-        <button class="btn btn--primary btn--sm" onclick="showSection('add-project')">Post</button>
+        <button class="btn btn--primary btn--sm" onclick="focusQuickPost()">Post</button>
       </div>
     </header>
 
@@ -60,57 +60,61 @@
         <section class="dash-section active" id="section-overview">
           <div class="feed-hero">
             <div>
-              <div class="rail-kicker">Home</div>
+              <div class="rail-kicker">Builder feed</div>
               <h1>What are you building?</h1>
-              <p>Post a project, ask for feedback, or find people to build with.</p>
-            </div>
-            <div class="hero-pulse">
-              <strong id="overview-name">Builder</strong>
-              <span id="overview-headline">Add what you are working on</span>
+              <p>Share a quick update, ask for feedback, or launch something when it is ready.</p>
             </div>
           </div>
 
-          <div class="composer-panel">
-            <div class="user-avatar-sm avatar-generated" id="composer-avatar">SB</div>
-            <button type="button" onclick="showSection('add-project')">Share an update...</button>
-          </div>
+          <form class="quick-post" id="quick-post-form" onsubmit="createQuickPost(event)">
+            <div class="quick-post__avatar user-avatar-sm avatar-generated" id="composer-avatar">SB</div>
+            <div class="quick-post__body">
+              <textarea id="quick-post-body" class="quick-post__input" rows="3" maxlength="1200" placeholder="Shipped something? Stuck on a bug? Need feedback?"></textarea>
+              <div class="quick-post__meta">
+                <select id="quick-post-kind" class="quick-post__select" aria-label="Post type">
+                  <option value="update">Update</option>
+                  <option value="question">Question</option>
+                  <option value="build_log">Build log</option>
+                  <option value="launch">Launch note</option>
+                </select>
+                <input id="quick-post-image" class="quick-post__url" type="url" placeholder="Optional screenshot URL">
+                <button class="btn btn--primary btn--sm" type="submit">Post</button>
+              </div>
+            </div>
+          </form>
 
           <div class="feed-tabs" aria-label="Feed filters">
-            <button class="active">All</button>
-            <button>Launches</button>
-            <button>Discussions</button>
-            <button>Build logs</button>
+            <button class="active" type="button" data-feed-filter="all" onclick="setFeedFilter('all')">All</button>
+            <button type="button" data-feed-filter="launch" onclick="setFeedFilter('launch')">Launches</button>
+            <button type="button" data-feed-filter="question" onclick="setFeedFilter('question')">Discussions</button>
+            <button type="button" data-feed-filter="build_log" onclick="setFeedFilter('build_log')">Build logs</button>
           </div>
 
-          <div class="feed-empty">
+          <div class="feed-empty" id="feed-empty">
             <h2>No posts yet</h2>
             <p>Start the first discussion or launch a project.</p>
             <div class="form-actions">
               <button class="btn btn--primary btn--sm" onclick="showSection('add-project')">Launch a project</button>
-              <button class="btn btn--ghost btn--sm" onclick="showSection('community')">Start a discussion</button>
+              <button class="btn btn--ghost btn--sm" onclick="focusQuickPost()">Start a discussion</button>
             </div>
           </div>
+
+          <div class="social-feed" id="social-feed"></div>
 
           <div class="prompt-banner prompt-banner--overview" id="profile-prompt">
             <span class="prompt-banner__icon">@</span>
             <div class="prompt-banner__text">
-              <strong>Set up your profile</strong>
-              <span>Add what you build, your stack, and whether you want teammates.</span>
+              <strong>Make your profile feel human</strong>
+              <span>Add what you are building, what you want help with, and where people can see your work.</span>
             </div>
             <button class="btn btn--primary btn--sm" onclick="showSection('profile')">Edit profile</button>
-          </div>
-
-          <div class="stat-grid stat-grid--overview">
-            <div class="stat-card stat-card--overview"><div class="stat-card__label">Projects</div><div class="stat-card__value" id="project-count">0</div></div>
-            <div class="stat-card stat-card--overview"><div class="stat-card__label">Skills</div><div class="stat-card__value" id="skills-count">0</div></div>
-            <div class="stat-card stat-card--overview stat-card--feature"><div class="stat-card__label">Profile</div><div class="stat-card__value stat-card__value--feature" id="visibility-status">Public</div></div>
           </div>
         </section>
 
         <section class="dash-section" id="section-community">
           <div class="section-header">
             <h1 class="section-header__title">Community</h1>
-            <p class="section-header__sub">Find builders and project rooms.</p>
+            <p class="section-header__sub">Find builders, rooms, and public launches.</p>
           </div>
           <div class="search-bar">
             <div class="search-input-wrap">
@@ -141,7 +145,7 @@
             </div>
           </div>
 
-          <div class="feed-heading"><h2>Builder finder</h2><span>Real profiles only</span></div>
+          <div class="feed-heading"><h2>Builders</h2><span>Real profiles only</span></div>
           <div class="students-grid builder-directory" id="creator-directory-grid"></div>
           <div class="empty-state hidden" id="creator-directory-empty"><div class="empty-state__title">No builders found</div><div class="empty-state__sub">Try another name, skill, project, or user ID.</div></div>
 
@@ -153,7 +157,7 @@
         <section class="dash-section" id="section-profile">
           <div class="section-header">
             <h1 class="section-header__title">Profile</h1>
-            <p class="section-header__sub">Show what you build and how people can help.</p>
+            <p class="section-header__sub">Show what you build, what you care about, and how people can help.</p>
           </div>
           <div class="identity-layout">
             <form id="profile-form" class="identity-form" onsubmit="saveProfile(event)">
@@ -174,7 +178,7 @@
               <div class="form-group"><label for="profile-bio">Bio</label><textarea id="profile-bio" class="textarea" placeholder="Short version. What do you build?" maxlength="600"></textarea></div>
               <div class="form-row">
                 <div class="form-group"><label for="profile-location">Location</label><input type="text" id="profile-location" class="input" placeholder="Bengaluru / Remote"></div>
-                <div class="form-group"><label for="profile-visibility">Profile visibility</label><select id="profile-visibility" class="select input"><option value="public">Public</option><option value="hidden">Public (profile remains searchable)</option></select></div>
+                <div class="form-group"><label for="profile-visibility">Profile visibility</label><select id="profile-visibility" class="select input"><option value="public">Public</option><option value="hidden">Hidden</option></select></div>
               </div>
               <div class="form-row">
                 <div class="form-group"><label for="profile-availability">Looking for teammates?</label><select id="profile-availability" class="select input"><option value="">Select status...</option><option value="available">Yes</option><option value="open">Open to it</option><option value="busy">Not right now</option></select></div>
@@ -187,26 +191,26 @@
               <button type="submit" class="btn btn--primary">Save profile</button>
             </form>
             <aside class="identity-side">
-              <h3>Search signals</h3>
-              <p>Used for search and teammate matching.</p>
-              <div class="signal-list"><span>Founder</span><span>Developer</span><span>Designer</span><span>Creator</span><span>Looking for teammates</span><span>Build in public</span></div>
+              <h3>Identity prompts</h3>
+              <p>Profiles should feel like builders, not resumes.</p>
+              <div class="signal-list"><span>Currently building</span><span>Need feedback</span><span>Looking for teammates</span><span>Shipped work</span><span>GitHub</span><span>Build logs</span></div>
             </aside>
           </div>
         </section>
 
         <section class="dash-section" id="section-projects">
           <div class="section-header section-header--split">
-            <div><h1 class="section-header__title">Projects</h1><p class="section-header__sub">Stuff you have built.</p></div>
-            <button class="btn btn--primary" onclick="showSection('add-project')">Add project</button>
+            <div><h1 class="section-header__title">Launches</h1><p class="section-header__sub">Projects you want people to inspect, try, or discuss.</p></div>
+            <button class="btn btn--primary" onclick="showSection('add-project')">Launch project</button>
           </div>
-          <div class="empty-state hidden" id="projects-empty"><div class="empty-state__title">No projects yet</div><div class="empty-state__sub">Add your first project.</div><button class="btn btn--primary" onclick="showSection('add-project')">Add project</button></div>
+          <div class="empty-state hidden" id="projects-empty"><div class="empty-state__title">Nothing shipped yet</div><div class="empty-state__sub">Launch your first project when there is something real to inspect.</div><button class="btn btn--primary" onclick="showSection('add-project')">Launch project</button></div>
           <div class="projects-grid" id="projects-grid"></div>
         </section>
 
         <section class="dash-section" id="section-add-project">
           <div class="section-header">
             <h1 class="section-header__title">Launch a project</h1>
-            <p class="section-header__sub">Share what you made. Ask for feedback if you want it.</p>
+            <p class="section-header__sub">Use this for something people can inspect. Use the feed for quick updates.</p>
           </div>
           <form id="add-project-form" class="identity-form" onsubmit="addProject(event)">
             <div class="form-group"><label for="proj-title">Project title *</label><input type="text" id="proj-title" class="input" placeholder="Project name" required maxlength="100"></div>
@@ -248,21 +252,22 @@
       </section>
 
       <aside class="context-column">
-        <div class="context-panel"><div class="rail-kicker">Recently active builders</div><div class="quiet-state">No recent activity yet.</div></div>
-        <div class="context-panel"><div class="rail-kicker">Active discussions</div><div class="quiet-state">No discussions yet.</div></div>
-        <div class="context-panel"><div class="rail-kicker">Launches</div><div class="quiet-state">No launches yet.</div></div>
+        <div class="context-panel"><div class="rail-kicker">Recently active</div><div class="quiet-state" id="recent-activity-panel">No recent activity yet.</div></div>
+        <div class="context-panel"><div class="rail-kicker">Active discussions</div><div class="quiet-state" id="active-discussions-panel">No discussions yet.</div></div>
+        <div class="context-panel"><div class="rail-kicker">Launches</div><div class="quiet-state" id="launches-panel">No launches yet.</div></div>
+        <div class="context-panel context-panel--guide"><div class="rail-kicker">Good posts</div><div class="side-note-list"><span>Shipped this today</span><span>Need feedback on...</span><span>Looking for teammates</span><span>Build log: day 3</span></div></div>
       </aside>
     </div>
   </main>
 </div>
 
 <nav class="mobile-tabbar" aria-label="Mobile navigation">
-  <button onclick="showSection('overview')">Home<span>Home</span></button>
-  <button onclick="showSection('community')">Com<span>Community</span></button>
-  <button onclick="showSection('messages')">Msg<span>Inbox</span></button>
-  <button onclick="showSection('profile')">Me<span>Profile</span></button>
+  <button onclick="showSection('overview')">#<span>Feed</span></button>
+  <button onclick="showSection('community')">/<span>Browse</span></button>
+  <button onclick="showSection('messages')">M<span>Inbox</span></button>
+  <button onclick="showSection('profile')">@<span>Profile</span></button>
 </nav>
-<button class="mobile-create" onclick="showSection('add-project')">+</button>
+<button class="mobile-create" onclick="focusQuickPost()">+</button>
 
 <div class="modal-overlay hidden" id="edit-project-modal">
   <div class="modal-box">

@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Solvoriz — Recruiter Dashboard</title>
+  <title>Solvoriz - Recruiter Access</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="experience-body recruiter-experience">
 
 <div class="dash-layout">
   <!-- SIDEBAR -->
@@ -20,20 +20,20 @@
     </div>
 
     <nav class="sidebar-nav">
-      <span class="nav-section-label">Discover</span>
+      <span class="nav-section-label">Builder work</span>
       <button class="nav-item active" data-section="browse" onclick="showSection('browse')">
-        <span class="nav-icon">🔍</span> Browse Talent
+        <span class="nav-icon">/</span> Browse builders
       </button>
       <button class="nav-item" data-section="shortlist" onclick="showSection('shortlist')">
-        <span class="nav-icon">★</span> Shortlist
+        <span class="nav-icon">*</span> Saved
         <span id="shortlist-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
       </button>
       <button class="nav-item" data-section="messages" onclick="showSection('messages')">
-        <span class="nav-icon">💬</span> Messages
+        <span class="nav-icon">M</span> Messages
         <span id="message-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
       </button>
       <button class="nav-item" data-section="notifications" onclick="showSection('notifications')">
-        <span class="nav-icon">🔔</span> Notifications
+        <span class="nav-icon">N</span> Notifications
         <span id="notification-count" style="margin-left:auto;background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:20px">0</span>
       </button>
     </nav>
@@ -56,19 +56,19 @@
     <!-- BROWSE SECTION -->
     <section class="dash-section active" id="section-browse">
       <div class="section-header">
-        <h1 class="section-header__title">Browse Talent</h1>
+        <h1 class="section-header__title">Browse builders</h1>
         <p class="section-header__sub">
-          <span id="student-count">—</span> builder profiles. Filter by skill, location, or availability.
+          <span id="student-count">-</span> public builders. Start from real work, not resumes.
         </p>
       </div>
 
       <div class="stat-grid" style="margin-bottom:24px">
         <div class="stat-card animate-fade-up">
-          <div class="stat-card__label">Active projects</div>
+          <div class="stat-card__label">Public launches</div>
           <div class="stat-card__value" id="dashboard-project-count">0</div>
         </div>
         <div class="stat-card animate-fade-up" style="animation-delay:.06s">
-          <div class="stat-card__label">Shortlisted</div>
+          <div class="stat-card__label">Saved</div>
           <div class="stat-card__value" id="dashboard-shortlist-count">0</div>
         </div>
         <div class="stat-card animate-fade-up" style="animation-delay:.12s">
@@ -80,8 +80,8 @@
       <!-- SEARCH BAR -->
       <div class="search-bar">
         <div class="search-input-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="search-input" class="input" placeholder="Search by name, headline, skill...">
+          <span class="search-icon">Search</span>
+          <input type="text" id="search-input" class="input" placeholder="Search builders, projects, skills...">
         </div>
         <button class="btn btn--ghost btn--sm" onclick="clearFilters()">Clear filters</button>
       </div>
@@ -110,9 +110,9 @@
           <label>Availability</label>
           <select id="filter-availability" class="select input" style="width:auto">
             <option value="">Any</option>
-            <option value="available">✅ Actively looking</option>
-            <option value="open">👀 Open to offers</option>
-            <option value="busy">❌ Not available</option>
+            <option value="available">Looking for work</option>
+            <option value="open">Open to it</option>
+            <option value="busy">Focused right now</option>
           </select>
         </div>
         <div class="filter-group">
@@ -135,8 +135,7 @@
 
       <!-- EMPTY -->
       <div class="empty-state hidden" id="students-empty">
-        <div class="empty-state__icon">🔍</div>
-        <div class="empty-state__title">No students found</div>
+        <div class="empty-state__title">No builders found</div>
         <div class="empty-state__sub">Try adjusting your filters or check back later.</div>
       </div>
 
@@ -147,15 +146,14 @@
     <!-- SHORTLIST SECTION -->
     <section class="dash-section" id="section-shortlist">
       <div class="section-header">
-        <h1 class="section-header__title">Shortlist</h1>
-        <p class="section-header__sub">Your saved candidates. Contact them directly.</p>
+        <h1 class="section-header__title">Saved builders</h1>
+        <p class="section-header__sub">Projects worth revisiting. Keep outreach specific and respectful.</p>
       </div>
 
       <div class="empty-state hidden" id="shortlist-empty">
-        <div class="empty-state__icon">☆</div>
-        <div class="empty-state__title">No candidates shortlisted</div>
-        <div class="empty-state__sub">Star students while browsing to add them here.</div>
-        <button class="btn btn--primary" style="margin-top:16px" onclick="showSection('browse')">Browse talent →</button>
+        <div class="empty-state__title">No saved builders yet</div>
+        <div class="empty-state__sub">Save builders from public launches when their work is relevant.</div>
+        <button class="btn btn--primary" style="margin-top:16px" onclick="showSection('browse')">Browse builders</button>
       </div>
 
       <div class="students-grid" id="shortlist-grid"></div>
@@ -164,7 +162,7 @@
     <section class="dash-section" id="section-messages">
       <div class="section-header">
         <h1 class="section-header__title">Messages</h1>
-        <p class="section-header__sub">A cleaner, trusted inbox for direct creator outreach inside Solvoriz.</p>
+        <p class="section-header__sub">Direct conversations that start from real work.</p>
       </div>
 
       <div class="messages-layout">
@@ -172,13 +170,12 @@
           <div class="messages-sidebar__header">
             <div>
               <strong>Threads</strong>
-              <div class="muted">Recent creator conversations</div>
+              <div class="muted">Recent builder conversations</div>
             </div>
             <span class="thread-status-badge thread-status-badge--ok">Private</span>
           </div>
           <div id="messages-threads" class="thread-list"></div>
           <div class="empty-state hidden" id="messages-empty">
-            <div class="empty-state__icon">💬</div>
             <div class="empty-state__title">No messages yet</div>
             <div class="empty-state__sub">Message builders from any project and your thread history will appear here.</div>
           </div>
@@ -212,7 +209,7 @@
     <section class="dash-section" id="section-notifications">
       <div class="section-header">
         <h1 class="section-header__title">Notifications</h1>
-        <p class="section-header__sub">Keep track of recruiter status, contact activity, and platform updates.</p>
+        <p class="section-header__sub">Replies, message updates, and account notices.</p>
       </div>
       <div id="notifications-list" style="display:grid;gap:16px"></div>
       <div class="empty-state hidden" id="notifications-empty" style="margin-top:20px">
