@@ -7,7 +7,7 @@
   <title>Solvoriz - Builder Home</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body class="experience-body">
@@ -18,19 +18,19 @@
       <span>Solvoriz</span>
     </a>
 
-    <nav class="experience-nav" aria-label="Primary">
-      <button class="nav-item active" data-section="overview" onclick="showSection('overview')"><span class="nav-icon">⌂</span> Home</button>
-      <button class="nav-item" data-section="community" onclick="showSection('community')"><span class="nav-icon">◎</span> Communities</button>
-      <button class="nav-item" data-section="projects" onclick="showSection('projects')"><span class="nav-icon">◧</span> Launches</button>
-      <button class="nav-item" data-section="messages" onclick="showSection('messages')"><span class="nav-icon">✉</span> Messages <span id="message-count" class="nav-count">0</span></button>
-      <button class="nav-item" data-section="notifications" onclick="showSection('notifications')"><span class="nav-icon">◌</span> Notifications <span id="notification-count" class="nav-count">0</span></button>
-      <button class="nav-item" data-section="activity" onclick="showSection('activity')"><span class="nav-icon">↗</span> Trending</button>
-      <button class="nav-item" data-section="profile" onclick="showSection('profile')"><span class="nav-icon">✦</span> Builder profile</button>
-      <button class="nav-item" data-section="add-project" onclick="showSection('add-project')"><span class="nav-icon">＋</span> Ship update</button>
+    <nav class="experience-nav" aria-label="Primary navigation">
+      <button class="nav-item active" data-section="overview" onclick="showSection('overview')"><span class="nav-icon">#</span> Home</button>
+      <button class="nav-item" data-section="community" onclick="showSection('community')"><span class="nav-icon">/</span> Community</button>
+      <button class="nav-item" data-section="projects" onclick="showSection('projects')"><span class="nav-icon">P</span> Projects</button>
+      <button class="nav-item" data-section="messages" onclick="showSection('messages')"><span class="nav-icon">M</span> Messages <span id="message-count" class="nav-count">0</span></button>
+      <button class="nav-item" data-section="notifications" onclick="showSection('notifications')"><span class="nav-icon">N</span> Notifications <span id="notification-count" class="nav-count">0</span></button>
+      <button class="nav-item" data-section="activity" onclick="showSection('activity')"><span class="nav-icon">A</span> Activity</button>
+      <button class="nav-item" data-section="profile" onclick="showSection('profile')"><span class="nav-icon">@</span> Profile</button>
+      <button class="nav-item" data-section="add-project" onclick="showSection('add-project')"><span class="nav-icon">+</span> New post</button>
     </nav>
 
     <div class="rail-panel">
-      <div class="rail-kicker">Builder status</div>
+      <div class="rail-kicker">Signed in as</div>
       <div class="sidebar-user__card">
         <div class="user-avatar-sm avatar-generated" id="user-avatar">SB</div>
         <div class="min-0">
@@ -45,13 +45,13 @@
   <main class="experience-main">
     <header class="topbar">
       <div class="global-search">
-        <span>⌕</span>
-        <input type="search" placeholder="Search builders, launches, communities, ideas...">
+        <span>Search</span>
+        <input type="search" placeholder="Builders, projects, communities...">
       </div>
       <div class="topbar-actions">
-        <button class="icon-btn" title="Notifications" onclick="showSection('notifications')">◌</button>
-        <button class="icon-btn" title="Inbox" onclick="showSection('messages')">✉</button>
-        <button class="btn btn--primary btn--sm" onclick="showSection('add-project')">Create</button>
+        <button class="icon-btn" title="Notifications" onclick="showSection('notifications')">N</button>
+        <button class="icon-btn" title="Inbox" onclick="showSection('messages')">M</button>
+        <button class="btn btn--primary btn--sm" onclick="showSection('add-project')">Post</button>
       </div>
     </header>
 
@@ -60,104 +60,100 @@
         <section class="dash-section active" id="section-overview">
           <div class="feed-hero">
             <div>
-              <div class="rail-kicker">Builder home</div>
-              <h1>Where builders launch, talk, and find their people.</h1>
-              <p>Solvoriz is your living builder identity: projects, discussions, collaborators, updates, and launch momentum in one internet-native home.</p>
+              <div class="rail-kicker">Home</div>
+              <h1>What are you building?</h1>
+              <p>Post a project, ask for feedback, or find people to build with.</p>
             </div>
             <div class="hero-pulse">
               <strong id="overview-name">Builder</strong>
-              <span id="overview-headline">Complete your builder identity</span>
+              <span id="overview-headline">Add what you are working on</span>
             </div>
           </div>
 
           <div class="composer-panel">
             <div class="user-avatar-sm avatar-generated" id="composer-avatar">SB</div>
-            <button type="button" onclick="showSection('add-project')">What are you building, shipping, or looking for?</button>
+            <button type="button" onclick="showSection('add-project')">Share an update...</button>
           </div>
 
           <div class="feed-tabs" aria-label="Feed filters">
-            <button class="active">For you</button>
+            <button class="active">All</button>
             <button>Launches</button>
             <button>Discussions</button>
             <button>Build logs</button>
           </div>
 
-          <article class="post-story">
-            <div class="post-meta">
-              <div class="avatar-generated">SV</div>
-              <div><strong>Solvoriz Team</strong><span> in /launch-culture · pinned</span></div>
-              <span class="story-flair">Announcement</span>
+          <div class="feed-empty">
+            <h2>No posts yet</h2>
+            <p>Start the first discussion or launch a project.</p>
+            <div class="form-actions">
+              <button class="btn btn--primary btn--sm" onclick="showSection('add-project')">Launch a project</button>
+              <button class="btn btn--ghost btn--sm" onclick="showSection('community')">Start a discussion</button>
             </div>
-            <h2>Solvoriz is now organized around builders, not dashboards.</h2>
-            <p>The feed is the front door. Profiles are builder identities. Projects can become launch pages, collaboration hubs, and public build histories.</p>
-            <div class="post-actions"><button>↑ 248</button><button>42 comments</button><button>Bookmark</button><button>Share</button></div>
-          </article>
+          </div>
 
           <div class="prompt-banner prompt-banner--overview" id="profile-prompt">
-            <span class="prompt-banner__icon">✦</span>
+            <span class="prompt-banner__icon">@</span>
             <div class="prompt-banner__text">
-              <strong>Become discoverable as a builder</strong>
-              <span>Add your stack, current build, projects, launch history, and collaboration status.</span>
+              <strong>Set up your profile</strong>
+              <span>Add what you build, your stack, and whether you want teammates.</span>
             </div>
-            <button class="btn btn--primary btn--sm" onclick="showSection('profile')">Polish profile</button>
+            <button class="btn btn--primary btn--sm" onclick="showSection('profile')">Edit profile</button>
           </div>
 
           <div class="stat-grid stat-grid--overview">
-            <div class="stat-card stat-card--overview"><div class="stat-card__label">Projects shipped</div><div class="stat-card__value" id="project-count">0</div></div>
-            <div class="stat-card stat-card--overview"><div class="stat-card__label">Stack signals</div><div class="stat-card__value" id="skills-count">0</div></div>
-            <div class="stat-card stat-card--overview stat-card--feature"><div class="stat-card__label">Identity</div><div class="stat-card__value stat-card__value--feature" id="visibility-status">Live</div></div>
+            <div class="stat-card stat-card--overview"><div class="stat-card__label">Projects</div><div class="stat-card__value" id="project-count">0</div></div>
+            <div class="stat-card stat-card--overview"><div class="stat-card__label">Skills</div><div class="stat-card__value" id="skills-count">0</div></div>
+            <div class="stat-card stat-card--overview stat-card--feature"><div class="stat-card__label">Profile</div><div class="stat-card__value stat-card__value--feature" id="visibility-status">Public</div></div>
           </div>
         </section>
 
         <section class="dash-section" id="section-community">
           <div class="section-header">
-            <h1 class="section-header__title">Creator Community</h1>
-            <p class="section-header__sub">Find builders, join project rooms, and turn ideas into shared momentum.</p>
+            <h1 class="section-header__title">Community</h1>
+            <p class="section-header__sub">Find builders and project rooms.</p>
           </div>
           <div class="search-bar">
             <div class="search-input-wrap">
-              <span class="search-icon">⌕</span>
-              <input type="text" id="community-search-input" class="input" placeholder="Search builders, skills, projects, account IDs...">
+              <span class="search-icon">Search</span>
+              <input type="text" id="community-search-input" class="input" placeholder="Search builders, skills, projects...">
             </div>
           </div>
 
           <div class="community-room">
             <div class="room-head">
-              <div><div class="rail-kicker">Communities</div><h2>Project rooms and builder circles</h2></div>
-              <span class="thread-status-badge thread-status-badge--ok">Live rooms</span>
+              <div><div class="rail-kicker">Rooms</div><h2>Project rooms</h2></div>
             </div>
             <form id="group-create-form" onsubmit="createCommunityGroup(event)" class="inline-create">
-              <input type="text" id="group-name" class="input" placeholder="Indie AI builders" maxlength="80" required>
-              <input type="text" id="group-description" class="input" placeholder="What should people discuss here?" maxlength="180">
+              <input type="text" id="group-name" class="input" placeholder="Room name" maxlength="80" required>
+              <input type="text" id="group-description" class="input" placeholder="What is this room for?" maxlength="180">
               <button class="btn btn--primary" type="submit">Create</button>
             </form>
             <div id="groups-list" class="room-list"></div>
             <div id="group-chat-panel" class="chat-panel hidden">
               <div class="chat-panel__header">
                 <div><div id="group-chat-title">Group chat</div><div class="muted" id="group-chat-meta"></div></div>
-                <span class="thread-status-badge thread-status-badge--ok">Live</span>
               </div>
               <div id="group-chat-messages" class="chat-messages"></div>
               <div class="chat-composer">
-                <textarea id="group-chat-input" class="input chat-composer__input" placeholder="Share an idea, ask for feedback, or riff with builders..." rows="2"></textarea>
-                <div class="chat-composer__actions"><span class="muted">Open community chat</span><button type="button" class="btn btn--primary" id="group-chat-send-btn" onclick="sendGroupMessage()">Send</button></div>
+                <textarea id="group-chat-input" class="input chat-composer__input" placeholder="Write a message..." rows="2"></textarea>
+                <div class="chat-composer__actions"><span class="muted">Community room</span><button type="button" class="btn btn--primary" id="group-chat-send-btn" onclick="sendGroupMessage()">Send</button></div>
               </div>
             </div>
           </div>
 
-          <div class="feed-heading"><h2>Builder finder</h2><span>Recommended collaborators</span></div>
+          <div class="feed-heading"><h2>Builder finder</h2><span>Real profiles only</span></div>
           <div class="students-grid builder-directory" id="creator-directory-grid"></div>
-          <div class="empty-state hidden" id="creator-directory-empty"><div class="empty-state__title">No creator matches found</div><div class="empty-state__sub">Try another name, skill, handle, product title, or user ID.</div></div>
+          <div class="empty-state hidden" id="creator-directory-empty"><div class="empty-state__title">No builders found</div><div class="empty-state__sub">Try another name, skill, project, or user ID.</div></div>
 
-          <div class="feed-heading"><h2>Project feed</h2><span>Fresh proof of work</span></div>
-          <div class="empty-state hidden" id="community-empty"><div class="empty-state__title">No public creator projects found</div><div class="empty-state__sub">Once more builders publish projects, they will appear here.</div></div>
+          <div class="feed-heading"><h2>Project feed</h2><span>Public projects</span></div>
+          <div class="empty-state hidden" id="community-empty"><div class="empty-state__title">No public projects yet</div><div class="empty-state__sub">Be the first builder here.</div></div>
           <div class="students-grid" id="community-grid"></div>
         </section>
 
         <section class="dash-section" id="section-profile">
           <div class="section-header">
-            <h1 class="section-header__title">Builder Identity</h1>
-            <p class="section-header__sub">Profiles should answer what you build, how you build, and who should collaborate with you.</p>
+            <h1 class="section-header__title">Profile</h1>
+            <p class="section-header__sub">Show what you build and how people can help.</p>
           </div>
           <div class="identity-layout">
             <form id="profile-form" class="identity-form" onsubmit="saveProfile(event)">
@@ -167,54 +163,54 @@
                   <label for="profile-avatar-file">Profile picture</label>
                   <input type="file" id="profile-avatar-file" class="input" accept="image/*">
                   <input type="hidden" id="profile-avatar">
-                  <p class="muted">Upload directly. Solvoriz stores the avatar and uses generated initials if you skip this.</p>
+                  <p class="muted">Upload an image or use the generated avatar.</p>
                 </div>
               </div>
               <div class="form-row">
                 <div class="form-group"><label for="profile-handle">Public handle</label><input type="text" id="profile-handle" class="input" placeholder="yourname" maxlength="40"></div>
                 <div class="form-group"><label for="profile-age">Age</label><input type="number" id="profile-age" class="input" min="13" max="120" placeholder="e.g. 22"></div>
               </div>
-              <div class="form-group"><label for="profile-headline">Currently building</label><input type="text" id="profile-headline" class="input" placeholder="Building an AI copilot for indie SaaS teams" maxlength="120"></div>
-              <div class="form-group"><label for="profile-bio">Builder story</label><textarea id="profile-bio" class="textarea" placeholder="What are you building, what have you shipped, and what kind of people should find you?" maxlength="600"></textarea></div>
+              <div class="form-group"><label for="profile-headline">Currently building</label><input type="text" id="profile-headline" class="input" placeholder="What are you working on?" maxlength="120"></div>
+              <div class="form-group"><label for="profile-bio">Bio</label><textarea id="profile-bio" class="textarea" placeholder="Short version. What do you build?" maxlength="600"></textarea></div>
               <div class="form-row">
                 <div class="form-group"><label for="profile-location">Location</label><input type="text" id="profile-location" class="input" placeholder="Bengaluru / Remote"></div>
                 <div class="form-group"><label for="profile-visibility">Profile visibility</label><select id="profile-visibility" class="select input"><option value="public">Public</option><option value="hidden">Public (profile remains searchable)</option></select></div>
               </div>
               <div class="form-row">
-                <div class="form-group"><label for="profile-availability">Collaboration status</label><select id="profile-availability" class="select input"><option value="">Select status...</option><option value="available">Looking for teammates</option><option value="open">Open to collaborators</option><option value="busy">Heads-down building</option></select></div>
+                <div class="form-group"><label for="profile-availability">Looking for teammates?</label><select id="profile-availability" class="select input"><option value="">Select status...</option><option value="available">Yes</option><option value="open">Open to it</option><option value="busy">Not right now</option></select></div>
                 <div class="form-group"><label for="profile-github">GitHub username</label><input type="text" id="profile-github" class="input" placeholder="your-github" maxlength="80"></div>
               </div>
               <div class="form-group">
-                <label>Tech stack and skills</label>
+                <label>Skills</label>
                 <div class="skills-input-wrap" id="profile-skills-wrap"><input type="text" id="profile-skill-input" class="input-inline" placeholder="React, Python, TypeScript..."><div class="skill-suggestions hidden" id="profile-skill-suggest"></div></div>
               </div>
-              <button type="submit" class="btn btn--primary">Save builder identity</button>
+              <button type="submit" class="btn btn--primary">Save profile</button>
             </form>
             <aside class="identity-side">
-              <h3>Onboarding signals</h3>
-              <p>Solvoriz personalizes discovery around your build stage, role, stack, and teammate intent.</p>
-              <div class="signal-list"><span>Founder</span><span>Developer</span><span>Designer</span><span>Content creator</span><span>Looking for teammates</span><span>Build in public</span></div>
+              <h3>Search signals</h3>
+              <p>Used for search and teammate matching.</p>
+              <div class="signal-list"><span>Founder</span><span>Developer</span><span>Designer</span><span>Creator</span><span>Looking for teammates</span><span>Build in public</span></div>
             </aside>
           </div>
         </section>
 
         <section class="dash-section" id="section-projects">
           <div class="section-header section-header--split">
-            <div><h1 class="section-header__title">Launches and Projects</h1><p class="section-header__sub">Your proof-of-work portfolio, launch history, and product hubs.</p></div>
-            <button class="btn btn--primary" onclick="showSection('add-project')">Launch project</button>
+            <div><h1 class="section-header__title">Projects</h1><p class="section-header__sub">Stuff you have built.</p></div>
+            <button class="btn btn--primary" onclick="showSection('add-project')">Add project</button>
           </div>
-          <div class="empty-state hidden" id="projects-empty"><div class="empty-state__title">No projects yet</div><div class="empty-state__sub">Add your first project to start getting discovered.</div><button class="btn btn--primary" onclick="showSection('add-project')">Add project</button></div>
+          <div class="empty-state hidden" id="projects-empty"><div class="empty-state__title">No projects yet</div><div class="empty-state__sub">Add your first project.</div><button class="btn btn--primary" onclick="showSection('add-project')">Add project</button></div>
           <div class="projects-grid" id="projects-grid"></div>
         </section>
 
         <section class="dash-section" id="section-add-project">
           <div class="section-header">
-            <h1 class="section-header__title">Ship a Project</h1>
-            <p class="section-header__sub">Every project can become a launch page, roadmap, changelog, feedback thread, and collaboration hub.</p>
+            <h1 class="section-header__title">Launch a project</h1>
+            <p class="section-header__sub">Share what you made. Ask for feedback if you want it.</p>
           </div>
           <form id="add-project-form" class="identity-form" onsubmit="addProject(event)">
-            <div class="form-group"><label for="proj-title">Project title *</label><input type="text" id="proj-title" class="input" placeholder="AI-powered code reviewer" required maxlength="100"></div>
-            <div class="form-group"><label for="proj-desc">Build note *</label><textarea id="proj-desc" class="textarea" placeholder="What problem does it solve? What did you ship? What feedback do you want?" required maxlength="800"></textarea></div>
+            <div class="form-group"><label for="proj-title">Project title *</label><input type="text" id="proj-title" class="input" placeholder="Project name" required maxlength="100"></div>
+            <div class="form-group"><label for="proj-desc">What is it? *</label><textarea id="proj-desc" class="textarea" placeholder="What did you build?" required maxlength="800"></textarea></div>
             <div class="form-group"><label>Tech stack</label><div class="skills-input-wrap" id="add-proj-skills-wrap"><input type="text" id="add-proj-skill-input" class="input-inline" placeholder="React, Node.js, PostgreSQL..."><div class="skill-suggestions hidden" id="add-proj-skill-suggest"></div></div></div>
             <div class="form-row">
               <div class="form-group"><label for="proj-type">Project type</label><select id="proj-type" class="select input"><option value="Launch">Launch</option><option value="Side Project">Side Project</option><option value="School Project">School Project</option><option value="Open Source">Open Source</option><option value="Startup">Startup</option></select></div>
@@ -224,71 +220,60 @@
               <div class="form-group"><label for="proj-demo">Live demo URL</label><input type="url" id="proj-demo" class="input" placeholder="https://myproject.vercel.app"></div>
               <div class="form-group"><label for="proj-github">GitHub URL</label><input type="url" id="proj-github" class="input" placeholder="https://github.com/you/repo"></div>
             </div>
-            <div class="form-group"><label for="proj-visible">Launch visibility</label><select id="proj-visible" class="select input"><option value="true">Public launch</option><option value="false">Private draft</option></select></div>
-            <div class="form-actions"><button type="submit" class="btn btn--primary">Publish update</button><button type="button" class="btn btn--ghost" onclick="showSection('projects')">Cancel</button></div>
+            <div class="form-group"><label for="proj-visible">Visibility</label><select id="proj-visible" class="select input"><option value="true">Public</option><option value="false">Private draft</option></select></div>
+            <div class="form-actions"><button type="submit" class="btn btn--primary">Publish</button><button type="button" class="btn btn--ghost" onclick="showSection('projects')">Cancel</button></div>
             <p class="muted" id="project-limit-note"></p>
           </form>
         </section>
 
         <section class="dash-section" id="section-messages">
-          <div class="section-header"><h1 class="section-header__title">Inbox</h1><p class="section-header__sub">Recruiter outreach, collaborator DMs, support, and moderation threads in one place.</p></div>
+          <div class="section-header"><h1 class="section-header__title">Inbox</h1><p class="section-header__sub">Messages from builders, recruiters, and support.</p></div>
           <div class="messages-layout">
-            <aside class="messages-sidebar"><div class="messages-sidebar__header"><div><strong>Threads</strong><div class="muted">Seen, unseen, admin, and builder chats</div></div><span class="thread-status-badge thread-status-badge--ok">Realtime</span></div><div id="messages-threads" class="thread-list"></div><div class="empty-state hidden" id="messages-empty"><div class="empty-state__title">No messages yet</div><div class="empty-state__sub">Collaborators and recruiters can reach you from projects and profiles.</div></div></aside>
-            <section id="chat-panel" class="chat-panel"><div id="chat-header" class="chat-panel__header"><div><div id="chat-title">Select a thread</div><div id="chat-meta" class="muted"></div></div><div id="chat-trust-badge" class="thread-status-badge thread-status-badge--ok">Protected inbox</div><div id="chat-actions-top"></div></div><div id="chat-messages" class="chat-messages"></div><div id="chat-input-row" class="chat-composer"><textarea id="chat-input" class="input chat-composer__input" placeholder="Reply with context, links, or next steps..." rows="3"></textarea><div class="chat-composer__actions"><div class="muted">Press Enter to send</div><button class="btn btn--primary" id="chat-send-btn">Send</button></div></div></section>
+            <aside class="messages-sidebar"><div class="messages-sidebar__header"><div><strong>Threads</strong><div class="muted">DMs and support</div></div></div><div id="messages-threads" class="thread-list"></div><div class="empty-state hidden" id="messages-empty"><div class="empty-state__title">No messages yet</div><div class="empty-state__sub">New conversations will show up here.</div></div></aside>
+            <section id="chat-panel" class="chat-panel"><div id="chat-header" class="chat-panel__header"><div><div id="chat-title">Select a thread</div><div id="chat-meta" class="muted"></div></div><div id="chat-trust-badge" class="thread-status-badge thread-status-badge--ok">Inbox</div><div id="chat-actions-top"></div></div><div id="chat-messages" class="chat-messages"></div><div id="chat-input-row" class="chat-composer"><textarea id="chat-input" class="input chat-composer__input" placeholder="Write a reply..." rows="3"></textarea><div class="chat-composer__actions"><div class="muted">Press Enter to send</div><button class="btn btn--primary" id="chat-send-btn">Send</button></div></div></section>
           </div>
         </section>
 
         <section class="dash-section" id="section-notifications">
-          <div class="section-header"><h1 class="section-header__title">Notifications</h1><p class="section-header__sub">Launch signals, replies, mentions, admin updates, and collaboration requests.</p></div>
+          <div class="section-header"><h1 class="section-header__title">Notifications</h1><p class="section-header__sub">Replies, mentions, and account updates.</p></div>
           <div id="notifications-list" class="notification-stream"></div>
-          <div class="empty-state hidden" id="notifications-empty"><div class="empty-state__title">No notifications yet</div><div class="empty-state__sub">Important updates will appear here as they come in.</div></div>
+          <div class="empty-state hidden" id="notifications-empty"><div class="empty-state__title">No notifications yet</div><div class="empty-state__sub">You are all caught up.</div></div>
         </section>
 
         <section class="dash-section" id="section-activity">
-          <div class="section-header"><h1 class="section-header__title">Trending</h1><p class="section-header__sub">Profile activity, shortlist signals, launch traction, and discovery health.</p></div>
+          <div class="section-header"><h1 class="section-header__title">Activity</h1><p class="section-header__sub">Views, replies, and project updates.</p></div>
           <div id="activity-list" class="notification-stream"></div>
-          <div class="empty-state hidden" id="activity-empty"><div class="empty-state__title">No activity yet</div><div class="empty-state__sub">Views, bookmarks, replies, and launches will appear here.</div></div>
+          <div class="empty-state hidden" id="activity-empty"><div class="empty-state__title">No activity yet</div><div class="empty-state__sub">Activity will show up here.</div></div>
         </section>
       </section>
 
       <aside class="context-column">
-        <div class="context-panel">
-          <div class="rail-kicker">Trending builders</div>
-          <div class="mini-list"><span>Aditi is shipping a design system</span><span>Rahul launched a devtool beta</span><span>Maya is looking for a backend cofounder</span></div>
-        </div>
-        <div class="context-panel">
-          <div class="rail-kicker">Active discussions</div>
-          <div class="mini-list"><span>How do you price a first SaaS?</span><span>Roast my landing page</span><span>Best stack for realtime apps?</span></div>
-        </div>
-        <div class="context-panel">
-          <div class="rail-kicker">Launch leaderboard</div>
-          <div class="leader-row"><b>1</b><span>CampusOS</span><em>421</em></div>
-          <div class="leader-row"><b>2</b><span>PromptDock</span><em>316</em></div>
-          <div class="leader-row"><b>3</b><span>DebugLens</span><em>287</em></div>
-        </div>
+        <div class="context-panel"><div class="rail-kicker">Recently active builders</div><div class="quiet-state">No recent activity yet.</div></div>
+        <div class="context-panel"><div class="rail-kicker">Active discussions</div><div class="quiet-state">No discussions yet.</div></div>
+        <div class="context-panel"><div class="rail-kicker">Launches</div><div class="quiet-state">No launches yet.</div></div>
       </aside>
     </div>
   </main>
 </div>
 
 <nav class="mobile-tabbar" aria-label="Mobile navigation">
-  <button onclick="showSection('overview')">⌂<span>Home</span></button>
-  <button onclick="showSection('community')">◎<span>Community</span></button>
-  <button onclick="showSection('messages')">✉<span>Inbox</span></button>
-  <button onclick="showSection('profile')">✦<span>Profile</span></button>
+  <button onclick="showSection('overview')">Home<span>Home</span></button>
+  <button onclick="showSection('community')">Com<span>Community</span></button>
+  <button onclick="showSection('messages')">Msg<span>Inbox</span></button>
+  <button onclick="showSection('profile')">Me<span>Profile</span></button>
 </nav>
-<button class="mobile-create" onclick="showSection('add-project')">＋</button>
+<button class="mobile-create" onclick="showSection('add-project')">+</button>
 
 <div class="modal-overlay hidden" id="edit-project-modal">
   <div class="modal-box">
-    <div class="modal-header"><span class="modal-header__title">Edit Project</span><button class="modal-close" onclick="closeEditModal()">×</button></div>
+    <div class="modal-header"><span class="modal-header__title">Edit Project</span><button class="modal-close" onclick="closeEditModal()">x</button></div>
     <div class="modal-body">
       <form id="edit-project-form" onsubmit="saveEditProject(event)">
         <div class="form-group"><label for="edit-proj-title">Project title</label><input type="text" id="edit-proj-title" class="input" required maxlength="100"></div>
         <div class="form-group"><label for="edit-proj-desc">Description</label><textarea id="edit-proj-desc" class="textarea"></textarea></div>
         <div class="form-group"><label>Tech stack</label><div class="skills-input-wrap" id="edit-proj-skills-wrap"><input type="text" id="edit-proj-skill-input" class="input-inline" placeholder="Add technologies..."><div class="skill-suggestions hidden" id="edit-proj-skill-suggest"></div></div></div>
         <div class="form-row"><div class="form-group"><label for="edit-proj-type">Project type</label><select id="edit-proj-type" class="select input"><option value="Launch">Launch</option><option value="Side Project">Side Project</option><option value="School Project">School Project</option><option value="Open Source">Open Source</option><option value="Startup">Startup</option></select></div><div class="form-group"><label for="edit-proj-image">Project image URL</label><input type="url" id="edit-proj-image" class="input" placeholder="https://..."></div></div>
-        <div class="form-group"><label for="edit-proj-visible">Project visibility</label><select id="edit-proj-visible" class="select input"><option value="true">Public launch</option><option value="false">Private draft</option></select></div>
+        <div class="form-group"><label for="edit-proj-visible">Visibility</label><select id="edit-proj-visible" class="select input"><option value="true">Public</option><option value="false">Private draft</option></select></div>
         <div class="form-row"><div class="form-group"><label for="edit-proj-demo">Demo URL</label><input type="url" id="edit-proj-demo" class="input"></div><div class="form-group"><label for="edit-proj-github">GitHub URL</label><input type="url" id="edit-proj-github" class="input"></div></div>
         <div class="form-actions"><button type="submit" class="btn btn--primary">Save changes</button><button type="button" class="btn btn--ghost" onclick="closeEditModal()">Cancel</button></div>
       </form>
@@ -298,11 +283,11 @@
 
 <div class="modal-overlay hidden" id="creator-compose-modal">
   <div class="modal-box">
-    <div class="modal-header"><span class="modal-header__title">Start Builder Chat</span><button class="modal-close" onclick="closeCreatorComposer()">×</button></div>
+    <div class="modal-header"><span class="modal-header__title">Start chat</span><button class="modal-close" onclick="closeCreatorComposer()">x</button></div>
     <div class="modal-body">
-      <div class="trust-card trust-card--soft"><div class="trust-card__header"><div class="student-avatar" id="creator-compose-avatar">CR</div><div><strong id="creator-compose-name">Creator</strong><div class="muted" id="creator-compose-meta"></div></div></div><p class="muted" id="creator-compose-copy">Start a focused creator-to-creator discussion around this project.</p></div>
-      <div class="form-group"><label for="creator-compose-input">Your message</label><textarea id="creator-compose-input" class="textarea" maxlength="1000" placeholder="Ask about architecture, collaboration, or feedback."></textarea></div>
-      <div class="chat-composer__actions"><div class="muted">Keep it relevant so the thread stays useful.</div><div class="form-actions"><button class="btn btn--ghost" onclick="closeCreatorComposer()">Cancel</button><button class="btn btn--primary" id="creator-compose-send-btn">Send message</button></div></div>
+      <div class="trust-card trust-card--soft"><div class="trust-card__header"><div class="student-avatar" id="creator-compose-avatar">CR</div><div><strong id="creator-compose-name">Creator</strong><div class="muted" id="creator-compose-meta"></div></div></div><p class="muted" id="creator-compose-copy">Start a project conversation.</p></div>
+      <div class="form-group"><label for="creator-compose-input">Your message</label><textarea id="creator-compose-input" class="textarea" maxlength="1000" placeholder="Ask a question or share feedback."></textarea></div>
+      <div class="chat-composer__actions"><div class="muted">Keep it useful.</div><div class="form-actions"><button class="btn btn--ghost" onclick="closeCreatorComposer()">Cancel</button><button class="btn btn--primary" id="creator-compose-send-btn">Send</button></div></div>
     </div>
   </div>
 </div>
@@ -311,9 +296,9 @@
   <div class="modal-box modal-box--lg">
     <div class="modal-header"><span class="modal-header__title">Community Guidelines</span></div>
     <div class="modal-body">
-      <p>Solvoriz is for useful builder conversations, honest proof of work, and respectful collaboration.</p>
-      <ul class="policy-list"><li>Share accurate profile and project information.</li><li>Keep messages respectful and relevant.</li><li>Report spam, harassment, or suspicious hiring behavior.</li><li>Protect private contact and account details.</li></ul>
-      <div class="form-actions"><button class="btn btn--primary" id="accept-student-policy-btn">I agree and understand</button><button class="btn btn--ghost" onclick="logout()">Sign out</button></div>
+      <p>Keep Solvoriz useful and respectful.</p>
+      <ul class="policy-list"><li>Share accurate profile and project information.</li><li>Keep messages relevant.</li><li>Report spam or harassment.</li><li>Protect private account details.</li></ul>
+      <div class="form-actions"><button class="btn btn--primary" id="accept-student-policy-btn">I agree</button><button class="btn btn--ghost" onclick="logout()">Sign out</button></div>
     </div>
   </div>
 </div>

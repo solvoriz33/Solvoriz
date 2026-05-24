@@ -2663,3 +2663,160 @@ label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
     font-size: 24px;
   }
 }
+
+/* Authenticity pass: quieter, less promotional, content-first. */
+.experience-body {
+  background: #0b0d12;
+  color: #e6edf3;
+}
+
+.experience-body .experience-rail,
+.experience-body .topbar,
+.experience-body .dash-sidebar {
+  background: #0b0d12;
+}
+
+.experience-body .feed-hero,
+.experience-body .rail-panel,
+.experience-body .context-panel,
+.experience-body .composer-panel,
+.experience-body .community-room,
+.experience-body .identity-form,
+.experience-body .identity-side,
+.experience-body .card,
+.experience-body .stat-card,
+.experience-body .project-card,
+.experience-body .student-card,
+.experience-body .notification-card,
+.experience-body .messages-sidebar,
+.experience-body .chat-panel,
+.experience-body .table-wrap,
+.experience-body .modal-box,
+.feed-empty {
+  background: #11151c;
+  border-color: rgba(139, 148, 158, .18);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.experience-body .feed-hero {
+  grid-template-columns: 1fr;
+  padding: 22px;
+  background: #11151c;
+}
+
+.experience-body .feed-hero h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.08;
+  font-weight: 700;
+}
+
+.experience-body .feed-hero p,
+.experience-body .section-header__sub,
+.experience-body .muted,
+.experience-body .card__sub {
+  color: #8b949e;
+}
+
+.experience-body .hero-pulse {
+  display: none;
+}
+
+.feed-empty {
+  padding: 22px;
+  margin-bottom: 14px;
+}
+
+.feed-empty h2 {
+  font-size: 18px;
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+
+.feed-empty p,
+.quiet-state {
+  color: #8b949e;
+  font-size: 14px;
+}
+
+.quiet-state {
+  padding: 4px 0 2px;
+}
+
+.experience-body .btn--primary {
+  background: #e6edf3;
+  color: #0b0d12;
+}
+
+.experience-body .btn--primary:hover {
+  background: #f0f6fc;
+  transform: none;
+}
+
+.experience-body .btn--ghost,
+.experience-body .btn--outline,
+.experience-body .icon-btn,
+.experience-body .composer-panel button,
+.experience-body .feed-tabs button,
+.experience-body .post-actions button {
+  background: transparent;
+  color: #8b949e;
+}
+
+.experience-body .btn--ghost:hover,
+.experience-body .btn--outline:hover,
+.experience-body .icon-btn:hover,
+.experience-body .composer-panel button:hover,
+.experience-body .feed-tabs button:hover,
+.experience-body .feed-tabs button.active {
+  background: rgba(139, 148, 158, .08);
+  color: #e6edf3;
+  transform: none;
+}
+
+.experience-body .brand-mark,
+.experience-body .student-avatar,
+.experience-body .user-avatar-sm,
+.experience-body .avatar-generated {
+  background: #202633;
+  color: #e6edf3;
+}
+
+.experience-body .stat-grid {
+  display: none;
+}
+
+.experience-body .prompt-banner {
+  background: #11151c !important;
+  border-color: rgba(139, 148, 158, .18) !important;
+}
+
+.experience-body .prompt-banner__icon {
+  display: none;
+}
+
+.experience-body .nav-icon {
+  color: #8b949e;
+}
+
+.experience-body .global-search {
+  background: #11151c;
+}
+
+.experience-body .global-search span {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.experience-body .section-header__title,
+.experience-body .feed-heading h2,
+.experience-body .community-room h2,
+.experience-body .identity-side h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 650;
+}
+
+.experience-body .context-panel {
+  padding: 14px;
+}

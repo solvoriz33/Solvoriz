@@ -206,7 +206,7 @@ function updateOverviewCard(profile) {
 
   const visibility = document.getElementById('visibility-status');
   if (visibility) {
-    visibility.textContent = 'Live';
+    visibility.textContent = 'Public';
     visibility.title = 'Your profile is visible and searchable. Add more details whenever you want.';
   }
 
@@ -435,7 +435,7 @@ function renderCommunityGroups() {
   if (!list) return;
 
   if (!communityGroups.length) {
-    list.innerHTML = '<div class="muted">No groups yet. Create the first one and set the room tone.</div>';
+    list.innerHTML = '<div class="muted">No rooms yet. Create the first one.</div>';
     return;
   }
 
@@ -473,7 +473,7 @@ async function createCommunityGroup(event) {
 
   if (error) { showToast(`Failed to create group: ${error.message}`, 'error'); return; }
   event.target.reset();
-  showToast('Group created. The room is yours.', 'success');
+  showToast('Room created.', 'success');
   await loadCommunityGroups();
   if (data?.id) await openGroupChat(data.id);
 }
@@ -980,7 +980,7 @@ function renderEmptyConversation() {
   const badge = document.getElementById('chat-trust-badge');
   if (title) title.textContent = 'Select a thread';
   if (meta) meta.textContent = 'Recruiter outreach and creator discussions stay private inside Solvoriz.';
-  if (badge) { badge.textContent = 'Protected inbox'; badge.className = 'thread-status-badge thread-status-badge--ok'; }
+  if (badge) { badge.textContent = 'Inbox'; badge.className = 'thread-status-badge thread-status-badge--ok'; }
   if (pane) {
     pane.innerHTML = `
       <div class="chat-empty">
