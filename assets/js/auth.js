@@ -136,8 +136,12 @@ const Auth = (() => {
     if (!window.sb || !user) return null;
     const role = user.user_metadata?.role || 'student';
     const requested_role = user.user_metadata?.requested_role || role || 'student';
-    const username = normalizeUsername(user.user_metadata?.username || user.email?.split('@')[0] || '');
-    const full_name = user.user_metadata?.full_name || username || user.email?.split('@')[0] || '';
+    const emailPrefix = normalizeUsername(user.email?.split('@')[0] || 'builder');
+    const metadataUsername = normalizeUsername(user.user_metadata?.username || emailPrefix);
+    const username = metadataUsername.length >= 3
+      ? metadataUsername
+      : `builder_${String(user.id || '').replace(/-/g, '').slice(0, 8)}`;
+    const full_name = user.user_metadata?.full_name || username || user.email?.split('@')[0] || 'Builder';
     const email = user.email || '';
     if (!user.id || !email) return null;
 
@@ -151,6 +155,7 @@ const Auth = (() => {
     }).select().maybeSingle();
 
     if (error) {
+      logDbError?.('auth', 'create user profile', error, { userId: user.id, email });
       if (error.code === '23505') {
         const { data: existing } = await window.sb
           .from('users')

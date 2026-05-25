@@ -15,6 +15,8 @@ let chatRefreshTimer = null;
 let composeTarget = null;
 let recruiterRealtimeChannel = null;
 let recruiterThreadChannel = null;
+let typingSendTimer = null;
+let typingTimers = new Map();
 
 const PROJECT_PAGE_SIZE = 24;
 const CONVERSATION_PAGE_SIZE = 25;
@@ -35,6 +37,24 @@ function isSearchReadyProfile(profile = {}) {
 
 function getUnreadCountFromFeed(messageFeed = []) {
   return messageFeed.filter(message => message.sender_id !== currentUser?.id && !message.read).length;
+}
+
+function getBuilderIdentity(userJoin, fallback = 'Unknown Builder') {
+  const user = Array.isArray(userJoin) ? userJoin[0] : userJoin;
+  const profile = Array.isArray(user?.student_profiles) ? user.student_profiles[0] : user?.student_profiles;
+  const displayName = user?.display_name || user?.full_name || profile?.handle || user?.email?.split('@')[0] || fallback;
+  const username = user?.username || profile?.handle || user?.email?.split('@')[0] || 'unknown';
+  return {
+    id: user?.id || null,
+    displayName,
+    username: username.startsWith('@') ? username : `@${username}`,
+    avatar: user?.avatar_url || profile?.avatar_url || ''
+  };
+}
+
+function renderAvatar(identity, className = 'thread-card__avatar') {
+  const style = identity.avatar ? ` style="background-image:url('${escHtml(identity.avatar)}')"` : '';
+  return `<div class="${className} avatar-generated"${style}>${identity.avatar ? '' : getInitials(identity.displayName)}</div>`;
 }
 
 function isValidMeetLink(link) {
@@ -345,6 +365,7 @@ function setupMessagingComposer() {
       }
     });
   });
+  input?.addEventListener('input', sendTypingSignal);
 }
 
 function openMessageComposer(projectId) {
@@ -432,6 +453,7 @@ async function ensureConversation(studentId, projectId) {
   });
 
   if (error) {
+    logDbError?.('messages', 'ensure recruiter conversation', error, { studentId, projectId });
     showToast(`Failed to start conversation: ${error.message}`, 'error');
     return null;
   }
@@ -440,12 +462,13 @@ async function ensureConversation(studentId, projectId) {
 }
 
 async function loadConversations(preserveSelection = true) {
+  SolvorizDebug?.log('messages', 'recruiter loading conversations', { userId: currentUser?.id });
   const { data, error } = await window.sb
     .from('conversations')
     .select(`
       *,
-      recruiter:recruiter_id(id, full_name, email),
-      student:student_id(id, full_name, email),
+      recruiter:recruiter_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)),
+      student:student_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)),
       project:project_id(id, title),
       last_message:messages(id, body, created_at, sender_id, read)
     `)
@@ -454,15 +477,20 @@ async function loadConversations(preserveSelection = true) {
     .range(0, CONVERSATION_PAGE_SIZE - 1);
 
   if (error) {
-    showToast('Failed to load messages', 'error');
+    logDbError?.('messages', 'load recruiter conversations', error, { userId: currentUser?.id });
+    showToast('Failed to load messages: ' + error.message, 'error');
     return;
   }
 
   myMessages = (data || []).map(conv => {
     const partner = conv.recruiter_id === currentUser.id ? conv.student : conv.recruiter;
+    const identity = getBuilderIdentity(partner);
     return {
       ...conv,
       partner,
+      partnerName: identity.displayName,
+      partnerUsername: identity.username,
+      partnerAvatar: identity.avatar,
       message_feed: Array.isArray(conv.last_message)
         ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         : conv.last_message ? [conv.last_message] : [],
@@ -472,6 +500,7 @@ async function loadConversations(preserveSelection = true) {
       unread_count: getUnreadCountFromFeed(Array.isArray(conv.last_message) ? conv.last_message : conv.last_message ? [conv.last_message] : [])
     };
   });
+  SolvorizStore?.upsert('conversations', myMessages);
 
   renderConversations();
   updateDashboardStats();
@@ -510,18 +539,20 @@ function renderConversations() {
     const last = conv.last_message || {};
     const active = conv.id === currentConversation;
     const status = getThreadStatus(conv);
+    const identity = { displayName: conv.partnerName, username: conv.partnerUsername, avatar: conv.partnerAvatar };
     return `
       <button class="thread-card ${active ? 'thread-card--active' : ''}" onclick="openConversation('${conv.id}')">
-        <div class="thread-card__avatar">${getInitials(conv.partner?.full_name || conv.partner?.email || 'Builder')}</div>
+        ${renderAvatar(identity, 'thread-card__avatar avatar-generated')}
         <div class="thread-card__body">
           <div class="thread-card__top">
-            <strong>${escHtml(conv.partner?.full_name || conv.partner?.email || 'Builder')}</strong>
+            <strong>${escHtml(conv.partnerName || 'Unknown Builder')}</strong>
             <div style="display:flex;align-items:center;gap:8px">
               ${conv.unread_count ? `<span class="nav-count">${conv.unread_count}</span>` : ''}
               <span class="thread-card__time">${fmtTime(last.created_at)}</span>
             </div>
           </div>
           <div class="thread-card__project">${escHtml(conv.project?.title || 'Direct conversation')}</div>
+          <div class="thread-card__username">${escHtml(conv.partnerUsername || '@builder')}</div>
           <div class="thread-card__role">${escHtml(status)}</div>
           <div class="thread-card__preview">${escHtml(last.body || 'No messages yet')}</div>
         </div>
@@ -537,7 +568,7 @@ async function openConversation(convId) {
   const conv = myMessages.find(c => c.id === convId);
   if (!conv) return;
 
-  document.getElementById('chat-title').textContent = conv.partner?.full_name || conv.partner?.email || 'Builder';
+  document.getElementById('chat-title').textContent = conv.partnerName || 'Unknown Builder';
   document.getElementById('chat-meta').textContent = conv.project?.title || 'Direct conversation';
   document.getElementById('chat-trust-badge').textContent = `${currentProfile.verified_recruiter ? 'Verified recruiter' : 'Verification pending'} · ${getThreadStatus(conv)}`;
   document.getElementById('chat-trust-badge').className = `thread-status-badge ${currentProfile.verified_recruiter ? 'thread-status-badge--ok' : ''}`;
@@ -668,19 +699,21 @@ async function blockConversationPartner(blockedUserId) {
 async function loadConversationMessages(convId) {
   const { data, error } = await window.sb
     .from('messages')
-    .select('*')
+    .select('*, sender:sender_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url))')
     .eq('conversation_id', convId)
     .order('created_at', { ascending: false })
     .range(0, MESSAGE_PAGE_SIZE - 1);
 
   if (error) {
-    showToast('Failed to load thread', 'error');
+    logDbError?.('messages', 'load recruiter thread', error, { conversationId: convId });
+    showToast('Failed to load thread: ' + error.message, 'error');
     return;
   }
 
   const pane = document.getElementById('chat-messages');
   if (!pane) return;
   const ordered = [...(data || [])].reverse();
+  SolvorizStore?.upsert('messages', ordered);
   const unreadIncoming = ordered.filter(message => message.sender_id !== currentUser.id && !message.read).map(message => message.id);
   if (unreadIncoming.length) {
     const { error: readError } = await window.sb.rpc('mark_conversation_read', { p_conversation_id: convId });
@@ -697,11 +730,16 @@ async function loadConversationMessages(convId) {
 
   pane.innerHTML = ordered.map(message => {
     const mine = message.sender_id === currentUser.id;
+    const identity = getBuilderIdentity(message.sender);
     return `
       <div class="chat-row ${mine ? 'chat-row--mine' : ''}">
+        ${mine ? '' : renderAvatar(identity, 'student-avatar chat-row__avatar')}
         <div class="chat-bubble ${mine ? 'chat-bubble--mine' : ''}">
+          <div class="message-identity message-identity--compact">
+            <div class="message-identity__name"><strong>${escHtml(mine ? 'You' : identity.displayName)}</strong><span>${escHtml(identity.username)}</span></div>
+            <div class="message-identity__time">${fmtTime(message.created_at)}${message.edited_at ? ' · edited' : ''}</div>
+          </div>
           <div class="chat-bubble__text">${escHtml(message.body)}</div>
-          <div class="chat-bubble__meta">${fmtTime(message.created_at)}</div>
         </div>
       </div>
     `;
@@ -759,6 +797,7 @@ async function sendRecruiterMessage() {
 
   setBtnLoading(sendBtn, false);
   if (error) {
+    logDbError?.('messages', 'send recruiter message', error, { conversationId: currentConversation });
     showToast(`Failed to send: ${error.message}`, 'error');
     return;
   }
@@ -811,8 +850,47 @@ function subscribeToRecruiterThread(convId) {
       loadConversations(true);
       loadConversationMessages(convId);
     })
+    .on('broadcast', { event: 'typing' }, payload => {
+      const senderId = payload?.payload?.user_id;
+      if (!senderId || senderId === currentUser.id) return;
+      showTypingIndicator(payload.payload.display_name || 'Someone');
+    })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'interviews', filter: `conversation_id=eq.${convId}` }, () => renderRecruiterInterviewUI(myMessages.find(conv => conv.id === convId)))
-    .subscribe();
+    .subscribe(status => SolvorizDebug?.log('realtime', 'recruiter thread status', { convId, status }));
+}
+
+function sendTypingSignal() {
+  if (!recruiterThreadChannel || !currentConversation) return;
+  clearTimeout(typingSendTimer);
+  typingSendTimer = setTimeout(() => {
+    recruiterThreadChannel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: {
+        conversation_id: currentConversation,
+        user_id: currentUser.id,
+        display_name: currentProfile?.display_name || currentProfile?.full_name || currentUser.email
+      }
+    });
+  }, 250);
+}
+
+function showTypingIndicator(name) {
+  const panel = document.getElementById('chat-panel');
+  const inputRow = document.getElementById('chat-input-row');
+  if (!panel || !inputRow) return;
+  let indicator = document.getElementById('chat-typing-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'chat-typing-indicator';
+    indicator.className = 'muted chat-typing-indicator';
+    panel.insertBefore(indicator, inputRow);
+  }
+  indicator.textContent = `${name} is typing...`;
+  clearTimeout(typingTimers.get(currentConversation));
+  typingTimers.set(currentConversation, setTimeout(() => {
+    if (indicator) indicator.textContent = '';
+  }, 1800));
 }
 
 function startRealtimeSync() {
@@ -822,7 +900,7 @@ function startRealtimeSync() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => loadConversations(true))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations(true))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
-    .subscribe();
+    .subscribe(status => SolvorizDebug?.log('realtime', 'recruiter live status', { status }));
 }
 
 function startChatRefresh() {

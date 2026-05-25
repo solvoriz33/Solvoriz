@@ -30,6 +30,7 @@ let presenceChannel = null;
 let currentGroupId = null;
 let onlineBuilders = new Map();
 let typingTimers = new Map();
+let typingSendTimer = null;
 let studentRealtimeRefreshTimer = null;
 let filterCommunitySkills = [];      // for server-side skills filtering
 let communitySearchTimer = null;     // debounce timer
@@ -627,7 +628,11 @@ async function loadGroupMessages(groupId) {
     .order('created_at', { ascending: true })
     .limit(60);
 
-  if (error) { showToast('Failed to load group chat', 'error'); return; }
+  if (error) {
+    logDbError?.('community-chat', 'load group messages', error, { groupId });
+    showToast('Failed to load group chat: ' + error.message, 'error');
+    return;
+  }
   const pane = document.getElementById('group-chat-messages');
   if (!pane) return;
   if (!data?.length) {
@@ -662,7 +667,11 @@ async function sendGroupMessage() {
     body
   });
   setBtnLoading(btn, false);
-  if (error) { showToast(`Failed to send: ${error.message}`, 'error'); return; }
+  if (error) {
+    logDbError?.('community-chat', 'send group message', error, { groupId: currentGroupId });
+    showToast(`Failed to send: ${error.message}`, 'error');
+    return;
+  }
   if (input) input.value = '';
   await loadGroupMessages(currentGroupId);
 }
@@ -673,7 +682,7 @@ function subscribeToGroupChat(groupId) {
   groupRealtimeChannel = window.sb
     .channel(`group-chat-${groupId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` }, () => loadGroupMessages(groupId))
-    .subscribe();
+    .subscribe(status => SolvorizDebug?.log('realtime', 'group channel status', { groupId, status }));
 }
 
 // ── COMMUNITY: RENDER PROJECTS ────────────────────────────
@@ -1066,6 +1075,7 @@ function updateLiveDashboard() {
 
 // ── CONVERSATIONS ─────────────────────────────────────────
 async function loadConversations() {
+  SolvorizDebug?.log('messages', 'loading conversations', { userId: currentUser?.id });
   const { data, error } = await window.sb
     .from('conversations')
     .select(`*, recruiter:recruiter_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)), student:student_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
@@ -1087,8 +1097,12 @@ async function loadConversations() {
     .order('last_message_at', { ascending: false })
     .range(0, CONVERSATION_PAGE_SIZE - 1);
 
-  if (error) { console.warn('Failed to load recruiter conversations', error); }
-  if (creatorError) { console.warn('Failed to load creator conversations', creatorError); }
+  if (error) { logDbError?.('messages', 'load direct conversations', error, { userId: currentUser?.id }); }
+  if (creatorError) { logDbError?.('messages', 'load legacy creator conversations', creatorError, { userId: currentUser?.id }); }
+  SolvorizDebug?.log('messages', 'conversation query completed', {
+    directCount: data?.length || 0,
+    legacyCreatorCount: creatorData?.length || 0
+  });
 
   const recruiterMessages = (data || []).map(conv => {
     const partner = conv.recruiter_id === currentUser.id ? conv.student : conv.recruiter;
@@ -1136,6 +1150,7 @@ async function loadConversations() {
     const bTime = b.last_message?.created_at || b.created_at;
     return new Date(bTime) - new Date(aTime);
   });
+  SolvorizStore?.upsert('conversations', myMessages);
 
   renderConversations();
   if (currentConversation && myMessages.some(conv => conv.id === currentConversation)) {
@@ -1319,6 +1334,7 @@ async function studentBlockConversationPartner(blockedUserId) {
 async function loadConversationMessages(convId) {
   const conv = myMessages.find(c => c.id === convId);
   if (!conv) return;
+  SolvorizDebug?.log('messages', 'loading thread', { conversationId: convId, type: conv.threadType });
   const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
   const fk = conv.threadType === 'creator' ? 'creator_conversation_id' : 'conversation_id';
   const { data, error } = await window.sb
@@ -1327,14 +1343,19 @@ async function loadConversationMessages(convId) {
     .eq(fk, convId)
     .order('created_at', { ascending: false })
     .range(0, MESSAGE_PAGE_SIZE - 1);
-  if (error) { showToast('Failed to load thread', 'error'); return; }
+  if (error) {
+    logDbError?.('messages', 'load thread', error, { conversationId: convId, table });
+    showToast('Failed to load thread: ' + error.message, 'error');
+    return;
+  }
   const ordered = [...(data || [])].reverse();
+  SolvorizStore?.upsert('messages', ordered);
   const unreadIncoming = ordered.filter(m => m.sender_id !== currentUser.id && !m.read).map(m => m.id);
   if (unreadIncoming.length) {
     const rpcName = conv.threadType === 'creator' ? 'mark_creator_conversation_read' : 'mark_conversation_read';
     const argName = conv.threadType === 'creator' ? 'p_creator_conversation_id' : 'p_conversation_id';
     const { error: readError } = await window.sb.rpc(rpcName, { [argName]: convId });
-    if (readError) console.warn('Failed to mark thread as read', readError);
+    if (readError) logDbError?.('messages', 'mark thread read', readError, { conversationId: convId, rpcName });
     ordered.forEach(m => { if (unreadIncoming.includes(m.id)) m.read = true; });
   }
   const pane = document.getElementById('chat-messages');
@@ -1383,7 +1404,11 @@ async function sendStudentMessage() {
     : { conversation_id: currentConversation, sender_id: currentUser.id, body };
   const { error } = await window.sb.from(table).insert(payload);
   setBtnLoading(sendBtn, false);
-  if (error) { showToast('Failed to send', 'error'); return; }
+  if (error) {
+    logDbError?.('messages', 'send message', error, { conversationId: currentConversation, table });
+    showToast('Failed to send: ' + error.message, 'error');
+    return;
+  }
   input.value = '';
   await loadConversations();
 }
@@ -1399,7 +1424,11 @@ async function editStudentMessage(messageId) {
   if (!trimmed) return;
   const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
   const { error } = await window.sb.from(table).update({ body: trimmed, edited_at: new Date().toISOString() }).eq('id', messageId).eq('sender_id', currentUser.id);
-  if (error) { showToast('Failed to edit message: ' + error.message, 'error'); return; }
+  if (error) {
+    logDbError?.('messages', 'edit message', error, { messageId, table });
+    showToast('Failed to edit message: ' + error.message, 'error');
+    return;
+  }
   showToast('Message updated.', 'success');
   await loadConversationMessages(currentConversation);
 }
@@ -1410,7 +1439,11 @@ async function deleteStudentMessage(messageId) {
   if (!confirm('Delete this message?')) return;
   const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
   const { error } = await window.sb.from(table).delete().eq('id', messageId).eq('sender_id', currentUser.id);
-  if (error) { showToast('Failed to delete message: ' + error.message, 'error'); return; }
+  if (error) {
+    logDbError?.('messages', 'delete message', error, { messageId, table });
+    showToast('Failed to delete message: ' + error.message, 'error');
+    return;
+  }
   showToast('Message deleted.', 'warn');
   await loadConversationMessages(currentConversation);
   await loadConversations();
@@ -1427,6 +1460,7 @@ function setupMessagingComposer() {
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendStudentMessage(); }
   });
+  input.addEventListener('input', sendTypingSignal);
   creatorComposeInput?.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCreatorComposeMessage(); }
   });
@@ -1470,10 +1504,53 @@ function subscribeToStudentThread(conversation) {
       loadConversations();
       loadConversationMessages(conversation.id);
     })
+    .on('broadcast', { event: 'typing' }, payload => {
+      const senderId = payload?.payload?.user_id;
+      if (!senderId || senderId === currentUser.id) return;
+      showTypingIndicator(payload.payload.display_name || 'Someone');
+    })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'interviews', filter: `conversation_id=eq.${conversation.id}` }, () => {
       if (conversation.threadType === 'recruiter') renderStudentInterviewUI(myMessages.find(item => item.id === conversation.id));
     })
-    .subscribe();
+    .subscribe(status => SolvorizDebug?.log('realtime', 'thread channel status', {
+      conversationId: conversation.id,
+      table,
+      status
+    }));
+}
+
+function sendTypingSignal() {
+  if (!studentThreadChannel || !currentConversation) return;
+  clearTimeout(typingSendTimer);
+  typingSendTimer = setTimeout(() => {
+    studentThreadChannel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: {
+        conversation_id: currentConversation,
+        user_id: currentUser.id,
+        display_name: currentProfile?.display_name || currentProfile?.full_name || currentUser.email
+      }
+    });
+  }, 250);
+}
+
+function showTypingIndicator(name) {
+  const panel = document.getElementById('chat-panel');
+  const inputRow = document.getElementById('chat-input-row');
+  if (!panel || !inputRow) return;
+  let indicator = document.getElementById('chat-typing-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'chat-typing-indicator';
+    indicator.className = 'muted chat-typing-indicator';
+    panel.insertBefore(indicator, inputRow);
+  }
+  indicator.textContent = `${name} is typing...`;
+  clearTimeout(typingTimers.get(currentConversation));
+  typingTimers.set(currentConversation, setTimeout(() => {
+    if (indicator) indicator.textContent = '';
+  }, 1800));
 }
 
 // ── CREATOR COMPOSE MODAL ─────────────────────────────────
@@ -1576,7 +1653,11 @@ async function ensureCreatorConversation(otherCreatorId, projectId) {
     p_project_id: projectId || null
   });
 
-  if (error) { showToast(`Failed to start conversation: ${error.message}`, 'error'); return null; }
+  if (error) {
+    logDbError?.('messages', 'ensure direct conversation', error, { otherCreatorId, projectId });
+    showToast(`Failed to start conversation: ${error.message}`, 'error');
+    return null;
+  }
   return data;
 }
 
@@ -1606,7 +1687,7 @@ function startRealtimeSync() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'social_reactions' }, () => debounceRealtimeRefresh(loadSocialFeed))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => debounceRealtimeRefresh(loadCommunityProjects))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => debounceRealtimeRefresh(loadNotifications))
-    .subscribe();
+    .subscribe(status => SolvorizDebug?.log('realtime', 'student channel status', { status }));
 
   presenceChannel = window.sb.channel('builder-presence', { config: { presence: { key: currentUser.id } } });
   presenceChannel
@@ -1616,6 +1697,7 @@ function startRealtimeSync() {
       updateLiveDashboard();
     })
     .subscribe(async status => {
+      SolvorizDebug?.log('realtime', 'presence channel status', { status });
       if (status === 'SUBSCRIBED') {
         await presenceChannel.track({
           user_id: currentUser.id,

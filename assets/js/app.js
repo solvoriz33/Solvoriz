@@ -38,6 +38,75 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const SolvorizDebug = (() => {
+  const enabled = true;
+
+  function log(scope, message, details = null) {
+    if (!enabled) return;
+    const payload = details ? ['[Solvoriz]', scope, message, details] : ['[Solvoriz]', scope, message];
+    console.info(...payload);
+  }
+
+  function warn(scope, message, details = null) {
+    const payload = details ? ['[Solvoriz]', scope, message, details] : ['[Solvoriz]', scope, message];
+    console.warn(...payload);
+  }
+
+  function error(scope, message, details = null) {
+    const payload = details ? ['[Solvoriz]', scope, message, details] : ['[Solvoriz]', scope, message];
+    console.error(...payload);
+  }
+
+  return { log, warn, error };
+})();
+
+const SolvorizStore = (() => {
+  const state = {
+    users: new Map(),
+    conversations: new Map(),
+    messages: new Map(),
+    projects: new Map(),
+    posts: new Map(),
+    groups: new Map()
+  };
+
+  function upsert(collection, itemOrItems, idKey = 'id') {
+    const bucket = state[collection];
+    if (!bucket) return;
+    const items = Array.isArray(itemOrItems) ? itemOrItems : [itemOrItems];
+    items.filter(Boolean).forEach(item => {
+      const id = item[idKey];
+      if (!id) return;
+      bucket.set(id, { ...(bucket.get(id) || {}), ...item });
+    });
+  }
+
+  function remove(collection, id) {
+    state[collection]?.delete(id);
+  }
+
+  function list(collection) {
+    return Array.from(state[collection]?.values() || []);
+  }
+
+  function get(collection, id) {
+    return state[collection]?.get(id) || null;
+  }
+
+  return { state, upsert, remove, list, get };
+})();
+
+function logDbError(scope, action, error, context = {}) {
+  if (!error) return;
+  SolvorizDebug.error(scope, `${action} failed`, {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    context
+  });
+}
+
 function fmtDateTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -215,6 +284,9 @@ async function requireAuth(expectedRole, redirectTo = '/auth.html') {
 
 // Expose globally
 window.showToast = showToast;
+window.SolvorizDebug = SolvorizDebug;
+window.SolvorizStore = SolvorizStore;
+window.logDbError = logDbError;
 window.escHtml = escHtml;
 window.fmtDate = fmtDate;
 window.fmtDateTime = fmtDateTime;
