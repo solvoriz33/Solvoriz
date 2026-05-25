@@ -66,6 +66,22 @@
             </div>
           </div>
 
+          <div class="live-strip" aria-live="polite">
+            <div class="live-strip__item">
+              <span class="live-dot"></span>
+              <strong id="live-online-count">0 builders online</strong>
+              <span id="live-online-copy">Realtime presence is warming up.</span>
+            </div>
+            <div class="live-strip__item">
+              <strong id="live-shipped-copy">No launches yet</strong>
+              <span>latest ship</span>
+            </div>
+            <div class="live-strip__item">
+              <strong id="live-discussion-copy">No active threads</strong>
+              <span>community pulse</span>
+            </div>
+          </div>
+
           <form class="quick-post" id="quick-post-form" onsubmit="createQuickPost(event)">
             <div class="quick-post__avatar user-avatar-sm avatar-generated" id="composer-avatar">SB</div>
             <div class="quick-post__body">
@@ -100,6 +116,7 @@
           </div>
 
           <div class="social-feed" id="social-feed"></div>
+          <button class="btn btn--outline btn-full live-load-more" id="feed-load-more" type="button" onclick="loadMoreFeed()">Load more activity</button>
 
           <div class="prompt-banner prompt-banner--overview" id="profile-prompt">
             <span class="prompt-banner__icon">@</span>
@@ -293,6 +310,19 @@
       <div class="trust-card trust-card--soft"><div class="trust-card__header"><div class="student-avatar" id="creator-compose-avatar">CR</div><div><strong id="creator-compose-name">Creator</strong><div class="muted" id="creator-compose-meta"></div></div></div><p class="muted" id="creator-compose-copy">Start a project conversation.</p></div>
       <div class="form-group"><label for="creator-compose-input">Your message</label><textarea id="creator-compose-input" class="textarea" maxlength="1000" placeholder="Ask a question or share feedback."></textarea></div>
       <div class="chat-composer__actions"><div class="muted">Keep it useful.</div><div class="form-actions"><button class="btn btn--ghost" onclick="closeCreatorComposer()">Cancel</button><button class="btn btn--primary" id="creator-compose-send-btn">Send</button></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="confirm-delete-modal">
+  <div class="modal-box modal-box--confirm">
+    <div class="modal-header"><span class="modal-header__title">Delete project</span><button class="modal-close" id="confirm-delete-cancel-x">x</button></div>
+    <div class="modal-body">
+      <p class="muted" id="confirm-delete-copy">This removes the project, launch references, comments, likes, and attached assets. This cannot be undone.</p>
+      <div class="form-actions">
+        <button class="btn btn--ghost" id="confirm-delete-cancel">Cancel</button>
+        <button class="btn btn--danger" id="confirm-delete-accept">Delete project</button>
+      </div>
     </div>
   </div>
 </div>

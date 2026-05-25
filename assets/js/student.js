@@ -26,7 +26,11 @@ let creatorComposeTarget = null;
 let studentRealtimeChannel = null;
 let studentThreadChannel = null;
 let groupRealtimeChannel = null;
+let presenceChannel = null;
 let currentGroupId = null;
+let onlineBuilders = new Map();
+let typingTimers = new Map();
+let studentRealtimeRefreshTimer = null;
 let filterCommunitySkills = [];      // for server-side skills filtering
 let communitySearchTimer = null;     // debounce timer
 
@@ -41,6 +45,60 @@ function normalizeProfileJoin(profileJoin) {
 
 function getUnreadCountFromFeed(messageFeed = []) {
   return messageFeed.filter(message => message.sender_id !== currentUser?.id && !message.read).length;
+}
+
+function getBuilderIdentity(userJoin, fallback = 'Unknown Builder') {
+  const user = Array.isArray(userJoin) ? userJoin[0] : userJoin;
+  const profile = Array.isArray(user?.student_profiles) ? user.student_profiles[0] : user?.student_profiles;
+  const displayName = user?.display_name || user?.full_name || profile?.handle || user?.email?.split('@')[0] || fallback;
+  const username = user?.username || profile?.handle || user?.email?.split('@')[0] || 'unknown';
+  return {
+    id: user?.id || null,
+    displayName,
+    username: username.startsWith('@') ? username : `@${username}`,
+    avatar: user?.avatar_url || profile?.avatar_url || '',
+    headline: profile?.headline || user?.bio || ''
+  };
+}
+
+function renderAvatar(identity, className = 'student-avatar') {
+  const style = identity.avatar ? ` style="background-image:url('${escHtml(identity.avatar)}')"` : '';
+  return `<div class="${className} avatar-generated"${style}>${identity.avatar ? '' : getThreadInitials(identity.displayName)}</div>`;
+}
+
+function renderMessageIdentity(message, compact = false) {
+  const identity = getBuilderIdentity(message.sender);
+  const mine = message.sender_id === currentUser?.id;
+  const edited = message.edited_at ? ' · edited' : '';
+  return `
+    <div class="message-identity ${compact ? 'message-identity--compact' : ''}">
+      ${compact ? '' : renderAvatar(identity, 'student-avatar message-identity__avatar')}
+      <div>
+        <div class="message-identity__name">
+          <strong>${escHtml(mine ? 'You' : identity.displayName)}</strong>
+          <span>${escHtml(identity.username)}</span>
+        </div>
+        <div class="message-identity__time">${fmtTime(message.created_at)}${edited}</div>
+      </div>
+    </div>
+  `;
+}
+
+function fmtRelativeTime(iso) {
+  if (!iso) return 'just now';
+  const seconds = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function debounceRealtimeRefresh(fn, delay = 450) {
+  clearTimeout(studentRealtimeRefreshTimer);
+  studentRealtimeRefreshTimer = setTimeout(fn, delay);
 }
 
 function isValidMeetLink(link) {
@@ -386,7 +444,7 @@ async function loadSocialFeed() {
     .from('social_posts')
     .select(`
       *,
-      author:author_id(id, full_name, email, username, display_name, student_profiles(handle, headline, avatar_url)),
+      author:author_id(id, full_name, email, username, display_name, avatar_url, bio, student_profiles(handle, headline, avatar_url)),
       project:project_id(id, title, project_type, demo_link, github_link),
       comments:social_comments(
         id,
@@ -395,7 +453,7 @@ async function loadSocialFeed() {
         body,
         created_at,
         author_id,
-        author:author_id(id, full_name, email, username, display_name, student_profiles(handle, headline, avatar_url))
+        author:author_id(id, full_name, email, username, display_name, avatar_url, bio, student_profiles(handle, headline, avatar_url))
       ),
       reactions:social_reactions(id, target_type, target_id, reaction, user_id)
     `)
@@ -564,7 +622,7 @@ async function openGroupChat(groupId) {
 async function loadGroupMessages(groupId) {
   const { data, error } = await window.sb
     .from('group_messages')
-    .select('*, sender:sender_id(id, username, display_name, full_name, email)')
+    .select('*, sender:sender_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url))')
     .eq('group_id', groupId)
     .order('created_at', { ascending: true })
     .limit(60);
@@ -576,14 +634,18 @@ async function loadGroupMessages(groupId) {
     pane.innerHTML = '<div class="chat-empty">No messages yet. Drop the first idea.</div>';
     return;
   }
-  pane.innerHTML = data.map(message => `
-    <div class="chat-row ${message.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
-      <div class="chat-bubble ${message.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
-        <div class="chat-bubble__meta">${escHtml(getDisplayUsername(message.sender))} · ${fmtTime(message.created_at)}</div>
-        <div class="chat-bubble__text">${escHtml(message.body)}</div>
+  pane.innerHTML = data.map(message => {
+    const identity = getBuilderIdentity(message.sender);
+    return `
+      <div class="chat-row ${message.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
+        ${message.sender_id === currentUser.id ? '' : renderAvatar(identity, 'student-avatar chat-row__avatar')}
+        <div class="chat-bubble ${message.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
+          ${renderMessageIdentity(message, true)}
+          <div class="chat-bubble__text">${escHtml(message.body)}</div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   pane.scrollTop = pane.scrollHeight;
 }
 
@@ -800,17 +862,25 @@ function renderFeed() {
     : renderSocialPostItem(item.data)
   ).join('');
   updateContextPanels();
+  updateLiveDashboard();
+}
+
+async function loadMoreFeed() {
+  showToast('Fetching the freshest builder activity...', 'info');
+  await Promise.all([loadSocialFeed(), loadCommunityProjects(), loadCommunityCreators()]);
+  renderFeed();
 }
 
 function renderProjectFeedItem(project) {
-  const author = project.creatorName || 'Builder';
+  const author = project.creatorName || 'Unknown Builder';
+  const username = project.creatorHandle || project.userId?.slice(0, 8) || 'builder';
   return `
     <article class="feed-item feed-item--launch animate-fade-up">
       <div class="feed-item__meta">
-        <div class="student-avatar">${getThreadInitials(author)}</div>
+        ${project.creatorAvatar ? `<div class="student-avatar avatar-generated" style="background-image:url('${escHtml(project.creatorAvatar)}')"></div>` : `<div class="student-avatar">${getThreadInitials(author)}</div>`}
         <div>
           <strong>${escHtml(author)}</strong>
-          <span>${escHtml(project.project_type || 'Launch')} · ${fmtDate(project.created_at)}</span>
+          <span>@${escHtml(username)} &middot; shipped ${fmtRelativeTime(project.created_at)}</span>
         </div>
       </div>
       ${project.image_url ? `<div class="feed-item__image" style="background-image:url('${escHtml(project.image_url)}')"></div>` : ''}
@@ -841,8 +911,8 @@ function renderSocialPostItem(post) {
       <div class="feed-item__meta">
         <div class="student-avatar" ${author.avatar ? `style="background-image:url('${escHtml(author.avatar)}')"` : ''}>${author.avatar ? '' : getThreadInitials(author.name)}</div>
         <div>
-          <strong>${escHtml(author.handle || author.name)}</strong>
-          <span>${escHtml(kind)} · ${fmtDate(post.created_at)}</span>
+          <strong>${escHtml(author.name)}</strong>
+          <span>${escHtml(author.handle || '@unknown')} &middot; ${escHtml(kind)} &middot; ${fmtRelativeTime(post.created_at)}</span>
         </div>
       </div>
       <p class="feed-item__body">${escHtml(post.body)}</p>
@@ -870,7 +940,7 @@ function renderComment(comment, allComments, postId, depth) {
     <div class="comment" style="--depth:${safeDepth}">
       <div class="comment__line"></div>
       <div class="comment__body">
-        <div class="comment__meta"><strong>${escHtml(author.handle || author.name)}</strong><span>${fmtDate(comment.created_at)}</span></div>
+        <div class="comment__meta"><strong>${escHtml(author.name)}</strong><span>${escHtml(author.handle || '@unknown')} · ${fmtRelativeTime(comment.created_at)}</span></div>
         <p>${escHtml(comment.body)}</p>
         <button class="comment__reply" type="button" onclick="toggleReplyBox('${comment.id}')">Reply</button>
         <form class="comment-composer comment-composer--nested hidden" id="reply-box-${escHtml(comment.id)}" onsubmit="createComment(event, '${postId}', '${comment.id}')">
@@ -885,12 +955,11 @@ function renderComment(comment, allComments, postId, depth) {
 
 function normalizePostAuthor(authorJoin) {
   const author = Array.isArray(authorJoin) ? authorJoin[0] : authorJoin;
-  const profile = Array.isArray(author?.student_profiles) ? author.student_profiles[0] : author?.student_profiles;
-  const name = author?.display_name || author?.full_name || author?.email?.split('@')[0] || 'Builder';
+  const identity = getBuilderIdentity(author, 'Unknown Builder');
   return {
-    name,
-    handle: profile?.handle ? `@${profile.handle}` : author?.username ? `@${author.username}` : '',
-    avatar: profile?.avatar_url || ''
+    name: identity.displayName,
+    handle: identity.username,
+    avatar: identity.avatar
   };
 }
 
@@ -971,13 +1040,35 @@ function updateContextPanels() {
       ? recent.map(item => `<span class="side-feed-chip">${escHtml(item.type === 'build_log' ? 'Build log' : item.type === 'question' ? 'Discussion' : item.type === 'launch' ? 'Launch' : 'Update')}</span>`).join('')
       : 'No recent activity yet.';
   }
+  updateLiveDashboard();
+}
+
+function updateLiveDashboard() {
+  const onlineCount = Math.max(onlineBuilders.size, currentUser ? 1 : 0);
+  const onlineEl = document.getElementById('live-online-count');
+  const onlineCopy = document.getElementById('live-online-copy');
+  const shippedEl = document.getElementById('live-shipped-copy');
+  const discussionEl = document.getElementById('live-discussion-copy');
+  const latestLaunch = [...communityProjects].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+  const activeDiscussion = socialPosts
+    .map(post => ({ ...post, replyCount: (post.comments || []).length }))
+    .sort((a, b) => (b.replyCount - a.replyCount) || (new Date(b.created_at || 0) - new Date(a.created_at || 0)))[0];
+
+  if (onlineEl) onlineEl.textContent = `${onlineCount} builder${onlineCount === 1 ? '' : 's'} online`;
+  if (onlineCopy) onlineCopy.textContent = onlineCount > 1 ? 'Live presence connected.' : 'You are live in the builder city.';
+  if (shippedEl) shippedEl.textContent = latestLaunch
+    ? `${latestLaunch.creatorName || 'A builder'} shipped ${latestLaunch.title} ${fmtRelativeTime(latestLaunch.created_at)}`
+    : 'No launches yet';
+  if (discussionEl) discussionEl.textContent = activeDiscussion
+    ? `${activeDiscussion.replyCount || 0} replies on ${activeDiscussion.kind || 'update'}`
+    : 'No active threads';
 }
 
 // ── CONVERSATIONS ─────────────────────────────────────────
 async function loadConversations() {
   const { data, error } = await window.sb
     .from('conversations')
-    .select(`*, recruiter:recruiter_id(id, full_name, email), student:student_id(id, full_name, email), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
+    .select(`*, recruiter:recruiter_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)), student:student_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)), project:project_id(id, title), last_message:messages (id, body, created_at, sender_id, read)`)
     .or(`student_id.eq.${currentUser.id},recruiter_id.eq.${currentUser.id}`)
     .order('last_message_at', { ascending: false })
     .range(0, CONVERSATION_PAGE_SIZE - 1);
@@ -987,9 +1078,9 @@ async function loadConversations() {
     .select(`
       *,
       project:project_id(id, title),
-      initiator:initiator_id(id, full_name, email),
-      creator_one:creator_one_id(id, full_name, email),
-      creator_two:creator_two_id(id, full_name, email),
+      initiator:initiator_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)),
+      creator_one:creator_one_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)),
+      creator_two:creator_two_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url)),
       last_message:creator_messages(id, body, created_at, sender_id, read)
     `)
     .or(`creator_one_id.eq.${currentUser.id},creator_two_id.eq.${currentUser.id}`)
@@ -1001,11 +1092,14 @@ async function loadConversations() {
 
   const recruiterMessages = (data || []).map(conv => {
     const partner = conv.recruiter_id === currentUser.id ? conv.student : conv.recruiter;
+    const partnerIdentity = getBuilderIdentity(partner);
     return {
       ...conv,
       threadType: 'direct',
       partnerId: partner?.id || (conv.recruiter_id === currentUser.id ? conv.student_id : conv.recruiter_id),
-      partnerName: partner?.full_name || partner?.email || 'Solvoriz user',
+      partnerName: partnerIdentity.displayName,
+      partnerUsername: partnerIdentity.username,
+      partnerAvatar: partnerIdentity.avatar,
       partnerRoleLabel: 'Direct message',
       message_feed: Array.isArray(conv.last_message)
         ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -1019,10 +1113,13 @@ async function loadConversations() {
 
   const creatorMessages = (creatorData || []).map(conv => {
     const partner = conv.creator_one_id === currentUser.id ? conv.creator_two : conv.creator_one;
+    const partnerIdentity = getBuilderIdentity(partner, 'Creator');
     return {
       ...conv,
       threadType: 'creator',
-      partnerName: partner?.full_name || partner?.email || 'Creator',
+      partnerName: partnerIdentity.displayName,
+      partnerUsername: partnerIdentity.username,
+      partnerAvatar: partnerIdentity.avatar,
       partnerRoleLabel: 'Creator discussion',
       message_feed: Array.isArray(conv.last_message)
         ? [...conv.last_message].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -1069,9 +1166,10 @@ function renderConversations() {
     const last = c.last_message || {};
     const isCreator = c.threadType === 'creator';
     const status = getThreadStatus(c);
+    const identity = { displayName: c.partnerName, username: c.partnerUsername || '', avatar: c.partnerAvatar || '' };
     return `
       <button class="thread-card ${c.id === currentConversation ? 'thread-card--active' : ''}" onclick="openConversation('${c.id}')">
-        <div class="thread-card__avatar">${getThreadInitials(c.partnerName)}</div>
+        ${renderAvatar(identity, 'thread-card__avatar avatar-generated')}
         <div class="thread-card__body">
           <div class="thread-card__top">
             <strong>${escHtml(c.partnerName)}</strong>
@@ -1081,6 +1179,7 @@ function renderConversations() {
             </div>
           </div>
           <div class="thread-card__project ${isCreator ? 'thread-card__project--creator' : ''}">${escHtml(c.project?.title || 'Direct conversation')}</div>
+          <div class="thread-card__username">${escHtml(c.partnerUsername || '@builder')}</div>
           <div class="thread-card__role">${escHtml(c.partnerRoleLabel)} · ${escHtml(status)}</div>
           <div class="thread-card__preview">${escHtml(last.body || 'No messages yet')}</div>
         </div>
@@ -1222,7 +1321,12 @@ async function loadConversationMessages(convId) {
   if (!conv) return;
   const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
   const fk = conv.threadType === 'creator' ? 'creator_conversation_id' : 'conversation_id';
-  const { data, error } = await window.sb.from(table).select('*').eq(fk, convId).order('created_at', { ascending: false }).range(0, MESSAGE_PAGE_SIZE - 1);
+  const { data, error } = await window.sb
+    .from(table)
+    .select('*, sender:sender_id(id, username, display_name, full_name, email, avatar_url, bio, student_profiles(handle, headline, avatar_url))')
+    .eq(fk, convId)
+    .order('created_at', { ascending: false })
+    .range(0, MESSAGE_PAGE_SIZE - 1);
   if (error) { showToast('Failed to load thread', 'error'); return; }
   const ordered = [...(data || [])].reverse();
   const unreadIncoming = ordered.filter(m => m.sender_id !== currentUser.id && !m.read).map(m => m.id);
@@ -1239,14 +1343,22 @@ async function loadConversationMessages(convId) {
     pane.innerHTML = '<div class="chat-empty">No messages in this thread yet.</div>';
     return;
   }
-  pane.innerHTML = ordered.map(m => `
-    <div class="chat-row ${m.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
-      <div class="chat-bubble ${m.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
-        <div class="chat-bubble__text">${escHtml(m.body)}</div>
-        <div class="chat-bubble__meta">${fmtTime(m.created_at)}</div>
+  pane.innerHTML = ordered.map(m => {
+    const identity = getBuilderIdentity(m.sender);
+    return `
+      <div class="chat-row ${m.sender_id === currentUser.id ? 'chat-row--mine' : ''}">
+        ${m.sender_id === currentUser.id ? '' : renderAvatar(identity, 'student-avatar chat-row__avatar')}
+        <div class="chat-bubble ${m.sender_id === currentUser.id ? 'chat-bubble--mine' : ''}">
+          ${renderMessageIdentity(m, true)}
+          <div class="chat-bubble__text">${escHtml(m.body)}</div>
+          <div class="chat-bubble__actions">
+            ${m.sender_id === currentUser.id ? `<button onclick="editStudentMessage('${m.id}')">Edit</button><button onclick="deleteStudentMessage('${m.id}')">Delete</button>` : `<button onclick="studentReportMessage('${m.id}', '${convId}', '${m.sender_id}')">Report</button>`}
+            ${m.read && m.sender_id === currentUser.id ? '<span>Seen</span>' : ''}
+          </div>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
   pane.scrollTop = pane.scrollHeight;
   const activeThread = myMessages.find(message => message.id === convId);
   if (activeThread) {
@@ -1273,6 +1385,34 @@ async function sendStudentMessage() {
   setBtnLoading(sendBtn, false);
   if (error) { showToast('Failed to send', 'error'); return; }
   input.value = '';
+  await loadConversations();
+}
+
+async function editStudentMessage(messageId) {
+  const conv = myMessages.find(c => c.id === currentConversation);
+  if (!conv || !messageId) return;
+  const activeMessages = conv.message_feed || [];
+  const existing = activeMessages.find(message => message.id === messageId);
+  const body = prompt('Edit message', existing?.body || '');
+  if (body === null) return;
+  const trimmed = body.trim().slice(0, 1000);
+  if (!trimmed) return;
+  const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
+  const { error } = await window.sb.from(table).update({ body: trimmed, edited_at: new Date().toISOString() }).eq('id', messageId).eq('sender_id', currentUser.id);
+  if (error) { showToast('Failed to edit message: ' + error.message, 'error'); return; }
+  showToast('Message updated.', 'success');
+  await loadConversationMessages(currentConversation);
+}
+
+async function deleteStudentMessage(messageId) {
+  const conv = myMessages.find(c => c.id === currentConversation);
+  if (!conv || !messageId) return;
+  if (!confirm('Delete this message?')) return;
+  const table = conv.threadType === 'creator' ? 'creator_messages' : 'messages';
+  const { error } = await window.sb.from(table).delete().eq('id', messageId).eq('sender_id', currentUser.id);
+  if (error) { showToast('Failed to delete message: ' + error.message, 'error'); return; }
+  showToast('Message deleted.', 'warn');
+  await loadConversationMessages(currentConversation);
   await loadConversations();
 }
 
@@ -1448,22 +1588,42 @@ function startConversationRefresh() {
 function stopConversationRefresh() {
   if (studentThreadChannel) { studentThreadChannel.unsubscribe(); studentThreadChannel = null; }
   if (groupRealtimeChannel) { groupRealtimeChannel.unsubscribe(); groupRealtimeChannel = null; }
+  if (presenceChannel) { presenceChannel.unsubscribe(); presenceChannel = null; }
   if (conversationRefreshTimer) { window.clearInterval(conversationRefreshTimer); conversationRefreshTimer = null; }
+  if (studentRealtimeRefreshTimer) { window.clearTimeout(studentRealtimeRefreshTimer); studentRealtimeRefreshTimer = null; }
 }
 
 function startRealtimeSync() {
   if (!window.sb || !currentUser?.id || studentRealtimeChannel) return;
   studentRealtimeChannel = window.sb
     .channel(`student-live-${currentUser.id}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => loadConversations())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => loadConversations())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => loadConversations())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => loadConversations())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => loadSocialFeed())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_comments' }, () => loadSocialFeed())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_reactions' }, () => loadSocialFeed())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => loadNotifications())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `student_id=eq.${currentUser.id}` }, () => debounceRealtimeRefresh(loadConversations))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations', filter: `recruiter_id=eq.${currentUser.id}` }, () => debounceRealtimeRefresh(loadConversations))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_one_id=eq.${currentUser.id}` }, () => debounceRealtimeRefresh(loadConversations))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_conversations', filter: `creator_two_id=eq.${currentUser.id}` }, () => debounceRealtimeRefresh(loadConversations))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => debounceRealtimeRefresh(loadSocialFeed))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_comments' }, () => debounceRealtimeRefresh(loadSocialFeed))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'social_reactions' }, () => debounceRealtimeRefresh(loadSocialFeed))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => debounceRealtimeRefresh(loadCommunityProjects))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` }, () => debounceRealtimeRefresh(loadNotifications))
     .subscribe();
+
+  presenceChannel = window.sb.channel('builder-presence', { config: { presence: { key: currentUser.id } } });
+  presenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = presenceChannel.presenceState();
+      onlineBuilders = new Map(Object.entries(state));
+      updateLiveDashboard();
+    })
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') {
+        await presenceChannel.track({
+          user_id: currentUser.id,
+          display_name: currentProfile?.full_name || currentUser.email,
+          online_at: new Date().toISOString()
+        });
+      }
+    });
 }
 
 // ── ACTIVITY ──────────────────────────────────────────────
@@ -1868,14 +2028,50 @@ async function saveEditProject(e) {
 
 // ── DELETE PROJECT ────────────────────────────────────────
 async function deleteProject(id) {
-  if (!confirm('Delete this project? This cannot be undone.')) return;
-  const { error } = await window.sb.rpc('delete_project_secure', { p_project_id: id });
-  if (error) { showToast('Failed to delete: ' + error.message, 'error'); return; }
-  showToast('Project deleted', 'warn');
-  myProjects = myProjects.filter(project => project.id !== id);
+  const project = myProjects.find(item => item.id === id);
+  const confirmed = await confirmProjectDelete(project);
+  if (!confirmed) return;
+  const previousProjects = [...myProjects];
+  myProjects = myProjects.filter(item => item.id !== id);
   renderProjects();
+  updateProjectLimitState();
+  const { error } = await window.sb.rpc('delete_project_secure', { p_project_id: id });
+  if (error) {
+    myProjects = previousProjects;
+    renderProjects();
+    updateProjectLimitState();
+    showToast('Failed to delete: ' + error.message, 'error');
+    return;
+  }
+  showToast('Project deleted', 'warn');
   await loadProjects();
+  await loadSocialFeed();
+  await loadCommunityProjects();
   await loadStudentProfile();
+}
+
+function confirmProjectDelete(project) {
+  const modal = document.getElementById('confirm-delete-modal');
+  const copy = document.getElementById('confirm-delete-copy');
+  const accept = document.getElementById('confirm-delete-accept');
+  const cancel = document.getElementById('confirm-delete-cancel');
+  const close = document.getElementById('confirm-delete-cancel-x');
+  if (!modal || !accept || !cancel) return Promise.resolve(confirm('Delete this project? This cannot be undone.'));
+  if (copy) copy.textContent = `Delete ${project?.title || 'this project'}? This removes launch references, comments, likes, messages, and attached assets. This cannot be undone.`;
+  modal.classList.remove('hidden');
+  return new Promise(resolve => {
+    const cleanup = result => {
+      modal.classList.add('hidden');
+      accept.onclick = null;
+      cancel.onclick = null;
+      if (close) close.onclick = null;
+      resolve(result);
+    };
+    accept.onclick = () => cleanup(true);
+    cancel.onclick = () => cleanup(false);
+    if (close) close.onclick = () => cleanup(false);
+    modal.onclick = event => { if (event.target === modal) cleanup(false); };
+  });
 }
 
 // ── PUBLIC PROFILE LINK ───────────────────────────────────
@@ -1996,6 +2192,9 @@ window.createComment = createComment;
 window.focusComment = focusComment;
 window.toggleReplyBox = toggleReplyBox;
 window.togglePostReaction = togglePostReaction;
+window.loadMoreFeed = loadMoreFeed;
+window.editStudentMessage = editStudentMessage;
+window.deleteStudentMessage = deleteStudentMessage;
 
 // ── BOOT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudent);
