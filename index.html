@@ -1,322 +1,983 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="google-site-verification" content="fwBeuXLhL4PCuczDH3GUrbRn1gOEqS6OCfE3Pcl7yDE" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solvoriz | Builders, launches, build logs, and discussions</title>
-  <meta name="description" content="Solvoriz is a home for builders to post launches, write build logs, ask for feedback, find collaborators, and follow what other creators are shipping.">
-  <meta name="keywords" content="builders, creators, launches, build logs, indie hackers, project feedback, creator community">
-  <meta property="og:title" content="Solvoriz | Builders live here">
-  <meta property="og:description" content="A community-first place for builders to share launches, updates, questions, screenshots, demos, and collaboration asks.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://solvoriz.com/">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Solvoriz | Builders live here">
-  <meta name="twitter:description" content="Launches, build logs, questions, feedback, and collaboration for people who make things.">
-  <link rel="canonical" href="https://solvoriz.com/">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Solvoriz",
-    "url": "https://solvoriz.com/",
-    "description": "A community-first builder network for launches, build logs, feedback, and collaboration.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://solvoriz.com/recruiter.html",
-      "query-input": "required name=student builders"
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solvoriz — Find the Leaks. Fix the Leaks. Grow Revenue.</title>
+<meta name="description" content="Solvoriz helps businesses identify and eliminate revenue leaks with Lead Recovery Systems, AI Receptionists, and Revenue Growth Automation.">
+<meta name="keywords" content="revenue leaks, lead recovery, AI receptionist, business automation, follow-up automation">
+<meta property="og:title" content="Solvoriz — Find the Leaks. Fix the Leaks. Grow Revenue.">
+<meta property="og:description" content="We identify hidden revenue leaks and build systems that recover lost customers, automate follow-ups, and increase growth.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14;
+    --bg-2:#0d131c;
+    --panel:#101824;
+    --panel-2:#131d2b;
+    --border:#1d2b3d;
+    --border-soft:#16202e;
+    --text:#e7edf5;
+    --muted:#8a99ad;
+    --muted-2:#5f7186;
+    --leak:#ff9a52;
+    --leak-soft:rgba(255,154,82,0.12);
+    --fix:#43d9a3;
+    --fix-soft:rgba(67,217,163,0.12);
+    --line-leak: #ff9a52;
+    --line-fix: #43d9a3;
+
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+
+    --container: 1180px;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ambient background */
+  .bg-grid{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 75%);
+  }
+  .bg-glow{
+    position:fixed; top:-300px; left:50%; transform:translateX(-50%);
+    width:1000px; height:700px; z-index:0; pointer-events:none;
+    background: radial-gradient(circle, rgba(255,154,82,0.10), transparent 60%);
+    filter:blur(40px);
+  }
+
+  .wrap{max-width:var(--container); margin:0 auto; padding:0 32px;}
+  section{position:relative; z-index:1;}
+
+  /* ============ NAV ============ */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    backdrop-filter:blur(16px) saturate(140%);
+    background:rgba(10,14,20,0.6);
+    border-bottom:1px solid transparent;
+    transition:border-color .3s, background .3s;
+  }
+  header.scrolled{
+    border-bottom-color:var(--border-soft);
+    background:rgba(10,14,20,0.78);
+  }
+  nav{
+    max-width:var(--container); margin:0 auto; padding:18px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .logo{
+    font-family:var(--font-display); font-weight:700; font-size:1.3rem;
+    letter-spacing:-0.02em; display:flex; align-items:center; gap:10px;
+    color:var(--text); text-decoration:none;
+  }
+  .logo .dot{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--leak);
+    box-shadow:0 0 0 4px rgba(255,154,82,0.12);
+  }
+  .nav-links{display:flex; gap:36px; align-items:center;}
+  .nav-links a{
+    color:var(--muted); text-decoration:none; font-size:0.93rem; font-weight:500;
+    transition:color .2s;
+  }
+  .nav-links a:hover{color:var(--text);}
+  .nav-cta{
+    background:var(--text); color:var(--bg); padding:10px 22px;
+    border-radius:999px; font-weight:600; font-size:0.9rem; text-decoration:none;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .nav-cta:hover{transform:translateY(-1px); box-shadow:0 8px 24px -8px rgba(255,255,255,0.3);}
+  .nav-toggle{display:none; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none;}
+  .nav-toggle span{width:22px; height:2px; background:var(--text); border-radius:2px;}
+
+  /* ============ HERO ============ */
+  .hero{
+    padding:170px 0 120px;
+    display:grid; grid-template-columns:1.05fr 0.95fr; gap:60px; align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.08em;
+    color:var(--leak); text-transform:uppercase;
+    background:var(--leak-soft); border:1px solid rgba(255,154,82,0.25);
+    padding:7px 14px; border-radius:999px; margin-bottom:28px;
+  }
+  .eyebrow::before{content:'●'; font-size:0.6rem; animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+
+  h1{
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(2.6rem, 5.5vw, 4.4rem);
+    line-height:1.08; letter-spacing:-0.025em;
+    margin-bottom:26px;
+  }
+  h1 .leak-word{
+    background:linear-gradient(100deg, var(--leak) 0%, #ffcf94 50%, var(--leak) 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    background-size:200% auto; animation:shine 6s linear infinite;
+  }
+  @keyframes shine{ to{ background-position:200% center; } }
+
+  .hero p.lead{
+    font-size:1.15rem; color:var(--muted); max-width:520px; margin-bottom:38px;
+  }
+  .hero-cta{display:flex; gap:14px; align-items:center; flex-wrap:wrap;}
+
+  .btn-primary{
+    background:linear-gradient(135deg, var(--leak), #ff7a3d);
+    color:#1a0e05; font-weight:700; font-size:0.98rem;
+    padding:16px 32px; border-radius:12px; text-decoration:none;
+    box-shadow:0 12px 32px -10px rgba(255,154,82,0.55);
+    transition:transform .25s ease, box-shadow .25s ease;
+    display:inline-flex; align-items:center; gap:10px;
+    border:none; cursor:pointer;
+  }
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 16px 40px -8px rgba(255,154,82,0.7);}
+  .btn-secondary{
+    color:var(--text); font-weight:600; font-size:0.98rem;
+    padding:16px 28px; border-radius:12px; text-decoration:none;
+    border:1px solid var(--border); background:rgba(255,255,255,0.02);
+    transition:border-color .2s, background .2s;
+  }
+  .btn-secondary:hover{border-color:var(--muted-2); background:rgba(255,255,255,0.04);}
+
+  .hero-meta{
+    display:flex; gap:32px; margin-top:48px; flex-wrap:wrap;
+  }
+  .hero-meta .stat{display:flex; flex-direction:column; gap:4px;}
+  .hero-meta .stat b{font-family:var(--font-display); font-size:1.6rem; font-weight:700;}
+  .hero-meta .stat span{font-size:0.82rem; color:var(--muted-2);}
+
+  /* ===== Hero visual: leak gauge ===== */
+  .hero-visual{
+    position:relative; aspect-ratio:1/1; max-width:480px; margin:0 auto; width:100%;
+  }
+  .leak-card{
+    position:absolute; inset:0;
+    background:linear-gradient(160deg, var(--panel) 0%, var(--bg-2) 100%);
+    border:1px solid var(--border); border-radius:24px;
+    padding:36px; backdrop-filter:blur(10px);
+    box-shadow:0 30px 80px -30px rgba(0,0,0,0.6);
+    display:flex; flex-direction:column;
+  }
+  .leak-card-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;}
+  .leak-card-head .title{font-family:var(--font-mono); font-size:0.78rem; color:var(--muted-2); letter-spacing:0.06em; text-transform:uppercase;}
+  .leak-card-head .badge{
+    font-family:var(--font-mono); font-size:0.72rem; color:var(--leak);
+    background:var(--leak-soft); padding:4px 10px; border-radius:6px;
+  }
+  .pipe-row{display:flex; align-items:center; gap:0; flex:1; position:relative;}
+  .pipe-line{
+    flex:1; height:6px; border-radius:3px; position:relative;
+    background:linear-gradient(90deg, var(--fix) 0%, var(--fix) 55%, var(--leak) 55%, var(--leak) 100%);
+    overflow:hidden;
+  }
+  .pipe-line::after{
+    content:''; position:absolute; top:0; bottom:0; left:55%; width:45%;
+    background:repeating-linear-gradient(45deg, rgba(255,154,82,0.0) 0 6px, rgba(255,255,255,0.25) 6px 7px);
+    animation:flow 1.2s linear infinite;
+  }
+  @keyframes flow{ from{background-position-x:0;} to{background-position-x:-26px;} }
+  .drip{
+    position:absolute; top:8px; width:8px; height:8px; border-radius:50%;
+    background:var(--leak); box-shadow:0 0 14px rgba(255,154,82,0.6);
+    animation:dripfall 2.4s ease-in infinite;
+  }
+  .drip:nth-child(1){left:62%; animation-delay:0s;}
+  .drip:nth-child(2){left:74%; animation-delay:0.8s;}
+  .drip:nth-child(3){left:86%; animation-delay:1.6s;}
+  @keyframes dripfall{
+    0%{ top:8px; opacity:1; transform:scale(1);}
+    70%{ top:120px; opacity:0.7; transform:scale(0.7);}
+    100%{ top:140px; opacity:0; transform:scale(0.4);}
+  }
+  .leak-stats{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:auto;}
+  .leak-stat-box{
+    background:rgba(255,255,255,0.02); border:1px solid var(--border-soft);
+    border-radius:12px; padding:18px;
+  }
+  .leak-stat-box .num{font-family:var(--font-display); font-size:1.9rem; font-weight:700;}
+  .leak-stat-box .num.lost{color:var(--leak);}
+  .leak-stat-box .num.saved{color:var(--fix);}
+  .leak-stat-box .lbl{font-size:0.8rem; color:var(--muted); margin-top:4px;}
+  .leak-glow{
+    position:absolute; width:300px; height:300px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,154,82,0.18), transparent 70%);
+    top:-60px; right:-80px; filter:blur(20px); z-index:-1;
+  }
+
+  /* ============ SECTION HEADERS ============ */
+  .section-head{max-width:680px; margin:0 auto 64px; text-align:center;}
+  .section-tag{
+    font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.1em;
+    color:var(--leak); text-transform:uppercase; margin-bottom:14px; display:block;
+  }
+  .section-tag.fix{color:var(--fix);}
+  h2{
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(2rem, 4vw, 2.8rem); letter-spacing:-0.02em; margin-bottom:18px;
+  }
+  .section-head p{color:var(--muted); font-size:1.05rem;}
+
+  /* ============ PROBLEM SECTION ============ */
+  .problem{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .leak-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+  .leak-item{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius); padding:30px 26px;
+    position:relative; overflow:hidden;
+    transition:transform .35s ease, border-color .35s ease;
+    opacity:0; transform:translateY(24px);
+  }
+  .leak-item.in-view{opacity:1; transform:translateY(0); transition:opacity .6s ease, transform .6s ease, border-color .35s;}
+  .leak-item:hover{transform:translateY(-6px); border-color:rgba(255,154,82,0.35);}
+  .leak-item::before{
+    content:''; position:absolute; top:0; left:0; width:100%; height:3px;
+    background:linear-gradient(90deg, var(--leak), transparent);
+    opacity:0; transition:opacity .35s;
+  }
+  .leak-item:hover::before{opacity:1;}
+  .leak-icon{
+    width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    background:var(--leak-soft); margin-bottom:20px; color:var(--leak);
+  }
+  .leak-item h3{font-family:var(--font-display); font-size:1.08rem; font-weight:600; margin-bottom:10px;}
+  .leak-item p{color:var(--muted); font-size:0.92rem;}
+  .leak-item .amount{
+    font-family:var(--font-mono); font-size:0.8rem; color:var(--leak); margin-top:16px; display:block;
+  }
+
+  /* ============ SOLUTION SECTION ============ */
+  .solution{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .solution-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+  .solution-card{
+    background:linear-gradient(165deg, var(--panel-2), var(--panel));
+    border:1px solid var(--border); border-radius:20px; padding:38px 32px;
+    position:relative; overflow:hidden;
+    opacity:0; transform:translateY(28px);
+    transition:opacity .6s ease, transform .6s ease, border-color .3s, box-shadow .3s;
+  }
+  .solution-card.in-view{opacity:1; transform:translateY(0);}
+  .solution-card:hover{
+    border-color:rgba(67,217,163,0.3);
+    box-shadow:0 24px 60px -30px rgba(67,217,163,0.25);
+    transform:translateY(-6px);
+  }
+  .solution-num{
+    font-family:var(--font-mono); font-size:0.78rem; color:var(--fix);
+    letter-spacing:0.08em; margin-bottom:24px; display:block;
+  }
+  .solution-card h3{font-family:var(--font-display); font-size:1.4rem; font-weight:700; margin-bottom:14px;}
+  .solution-card p{color:var(--muted); font-size:0.95rem; margin-bottom:24px;}
+  .solution-list{list-style:none; display:flex; flex-direction:column; gap:10px;}
+  .solution-list li{
+    font-size:0.88rem; color:var(--text); display:flex; align-items:center; gap:10px;
+  }
+  .solution-list li::before{
+    content:''; width:6px; height:6px; border-radius:50%; background:var(--fix); flex-shrink:0;
+  }
+  .solution-card .icon-block{
+    width:52px; height:52px; border-radius:14px;
+    background:var(--fix-soft); border:1px solid rgba(67,217,163,0.2);
+    display:flex; align-items:center; justify-content:center; margin-bottom:24px; color:var(--fix);
+  }
+
+  /* ============ HOW IT WORKS ============ */
+  .how{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .how-track{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:0; position:relative;
+  }
+  .how-track::before{
+    content:''; position:absolute; top:28px; left:6%; right:6%; height:1px;
+    background:linear-gradient(90deg, var(--leak), var(--fix));
+    opacity:0.35;
+  }
+  .how-step{
+    text-align:center; padding:0 18px; position:relative;
+    opacity:0; transform:translateY(20px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .how-step.in-view{opacity:1; transform:translateY(0);}
+  .how-step .step-num{
+    width:56px; height:56px; border-radius:50%; margin:0 auto 24px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:1.2rem;
+    background:var(--bg); border:1px solid var(--border);
+    position:relative; z-index:2;
+  }
+  .how-step:nth-child(1) .step-num{color:var(--leak); border-color:rgba(255,154,82,0.4);}
+  .how-step:nth-child(2) .step-num{color:var(--leak); border-color:rgba(255,154,82,0.25);}
+  .how-step:nth-child(3) .step-num{color:var(--fix); border-color:rgba(67,217,163,0.25);}
+  .how-step:nth-child(4) .step-num{color:var(--fix); border-color:rgba(67,217,163,0.4);}
+  .how-step h3{font-family:var(--font-display); font-size:1.1rem; font-weight:600; margin-bottom:10px;}
+  .how-step p{color:var(--muted); font-size:0.88rem; max-width:230px; margin:0 auto;}
+
+  /* ============ RESULTS ============ */
+  .results{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .results-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+  .result-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:34px 28px; text-align:center;
+    opacity:0; transform:scale(0.95);
+    transition:opacity .6s ease, transform .6s ease, border-color .3s;
+  }
+  .result-card.in-view{opacity:1; transform:scale(1);}
+  .result-card:hover{border-color:rgba(67,217,163,0.3);}
+  .result-num{
+    font-family:var(--font-display); font-weight:700; font-size:2.6rem;
+    background:linear-gradient(135deg, var(--fix), #8ef0d0);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    margin-bottom:8px;
+  }
+  .result-card .lbl{color:var(--muted); font-size:0.9rem;}
+
+  /* ============ WHY SOLVORIZ ============ */
+  .why{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .why-inner{
+    display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center;
+  }
+  .why-statement{
+    font-family:var(--font-display); font-size:clamp(1.6rem,3vw,2.3rem);
+    font-weight:600; line-height:1.35; letter-spacing:-0.01em;
+  }
+  .why-statement .strike{
+    color:var(--muted-2); text-decoration:line-through; text-decoration-color:var(--leak);
+  }
+  .why-statement .highlight{
+    color:var(--fix);
+  }
+  .why-list{display:flex; flex-direction:column; gap:24px;}
+  .why-row{
+    display:flex; gap:18px; align-items:flex-start;
+    padding:22px; border:1px solid var(--border-soft); border-radius:14px;
+    background:rgba(255,255,255,0.015);
+    transition:border-color .3s, background .3s;
+  }
+  .why-row:hover{border-color:rgba(67,217,163,0.25); background:rgba(67,217,163,0.03);}
+  .why-row .num{
+    font-family:var(--font-mono); color:var(--fix); font-size:0.85rem; flex-shrink:0; margin-top:3px;
+  }
+  .why-row h4{font-family:var(--font-display); font-size:1.05rem; margin-bottom:6px; font-weight:600;}
+  .why-row p{color:var(--muted); font-size:0.9rem;}
+
+  /* ============ TESTIMONIALS ============ */
+  .testimonials{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .test-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+  .test-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:32px; display:flex; flex-direction:column; gap:22px;
+    opacity:0; transform:translateY(24px);
+    transition:opacity .6s ease, transform .6s ease, border-color .3s;
+  }
+  .test-card.in-view{opacity:1; transform:translateY(0);}
+  .test-card:hover{border-color:var(--muted-2);}
+  .stars{color:var(--leak); font-size:0.95rem; letter-spacing:2px;}
+  .test-card p.quote{font-size:0.96rem; color:var(--text); line-height:1.7;}
+  .test-person{display:flex; align-items:center; gap:14px; margin-top:auto;}
+  .avatar{
+    width:44px; height:44px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:1rem; color:var(--bg);
+  }
+  .test-person .info b{display:block; font-size:0.92rem; font-weight:600;}
+  .test-person .info span{font-size:0.8rem; color:var(--muted-2);}
+
+  /* ============ FAQ ============ */
+  .faq{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .faq-list{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:14px;}
+  .faq-item{
+    border:1px solid var(--border); border-radius:14px; background:var(--panel);
+    overflow:hidden; transition:border-color .3s;
+  }
+  .faq-item.active{border-color:rgba(67,217,163,0.3);}
+  .faq-q{
+    padding:22px 26px; display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer; font-weight:600; font-size:1rem; gap:20px;
+  }
+  .faq-q .plus{
+    font-size:1.4rem; color:var(--fix); flex-shrink:0; transition:transform .3s;
+    font-family:var(--font-mono); width:24px; text-align:center;
+  }
+  .faq-item.active .plus{transform:rotate(45deg);}
+  .faq-a{
+    max-height:0; overflow:hidden; transition:max-height .35s ease;
+  }
+  .faq-a div{padding:0 26px 22px; color:var(--muted); font-size:0.93rem; line-height:1.7;}
+
+  /* ============ FINAL CTA ============ */
+  .final-cta{padding:120px 0; border-top:1px solid var(--border-soft); text-align:center; position:relative;}
+  .final-cta-card{
+    max-width:840px; margin:0 auto; padding:72px 48px; border-radius:28px;
+    background:linear-gradient(160deg, rgba(255,154,82,0.08), rgba(67,217,163,0.05));
+    border:1px solid var(--border); position:relative; overflow:hidden;
+  }
+  .final-cta-card::before{
+    content:''; position:absolute; width:500px; height:500px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,154,82,0.15), transparent 70%);
+    top:-200px; left:-150px; filter:blur(10px);
+  }
+  .final-cta-card h2{margin-bottom:16px;}
+  .final-cta-card p{color:var(--muted); font-size:1.05rem; margin-bottom:36px; max-width:520px; margin-left:auto; margin-right:auto;}
+
+  /* ============ FOOTER ============ */
+  footer{padding:80px 0 40px; border-top:1px solid var(--border-soft);}
+  .footer-top{
+    display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:48px; margin-bottom:64px;
+  }
+  .footer-brand .logo{margin-bottom:18px;}
+  .footer-brand p{color:var(--muted); font-size:0.92rem; max-width:280px; margin-bottom:24px;}
+  .footer-col h4{font-family:var(--font-display); font-size:0.92rem; margin-bottom:18px; font-weight:600;}
+  .footer-col ul{list-style:none; display:flex; flex-direction:column; gap:12px;}
+  .footer-col ul a{color:var(--muted); text-decoration:none; font-size:0.9rem; transition:color .2s;}
+  .footer-col ul a:hover{color:var(--text);}
+  .footer-bottom{
+    display:flex; justify-content:space-between; align-items:center;
+    padding-top:32px; border-top:1px solid var(--border-soft);
+    color:var(--muted-2); font-size:0.85rem; flex-wrap:wrap; gap:16px;
+  }
+  .footer-socials{display:flex; gap:18px;}
+  .footer-socials a{color:var(--muted-2); transition:color .2s;}
+  .footer-socials a:hover{color:var(--fix);}
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:980px){
+    .hero{grid-template-columns:1fr; padding-top:140px;}
+    .hero-visual{order:-1; max-width:420px;}
+    .leak-grid{grid-template-columns:repeat(2,1fr);}
+    .solution-grid{grid-template-columns:1fr;}
+    .how-track{grid-template-columns:repeat(2,1fr); gap:40px;}
+    .how-track::before{display:none;}
+    .results-grid{grid-template-columns:repeat(2,1fr);}
+    .why-inner{grid-template-columns:1fr; gap:40px;}
+    .test-grid{grid-template-columns:1fr;}
+    .footer-top{grid-template-columns:1fr 1fr; gap:36px;}
+    .nav-links{
+      position:absolute; top:100%; left:0; right:0; flex-direction:column;
+      background:rgba(10,14,20,0.97); border-bottom:1px solid var(--border-soft);
+      padding:24px 32px; gap:18px; display:none;
     }
+    .nav-links.open{display:flex;}
+    .nav-toggle{display:flex;}
+    .nav-cta{display:none;}
+    .nav-links.open .nav-cta{display:inline-flex; width:fit-content;}
   }
-  </script>
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is Solvoriz?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Solvoriz is a community-first builder network where creators post launches, build logs, questions, screenshots, demos, and collaboration asks."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Is Solvoriz free?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes. Student accounts are free to use. Recruiter access may be beta, custom, or invite-based, and any future paid plans will show pricing and billing terms clearly before purchase."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Can recruiters use Solvoriz?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Recruiters can discover builders through public work and start direct conversations, but the product is designed around the builder community first."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What makes Solvoriz different from a portfolio site?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Solvoriz is built around live activity: launches, updates, questions, replies, feedback, and collaboration, not static resume pages."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How can users contact support?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Users can contact support through the Support page or by emailing the listed support inbox. Billing and platform questions are routed through the same support channel."
-        }
-      }
-    ]
+  @media (max-width:640px){
+    .wrap{padding:0 20px;}
+    .leak-grid{grid-template-columns:1fr;}
+    .results-grid{grid-template-columns:1fr 1fr;}
+    .how-track{grid-template-columns:1fr; gap:36px;}
+    .footer-top{grid-template-columns:1fr;}
+    h1{font-size:2.4rem;}
+    .hero-meta{gap:24px;}
+    .final-cta-card{padding:48px 24px;}
   }
-  </script>
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
 </head>
 <body>
-  <nav class="landing-nav">
-    <a class="landing-logo" href="/index.html" aria-label="Solvoriz home">
-      <span>Solvoriz</span><span class="dot">.</span>
-    </a>
-    <div class="landing-nav__links">
-      <a href="#live">Live</a>
-      <a href="#for-builders">Builders</a>
-      <a href="#community">Discussions</a>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<header id="header">
+  <nav>
+    <a href="#" class="logo"><span class="dot"></span> Solvoriz</a>
+    <div class="nav-links" id="navLinks">
+      <a href="#problem">Leaks</a>
+      <a href="#solution">Services</a>
+      <a href="#how">Process</a>
+      <a href="#results">Results</a>
       <a href="#faq">FAQ</a>
-      <a href="/support.html">Support</a>
+      <a href="#cta" class="nav-cta">Book Free Audit</a>
     </div>
-    <div class="nav-actions">
-      <a href="/auth.html?mode=login" class="btn btn--ghost">Log in</a>
-      <a href="/auth.html?mode=signup&role=student" class="btn btn--primary">Join the Feed</a>
-      <a href="/auth.html?mode=signup&role=recruiter" class="btn btn--outline">Recruiter Access</a>
-    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </nav>
+</header>
 
-  <main>
-    <section class="landing-hero landing-hero--community animate-fade-up">
-      <div class="hero-copy">
-        <div class="hero-badge">
-          <span class="hero-badge__dot"></span>
-          Builders live here
-        </div>
-
-        <h1 class="hero-title">
-          Solvoriz is a feed for what people are building.
-        </h1>
-
-        <p class="hero-sub hero-sub--wide">
-          Post a launch. Share a build log. Ask for feedback. Find someone to build with. Keep up with the work before it becomes a polished case study.
-        </p>
-
-        <div class="hero-ctas">
-          <a href="/auth.html?mode=signup&role=student" class="btn btn--primary btn--lg">Start building in public</a>
-          <a href="/auth.html?mode=login" class="btn btn--outline btn--lg">Log in</a>
-        </div>
-      </div>
-
-      <div class="landing-feed-preview" id="live" aria-label="Solvoriz community preview">
-        <div class="landing-feed-preview__top">
-          <strong>Community feed</strong>
-          <span>Real posts only</span>
-        </div>
-        <article class="landing-feed-empty">
-          <span class="post-type">Launches</span>
-          <h2>No public launches yet</h2>
-          <p>When builders publish launches, they will appear here.</p>
-        </article>
-        <article class="landing-feed-empty">
-          <span class="post-type">Discussions</span>
-          <h2>No public discussions yet</h2>
-          <p>Start the first question, feedback thread, or teammate ask after joining.</p>
-        </article>
-        <article class="landing-feed-empty">
-          <span class="post-type">Build logs</span>
-          <h2>Nothing shipped yet</h2>
-          <p>Short updates, screenshots, and progress notes will show up in the feed.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="landing-band" aria-labelledby="how-solvoriz-works">
-      <div class="landing-band__inner">
-        <div class="section-kicker">What happens here</div>
-        <h2 id="how-solvoriz-works" class="section-title">Launches, logs, questions, replies, and collaboration.</h2>
-        <p class="section-copy">Solvoriz is for the messy middle of building: the idea, the screenshot, the bug, the launch, the ask, the useful reply.</p>
-        <div class="pill-row">
-          <span class="pill-chip">Quick posts</span>
-          <span class="pill-chip">Build logs</span>
-          <span class="pill-chip">Feedback threads</span>
-          <span class="pill-chip">Launch pages</span>
-          <span class="pill-chip">Live demos</span>
-          <span class="pill-chip">Teammate asks</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="landing-features" id="for-builders" aria-labelledby="builders-heading">
-      <div class="features-header">
-        <div class="section-kicker">For builders</div>
-        <h2 id="builders-heading">A profile that feels like a person, not a resume.</h2>
-        <p>Show what you are making, what you have shipped, what you are stuck on, and what kind of people should talk to you.</p>
-      </div>
-      <div class="features-grid">
-        <article class="feature-card">
-          <div class="feature-card__icon">Now</div>
-          <div class="feature-card__title">Current build</div>
-          <div class="feature-card__desc">Tell people what has your attention right now, before it is polished enough for a portfolio.</div>
-        </article>
-        <article class="feature-card">
-          <div class="feature-card__icon">Logs</div>
-          <div class="feature-card__title">Build logs</div>
-          <div class="feature-card__desc">Share progress, screenshots, learnings, weird bugs, and small wins without turning everything into a launch.</div>
-        </article>
-        <article class="feature-card">
-          <div class="feature-card__icon">Asks</div>
-          <div class="feature-card__title">Collaboration asks</div>
-          <div class="feature-card__desc">Make it obvious when you want feedback, beta users, design help, code review, or a teammate.</div>
-        </article>
-        <article class="feature-card">
-          <div class="feature-card__icon">Proof</div>
-          <div class="feature-card__title">Shipped work</div>
-          <div class="feature-card__desc">Pin launches, demos, repos, and screenshots so people can understand your taste through actual work.</div>
-        </article>
-      </div>
-    </section>
-
-    <section class="landing-roles landing-roles--quiet" id="for-recruiters" aria-labelledby="recruiters-heading">
-      <div class="features-header">
-        <div class="section-kicker">Recruiters</div>
-        <h2 id="recruiters-heading">Hiring is a background layer.</h2>
-        <p>Recruiters can follow public work and start respectful conversations. The community is still built for builders first.</p>
-      </div>
-      <div class="roles-grid">
-        <article class="role-card role-card--student">
-          <div class="role-card__header">
-            <span class="role-card__icon">Read</span>
-            <span class="role-card__title">Browse public work</span>
-          </div>
-          <p class="role-card__desc">Look at launches, demos, GitHub links, build logs, and the way builders explain their own work.</p>
-          <ul class="role-card__features">
-            <li>Search by stack and project type</li>
-            <li>Review demos and repos</li>
-            <li>Message with context</li>
-          </ul>
-        </article>
-        <article class="role-card role-card--recruiter">
-          <div class="role-card__header">
-            <span class="role-card__icon">Respect</span>
-            <span class="role-card__title">Creator-safe outreach</span>
-          </div>
-          <p class="role-card__desc">Keep outreach tied to real work. Builders should feel seen for what they make, not scraped into a candidate list.</p>
-          <ul class="role-card__features">
-            <li>Shortlists stay private</li>
-            <li>Threads start from projects</li>
-            <li>Block and report controls</li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="landing-grid-section" id="community" aria-labelledby="community-heading">
-      <div class="landing-grid-section__intro">
-        <div class="section-kicker">Discussion</div>
-        <h2 id="community-heading" class="section-title">The replies are the product.</h2>
-        <p class="section-copy">Launches need feedback. Questions need context. Build logs need witnesses. Solvoriz treats comments and threads as first-class, not as an afterthought.</p>
-      </div>
-      <div class="info-grid">
-        <article class="info-panel">
-          <h3>Public threads</h3>
-          <p>Posts can turn into useful conversations: replies, nested context, mentions, reactions, and follow-up questions.</p>
-          <ul class="info-list">
-            <li>Feedback under launches</li>
-            <li>Nested replies</li>
-            <li>Build log conversations</li>
-          </ul>
-        </article>
-        <article class="info-panel">
-          <h3>Private rooms</h3>
-          <p>When a public thread needs a smaller space, builders can create rooms, join project chats, and keep working with the same people.</p>
-          <ul class="info-list">
-            <li>Project rooms</li>
-            <li>Direct messages</li>
-            <li>Block and report controls</li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="landing-faq" id="faq" aria-labelledby="faq-heading">
-      <div class="features-header">
-        <div class="section-kicker">FAQ</div>
-        <h2 id="faq-heading">Common questions about Solvoriz</h2>
-        <p>Short answers. No startup fog.</p>
-      </div>
-      <div class="faq-list">
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What is Solvoriz?</button>
-          <div class="faq-answer hidden">Solvoriz is a community-first feed for builders: launches, build logs, questions, replies, demos, screenshots, and collaboration asks.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">Is Solvoriz free?</button>
-          <div class="faq-answer hidden">Builder accounts are free. If paid recruiter features are introduced, pricing and billing terms will be shown clearly before payment.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">Can recruiters use Solvoriz?</button>
-          <div class="faq-answer hidden">Yes, but recruiters are not the center of the product. They can discover public work and message builders with context.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What makes Solvoriz different?</button>
-          <div class="faq-answer hidden">Most portfolio sites are static. Solvoriz is built around ongoing activity: what people shipped, what they are learning, what they need help with, and how others respond.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What can I post?</button>
-          <div class="faq-answer hidden">Launches, build logs, screenshots, questions, feedback requests, teammate asks, demo links, GitHub links, and short updates.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">How can users contact support?</button>
-          <div class="faq-answer hidden">Support details are available on the Support page for account, product, trust, safety, and billing questions.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">Are there paid plans?</button>
-          <div class="faq-answer hidden">Students use Solvoriz for free. Recruiter pricing may be custom or invite-based during beta, and any future paid plan will display pricing and billing terms up front.</div>
-        </article>
-        <article class="faq-item">
-          <button class="faq-question" type="button" data-faq-toggle aria-expanded="false">What are the refund terms?</button>
-          <div class="faq-answer hidden">There are currently no student fees. If paid recruiter plans are introduced, cancellation timing, billing terms, and refund handling will be stated clearly, and billing issues can be routed through support.</div>
-        </article>
-      </div>
-    </section>
-  </main>
-
-  <footer class="landing-footer">
-    <div>
-      <strong>Solvoriz</strong>
-      <div>Launches, build logs, feedback, and collaboration for builders.</div>
+<!-- HERO -->
+<section class="hero wrap">
+  <div>
+    <span class="eyebrow">Revenue Leak Diagnostics</span>
+    <h1>Your Business Is <span class="leak-word">Losing Revenue</span> Every Day.</h1>
+    <p class="lead">Solvoriz identifies hidden revenue leaks and builds systems that recover lost customers, automate follow-ups, and increase growth — without hiring a single extra person.</p>
+    <div class="hero-cta">
+      <a href="#cta" class="btn-primary">Book Free Audit →</a>
+      <a href="#how" class="btn-secondary">See How It Works</a>
     </div>
-    <div class="footer-links">
-      <a href="/support.html">Support</a>
-      <a href="/refund-policy.html">Refund Policy</a>
-      <a href="/auth.html?mode=login">Log in</a>
-      <a href="/auth.html?mode=signup&role=student">Join the Feed</a>
-      <a href="/auth.html?mode=signup&role=recruiter">Recruiter Access</a>
+    <div class="hero-meta">
+      <div class="stat"><b>$2.4M+</b><span>Revenue recovered for clients</span></div>
+      <div class="stat"><b>120+</b><span>Businesses audited</span></div>
+      <div class="stat"><b>48hrs</b><span>Average audit turnaround</span></div>
     </div>
-  </footer>
+  </div>
 
-  <div id="toast-container"></div>
+  <div class="hero-visual">
+    <div class="leak-glow"></div>
+    <div class="leak-card">
+      <div class="leak-card-head">
+        <span class="title">Revenue Flow — Live</span>
+        <span class="badge">Auditing...</span>
+      </div>
+      <div class="pipe-row">
+        <div class="pipe-line">
+          <div class="drip"></div>
+          <div class="drip"></div>
+          <div class="drip"></div>
+        </div>
+      </div>
+      <div class="leak-stats">
+        <div class="leak-stat-box">
+          <div class="num lost" data-count="31">0%</div>
+          <div class="lbl">Leads lost to slow follow-up</div>
+        </div>
+        <div class="leak-stat-box">
+          <div class="num saved" data-count="94">0%</div>
+          <div class="lbl">Inquiries captured after fix</div>
+        </div>
+        <div class="leak-stat-box">
+          <div class="num lost" data-count="18">0%</div>
+          <div class="lbl">Repeat customers never re-contacted</div>
+        </div>
+        <div class="leak-stat-box">
+          <div class="num saved" data-count="3">0x</div>
+          <div class="lbl">Avg. revenue growth in 90 days</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/assets/js/supabase.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/auth.js"></script>
-  <script src="/assets/js/marketing.js"></script>
+<!-- PROBLEM -->
+<section class="problem wrap" id="problem">
+  <div class="section-head">
+    <span class="section-tag">The hidden cost</span>
+    <h2>Every unanswered message is money walking away.</h2>
+    <p>Most businesses don't have a marketing problem — they have a leak problem. Here's where revenue quietly disappears.</p>
+  </div>
+  <div class="leak-grid">
+    <div class="leak-item">
+      <div class="leak-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h3>Missed WhatsApp Inquiries</h3>
+      <p>Customers message after hours or during busy periods — and never hear back. They simply move to a competitor.</p>
+      <span class="amount">≈ 27% of inbound leads go unanswered</span>
+    </div>
+    <div class="leak-item">
+      <div class="leak-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h3>Slow Follow-Ups</h3>
+      <p>A 5-minute response wins the deal. A 5-hour response loses it. Most teams average over a day.</p>
+      <span class="amount">Leads contacted within 5 min convert 9x more</span>
+    </div>
+    <div class="leak-item">
+      <div class="leak-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8 13 13.7l-4-4L3 16"/></svg>
+      </div>
+      <h3>Untracked Leads</h3>
+      <p>No central system means leads live in spreadsheets, inboxes, and someone's memory — until they vanish.</p>
+      <span class="amount">Avg. business loses track of 1 in 3 leads</span>
+    </div>
+    <div class="leak-item">
+      <div class="leak-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </div>
+      <h3>Lost Repeat Customers</h3>
+      <p>Happy customers leave because nobody reminded them to come back, rebook, or renew.</p>
+      <span class="amount">Retention costs 5x less than acquisition</span>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section class="solution wrap" id="solution">
+  <div class="section-head">
+    <span class="section-tag fix">The fix</span>
+    <h2>Three systems. One outcome — revenue you keep.</h2>
+    <p>We don't pitch services. We diagnose your leaks, then deploy the exact system needed to stop them.</p>
+  </div>
+  <div class="solution-grid">
+    <div class="solution-card">
+      <span class="solution-num">SYSTEM 01</span>
+      <div class="icon-block">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+      </div>
+      <h3>Lead Recovery Systems</h3>
+      <p>We capture, track, and re-engage every lead that enters your business — across WhatsApp, calls, forms, and DMs — so nothing falls through the cracks.</p>
+      <ul class="solution-list">
+        <li>Unified lead inbox & tracking</li>
+        <li>Automated re-engagement sequences</li>
+        <li>Missed-call & message recovery</li>
+        <li>CRM pipeline setup</li>
+      </ul>
+    </div>
+    <div class="solution-card">
+      <span class="solution-num">SYSTEM 02</span>
+      <div class="icon-block">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <h3>AI Receptionist & AI Employees</h3>
+      <p>A always-on AI team member that answers calls, replies to messages, books appointments, and qualifies leads — instantly, 24/7.</p>
+      <ul class="solution-list">
+        <li>24/7 AI call & chat answering</li>
+        <li>Appointment booking automation</li>
+        <li>Lead qualification & routing</li>
+        <li>Trained on your business voice</li>
+      </ul>
+    </div>
+    <div class="solution-card">
+      <span class="solution-num">SYSTEM 03</span>
+      <div class="icon-block">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <h3>Revenue Growth Automation</h3>
+      <p>End-to-end automation that turns one-time customers into repeat revenue — review requests, win-back campaigns, upsell flows, and reporting.</p>
+      <ul class="solution-list">
+        <li>Customer win-back campaigns</li>
+        <li>Review & referral automation</li>
+        <li>Upsell & renewal sequences</li>
+        <li>Weekly revenue dashboards</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how wrap" id="how">
+  <div class="section-head">
+    <span class="section-tag">The process</span>
+    <h2>From audit to growth, in four steps.</h2>
+    <p>A clear, fast path — no long contracts, no guesswork.</p>
+  </div>
+  <div class="how-track">
+    <div class="how-step">
+      <div class="step-num">01</div>
+      <h3>Audit</h3>
+      <p>We map every customer touchpoint in your business to find where revenue is leaking.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">02</div>
+      <h3>Identify Leaks</h3>
+      <p>You get a clear report showing exactly where, how, and how much revenue you're losing.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">03</div>
+      <h3>Implement Systems</h3>
+      <p>We build and deploy the lead recovery, AI, and automation systems to plug those leaks.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">04</div>
+      <h3>Growth</h3>
+      <p>Watch recovered leads, faster responses, and repeat customers turn into measurable revenue.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="results wrap" id="results">
+  <div class="section-head">
+    <span class="section-tag fix">Proof, not promises</span>
+    <h2>Results our clients can put in the bank.</h2>
+    <p>Real outcomes from real audits — every number is a leak that got fixed.</p>
+  </div>
+  <div class="results-grid">
+    <div class="result-card">
+      <div class="result-num"><span class="counter" data-target="2400000" data-prefix="$" data-suffix="+">0</span></div>
+      <div class="lbl">Revenue recovered for clients</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num"><span class="counter" data-target="63" data-suffix="%">0</span></div>
+      <div class="lbl">Avg. drop in missed inquiries</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num"><span class="counter" data-target="3.1" data-suffix="x" data-decimal="1">0</span></div>
+      <div class="lbl">Avg. revenue growth in 90 days</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num"><span class="counter" data-target="120" data-suffix="+">0</span></div>
+      <div class="lbl">Businesses audited & fixed</div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY SOLVORIZ -->
+<section class="why wrap" id="why">
+  <div class="why-inner">
+    <div class="why-statement">
+      <p style="margin-bottom:14px;" class="strike">We don't sell websites.</p>
+      <p style="margin-bottom:14px;" class="strike">We don't sell "AI."</p>
+      <p class="highlight">We solve revenue problems — and the technology is just how we do it.</p>
+    </div>
+    <div class="why-list">
+      <div class="why-row">
+        <span class="num">01</span>
+        <div>
+          <h4>Outcome-first, not tool-first</h4>
+          <p>We don't start with "here's an AI bot." We start with "here's where you're losing money" — then build whatever fixes it.</p>
+        </div>
+      </div>
+      <div class="why-row">
+        <span class="num">02</span>
+        <div>
+          <h4>Built for SMBs, not enterprise budgets</h4>
+          <p>Our systems are designed for coaching institutes, clinics, agents, and local businesses — fast to deploy, easy to run.</p>
+        </div>
+      </div>
+      <div class="why-row">
+        <span class="num">03</span>
+        <div>
+          <h4>Measured in revenue, not deliverables</h4>
+          <p>Every project ties back to one metric: how much more revenue are you keeping. That's the only scoreboard that matters.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials wrap">
+  <div class="section-head">
+    <span class="section-tag">Client results</span>
+    <h2>Businesses that plugged their leaks.</h2>
+    <p>Here's what changed when the leaks stopped.</p>
+  </div>
+  <div class="test-grid">
+    <div class="test-card">
+      <div class="stars">★★★★★</div>
+      <p class="quote">"We had no idea how many WhatsApp leads were just sitting unanswered. Within two weeks of the audit, our response time went from hours to under a minute. Bookings went up almost immediately."</p>
+      <div class="test-person">
+        <div class="avatar" style="background:linear-gradient(135deg,#ff9a52,#ff7a3d);">AR</div>
+        <div class="info"><b>Anjali Rao</b><span>Director, Bloom Coaching Institute</span></div>
+      </div>
+    </div>
+    <div class="test-card">
+      <div class="stars">★★★★★</div>
+      <p class="quote">"Solvoriz didn't try to sell us a chatbot. They showed us exactly how many patients were calling and not getting through, then fixed it with an AI receptionist that actually books appointments correctly."</p>
+      <div class="test-person">
+        <div class="avatar" style="background:linear-gradient(135deg,#43d9a3,#2bb88a);">DK</div>
+        <div class="info"><b>Dr. Karan Mehta</b><span>Owner, CityCare Clinic</span></div>
+      </div>
+    </div>
+    <div class="test-card">
+      <div class="stars">★★★★★</div>
+      <p class="quote">"As a real estate agent, every missed call is a missed commission. Their follow-up system now re-engages every lead automatically. I closed three extra deals last month from leads I'd written off."</p>
+      <div class="test-person">
+        <div class="avatar" style="background:linear-gradient(135deg,#8ef0d0,#43d9a3);">SP</div>
+        <div class="info"><b>Sandeep Puri</b><span>Real Estate Agent, Skyline Properties</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq wrap" id="faq">
+  <div class="section-head">
+    <span class="section-tag fix">Common questions</span>
+    <h2>Everything you're wondering before you book.</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q"><span>Is the audit really free?</span><span class="plus">+</span></div>
+      <div class="faq-a"><div>Yes. We audit your current lead flow, follow-up process, and customer touchpoints at no cost. You'll get a clear report of where revenue is leaking — whether or not you work with us afterward.</div></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>We're not a tech company — will this still work for us?</span><span class="plus">+</span></div>
+      <div class="faq-a"><div>That's exactly who we build for. Our systems are designed for coaching institutes, clinics, real estate agents, and local service businesses — no technical knowledge required on your end. We handle the setup and training.</div></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>How is this different from hiring a virtual assistant?</span><span class="plus">+</span></div>
+      <div class="faq-a"><div>A VA works set hours and can still miss messages. Our AI Receptionist and automated systems work 24/7, never forget a follow-up, and scale instantly — at a fraction of the cost of additional hires.</div></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>How long does implementation take?</span><span class="plus">+</span></div>
+      <div class="faq-a"><div>Most systems are live within 1-3 weeks of the audit, depending on complexity. Simple fixes like missed-call recovery can be deployed within days.</div></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>Do you require long-term contracts?</span><span class="plus">+</span></div>
+      <div class="faq-a"><div>No. We work in clear phases — audit, implementation, and ongoing optimization — and you can evaluate results at each step before continuing.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta wrap" id="cta">
+  <div class="final-cta-card">
+    <span class="eyebrow">Start with a free diagnosis</span>
+    <h2>Stop guessing where your revenue is going.</h2>
+    <p>Book a free revenue leak audit and get a clear breakdown of exactly what's costing you customers — and what to do about it.</p>
+    <a href="#" class="btn-primary">Book Your Free Audit →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="wrap">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="#" class="logo"><span class="dot"></span> Solvoriz</a>
+      <p>We find the leaks, fix the leaks, and help your business grow revenue — without selling you websites or "AI" for its own sake.</p>
+      <div class="footer-socials">
+        <a href="#" aria-label="LinkedIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+        <a href="#" aria-label="Twitter"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A6.33 6.33 0 0 0 23 3z"/></svg></a>
+        <a href="#" aria-label="Instagram"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <ul>
+        <li><a href="#solution">Lead Recovery Systems</a></li>
+        <li><a href="#solution">AI Receptionist</a></li>
+        <li><a href="#solution">Revenue Automation</a></li>
+        <li><a href="#cta">Free Audit</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#why">Why Solvoriz</a></li>
+        <li><a href="#how">Our Process</a></li>
+        <li><a href="#results">Results</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Get in touch</h4>
+      <ul>
+        <li><a href="mailto:hello@solvoriz.com">hello@solvoriz.com</a></li>
+        <li><a href="#">+1 (555) 010-2030</a></li>
+        <li><a href="#cta">Book Free Audit</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Solvoriz. All rights reserved.</span>
+    <span>Find the leaks. Fix the leaks. Grow revenue.</span>
+  </div>
+</footer>
+
+<script>
+  // Header scroll state
+  const header = document.getElementById('header');
+  window.addEventListener('scroll', () => {
+    header.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // Mobile nav toggle
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  // Intersection Observer for reveal animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('in-view');
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.leak-item, .solution-card, .how-step, .result-card, .test-card')
+    .forEach(el => observer.observe(el));
+
+  // Animated counters (results section)
+  const counters = document.querySelectorAll('.counter');
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        animateCounter(entry.target);
+        counterObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(c => counterObserver.observe(c));
+
+  function animateCounter(el){
+    const target = parseFloat(el.dataset.target);
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    const decimals = parseInt(el.dataset.decimal || '0');
+    const duration = 1600;
+    const start = performance.now();
+
+    function tick(now){
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = target * eased;
+      let display;
+      if (decimals > 0) {
+        display = value.toFixed(decimals);
+      } else if (target >= 1000) {
+        display = Math.floor(value).toLocaleString('en-US');
+      } else {
+        display = Math.floor(value);
+      }
+      el.textContent = prefix + display + suffix;
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // Small hero gauge counters (% values)
+  const heroCounters = document.querySelectorAll('.leak-stat-box .num');
+  const heroObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const target = parseFloat(el.dataset.count);
+        const suffix = el.textContent.includes('x') ? 'x' : '%';
+        const duration = 1200;
+        const start = performance.now();
+        function tick(now){
+          const progress = Math.min((now - start) / duration, 1);
+          const value = Math.floor(target * progress);
+          el.textContent = value + suffix;
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        heroObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.4 });
+  heroCounters.forEach(c => heroObserver.observe(c));
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const q = item.querySelector('.faq-q');
+    const a = item.querySelector('.faq-a');
+    q.addEventListener('click', () => {
+      const isActive = item.classList.contains('active');
+      document.querySelectorAll('.faq-item').forEach(i => {
+        i.classList.remove('active');
+        i.querySelector('.faq-a').style.maxHeight = null;
+      });
+      if (!isActive) {
+        item.classList.add('active');
+        a.style.maxHeight = a.scrollHeight + 'px';
+      }
+    });
+  });
+</script>
+
 </body>
 </html>
