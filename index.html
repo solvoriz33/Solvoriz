@@ -472,6 +472,40 @@
   }
   .faq-a div{padding:0 26px 22px; color:var(--muted); font-size:0.93rem; line-height:1.7;}
 
+  /* ============ PRICING ============ */
+  .pricing{padding:100px 0; border-top:1px solid var(--border-soft);}
+  .pricing-card{
+    max-width:460px; margin:0 auto;
+    background:linear-gradient(160deg, var(--panel) 0%, var(--bg-2) 100%);
+    border:1px solid var(--border); border-radius:24px; padding:44px 40px;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,0.6);
+    text-align:center; position:relative; overflow:hidden;
+  }
+  .pricing-card::before{
+    content:''; position:absolute; width:300px; height:300px; border-radius:50%;
+    background:radial-gradient(circle, rgba(67,217,163,0.14), transparent 70%);
+    top:-120px; right:-100px; filter:blur(10px);
+  }
+  .pricing-tier-name{
+    font-family:var(--font-mono); font-size:0.8rem; letter-spacing:0.08em;
+    color:var(--fix); text-transform:uppercase; margin-bottom:18px; display:block;
+  }
+  .pricing-amount{
+    font-family:var(--font-display); font-weight:700; font-size:3.2rem;
+    margin-bottom:6px; letter-spacing:-0.02em;
+  }
+  .pricing-amount span{font-size:1rem; color:var(--muted); font-weight:500; margin-left:6px;}
+  .pricing-sub{color:var(--muted-2); font-size:0.88rem; margin-bottom:32px;}
+  .pricing-list{list-style:none; display:flex; flex-direction:column; gap:14px; text-align:left; margin-bottom:36px;}
+  .pricing-list li{
+    font-size:0.94rem; color:var(--text); display:flex; align-items:flex-start; gap:12px;
+  }
+  .pricing-list li::before{
+    content:'✓'; flex-shrink:0; width:20px; height:20px; border-radius:50%;
+    background:var(--fix-soft); color:var(--fix); border:1px solid rgba(67,217,163,0.3);
+    display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; margin-top:1px;
+  }
+
   /* ============ FINAL CTA ============ */
   .final-cta{padding:120px 0; border-top:1px solid var(--border-soft); text-align:center; position:relative;}
   .final-cta-card{
@@ -542,6 +576,7 @@
     h1{font-size:2.4rem;}
     .hero-meta{gap:24px;}
     .final-cta-card{padding:48px 24px;}
+    .pricing-card{padding:36px 24px;}
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -562,6 +597,7 @@
       <a href="#audit">Audit</a>
       <a href="#solution">Services</a>
       <a href="#how">Process</a>
+      <a href="#pricing">Pricing</a>
       <a href="#results">Results</a>
       <a href="#faq">FAQ</a>
       <a href="#cta" class="nav-cta">Book Free Audit</a>
@@ -574,11 +610,10 @@
 <section class="hero wrap">
   <div>
     <span class="eyebrow">Revenue Leak Diagnostics</span>
-    <h1>Every Unanswered Message Is <span class="leak-word">Money Walking Away.</span></h1>
-    <p class="lead" style="margin-bottom:14px; font-weight:600; color:var(--text);">Most businesses don't need more leads. They need to stop losing the ones they already have.</p>
-    <p class="lead">Solvoriz helps businesses identify hidden revenue leaks and deploy systems that recover lost leads, improve response times, and increase customer retention.</p>
+    <h1>We Engineer Custom Technical Assets to Eliminate Your <span class="leak-word">Day-to-Day Business Headaches.</span></h1>
+    <p class="lead">Stop losing hot leads to faster competitors. We audit your operational workflows, identify tracking leaks, and build bespoke automations to win back your time. One flat fee. Zero monthly software subscriptions.</p>
     <div class="hero-cta">
-      <a href="#cta" class="btn-primary">Book Free Audit →</a>
+      <a href="#cta" class="btn-primary">Diagnose Your Business Bottleneck →</a>
       <a href="#how" class="btn-secondary">See How It Works</a>
     </div>
     <div class="hero-meta">
@@ -725,6 +760,23 @@
   </div>
 </section>
 
+<!-- CORE PHILOSOPHY -->
+<section class="why wrap" id="philosophy">
+  <div class="why-inner">
+    <div class="why-statement">
+      <p class="highlight">We Don't Sell Pre-Made Software. We Build Solutions.</p>
+    </div>
+    <div class="why-list">
+      <div class="why-row">
+        <span class="num">—</span>
+        <div>
+          <p style="color:var(--text); font-size:0.98rem; line-height:1.75;">Every local agency wants to lock you into expensive monthly software tools or generic website templates you don't need. At Solvoriz, we fall in love with your specific problem. Tell us what repetitive admin task or software glitch is slowing down your team, and we will build a custom technical bridge to fix it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- SOLUTION -->
 <section class="solution wrap" id="solution">
   <div class="section-head">
@@ -823,6 +875,28 @@
   </div>
 </section>
 
+<!-- PRICING -->
+<section class="pricing wrap" id="pricing">
+  <div class="section-head">
+    <span class="section-tag fix">Low friction, real ownership</span>
+    <h2>One flat fee. No software subscriptions.</h2>
+    <p>A single bespoke fix, scoped to your exact bottleneck, shipped fast and owned by you forever.</p>
+  </div>
+  <div class="pricing-card">
+    <span class="pricing-tier-name">The Bespoke Micro-Fix</span>
+    <div class="pricing-amount">$190<span>flat fee</span></div>
+    <p class="pricing-sub">No monthly software fees. Ever.</p>
+    <ul class="pricing-list">
+      <li>Complete operational bottleneck audit</li>
+      <li>Tailored backend automation or custom lead-capture system</li>
+      <li>Shipped and deployed securely via Cloudflare within 48 hours</li>
+      <li>Zero recurring software fees</li>
+      <li>100% lifetime operational ownership transferred to you</li>
+    </ul>
+    <a href="#cta" class="btn-primary" style="width:100%; justify-content:center;">Diagnose Your Business Bottleneck →</a>
+  </div>
+</section>
+
 <!-- RESULTS -->
 <section class="results wrap" id="results">
   <div class="section-head">
@@ -846,40 +920,6 @@
     <div class="result-card">
       <div class="result-num"><span class="counter" data-target="120" data-suffix="+">0</span></div>
       <div class="lbl">Businesses audited & fixed</div>
-    </div>
-  </div>
-</section>
-
-<!-- WHY SOLVORIZ -->
-<section class="why wrap" id="why">
-  <div class="why-inner">
-    <div class="why-statement">
-      <p style="margin-bottom:14px;" class="strike">We don't sell websites.</p>
-      <p style="margin-bottom:14px;" class="strike">We don't sell "AI."</p>
-      <p class="highlight">We solve revenue problems — and the technology is just how we do it.</p>
-    </div>
-    <div class="why-list">
-      <div class="why-row">
-        <span class="num">01</span>
-        <div>
-          <h4>Outcome-first, not tool-first</h4>
-          <p>We don't start with "here's an AI bot." We start with "here's where you're losing money" — then build whatever fixes it.</p>
-        </div>
-      </div>
-      <div class="why-row">
-        <span class="num">02</span>
-        <div>
-          <h4>Built for SMBs, not enterprise budgets</h4>
-          <p>Our systems are designed for coaching institutes, clinics, agents, and local businesses — fast to deploy, easy to run.</p>
-        </div>
-      </div>
-      <div class="why-row">
-        <span class="num">03</span>
-        <div>
-          <h4>Measured in revenue, not deliverables</h4>
-          <p>Every project ties back to one metric: how much more revenue are you keeping. That's the only scoreboard that matters.</p>
-        </div>
-      </div>
     </div>
   </div>
 </section>
@@ -983,8 +1023,9 @@
     <div class="footer-col">
       <h4>Company</h4>
       <ul>
-        <li><a href="#why">Why Solvoriz</a></li>
+        <li><a href="#philosophy">Why Solvoriz</a></li>
         <li><a href="#how">Our Process</a></li>
+        <li><a href="#pricing">Pricing</a></li>
         <li><a href="#results">Results</a></li>
         <li><a href="#faq">FAQ</a></li>
       </ul>
