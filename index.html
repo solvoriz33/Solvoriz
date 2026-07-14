@@ -1,4 +1,53 @@
 
+Claude finished the response
+1784015753322_image.png
+
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Solvoriz — AI & Web Engineering</title> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;40
+
+pasted
+
+Founder Section
+Meet the Founder
+Aryan Jindal
+Founder, Solvoriz
+Technology has never interested me because it is "cool."
+It interests me because it solves problems.
+While many agencies focus on building websites, I became obsessed with understanding how businesses actually operate—how leads are generated, how customers are managed, and where businesses lose valuable time every single day.
+That obsession became Solvoriz.
+Today, we build intelligent systems that combine premium web engineering, AI automation, CRM infrastructure and workflow automation into one seamless business operating system.
+Every solution is designed with one objective:
+Generate measurable business growth. now add this below add navigation to it meet the layout this is my image make it properly my face should be visible rathe than background above my head like place it properly make it primium
+
+Show more
+
+Devised efficient file editing strategy using targeted replacements
+Devised efficient file editing strategy using targeted replacements
+Added a "Founder" nav link and a new Meet the Founder section that matches the site's monochrome, premium aesthetic — split card with your photo on the left and the story on the right, a quote pull, and a clean signature line.
+
+For the photo, I set object-fit: cover with object-position: 50% 30% so it crops in tighter and centers on your face instead of the ceiling above your head, applied a subtle grayscale/contrast treatment to keep it on-brand with the site's black-and-white palette (it shifts to fuller color on hover for a nice touch), and added a soft bottom gradient so it blends into the card.
+
+
+Presented 2 files
+Presented 2 files
+Keep founder.jpg in the same folder as solvoriz.html when you host it, since the image is referenced by relative path. If you want the crop framed differently (tighter on the face, more shoulders, etc.), just let me know and I'll adjust the object-position value.
+
+
+Solvoriz
+Code · HTML 
+
+Founder
+Image · JPG 
+
+Want to be notified when Claude responds?
+
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+
+
+Solvoriz · HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,24 +73,24 @@
   --ghost:    #c4c4c4;
   --pearl:    #e8e8e8;
   --white:    #ffffff;
-
+ 
   --accent:   #ffffff;
   --accent2:  #c8c8c8;
-
+ 
   --font-display: 'Inter', sans-serif;
   --font-body:    'DM Sans', sans-serif;
-
+ 
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);
 }
-
+ 
 /* ============================================================
    RESET & BASE
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
 html { scroll-behavior: smooth; font-size: 16px; }
-
+ 
 body {
   font-family: var(--font-body);
   background: var(--black);
@@ -49,13 +98,13 @@ body {
   overflow-x: hidden;
   cursor: none;
 }
-
+ 
 body.intro-active { overflow: hidden; }
-
+ 
 a { color: inherit; text-decoration: none; }
-
+ 
 img, svg { display: block; }
-
+ 
 /* ============================================================
    CUSTOM CURSOR
    ============================================================ */
@@ -69,7 +118,7 @@ img, svg { display: block; }
   transform: translate(-50%, -50%);
   transition: transform 0.08s var(--ease-smooth), opacity 0.3s;
 }
-
+ 
 #cursor-ring {
   position: fixed;
   width: 36px; height: 36px;
@@ -80,13 +129,13 @@ img, svg { display: block; }
   transform: translate(-50%, -50%);
   transition: transform 0.18s var(--ease-smooth), width 0.3s, height 0.3s, border-color 0.3s, background 0.3s;
 }
-
+ 
 #cursor-ring.hover {
   width: 56px; height: 56px;
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.6);
 }
-
+ 
 /* ============================================================
    MOUSE SPOTLIGHT
    ============================================================ */
@@ -100,7 +149,7 @@ img, svg { display: block; }
   transform: translate(-50%, -50%);
   transition: opacity 0.4s;
 }
-
+ 
 /* ============================================================
    INTRO OVERLAY
    ============================================================ */
@@ -115,21 +164,21 @@ img, svg { display: block; }
   justify-content: center;
   overflow: hidden;
 }
-
+ 
 #intro-canvas {
   position: absolute;
   inset: 0;
   width: 100%; height: 100%;
 }
-
+ 
 #intro-logo-wrap {
   position: relative;
   z-index: 10;
   opacity: 0;
 }
-
+ 
 #intro-logo-wrap svg { filter: drop-shadow(0 0 32px rgba(255,255,255,0.5)); }
-
+ 
 #intro-tagline {
   position: relative;
   z-index: 10;
@@ -142,7 +191,7 @@ img, svg { display: block; }
   color: rgba(255,255,255,0);
   transition: color 1s ease;
 }
-
+ 
 #intro-progress {
   position: absolute;
   bottom: 48px;
@@ -154,7 +203,7 @@ img, svg { display: block; }
   border-radius: 2px;
   overflow: hidden;
 }
-
+ 
 #intro-progress-bar {
   height: 100%;
   background: var(--white);
@@ -162,7 +211,7 @@ img, svg { display: block; }
   transition: width 0.1s linear;
   border-radius: 2px;
 }
-
+ 
 /* ============================================================
    MAIN SITE (hidden until intro done)
    ============================================================ */
@@ -171,9 +220,9 @@ img, svg { display: block; }
   transform: scale(1.04);
   transition: opacity 1.2s var(--ease-premium), transform 1.2s var(--ease-premium);
 }
-
+ 
 #site.visible { opacity: 1; transform: scale(1); }
-
+ 
 /* ============================================================
    NOISE TEXTURE OVERLAY
    ============================================================ */
@@ -186,7 +235,7 @@ img, svg { display: block; }
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 256px;
 }
-
+ 
 /* ============================================================
    NAV
    ============================================================ */
@@ -201,7 +250,7 @@ nav {
   border-bottom: 1px solid rgba(255,255,255,0);
   transition: border-color 0.4s, background 0.4s, padding 0.4s;
 }
-
+ 
 nav.scrolled {
   padding: 16px 60px;
   border-color: rgba(255,255,255,0.06);
@@ -209,15 +258,15 @@ nav.scrolled {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
-
+ 
 .nav-logo {
   display: flex;
   align-items: center;
   gap: 14px;
 }
-
+ 
 .nav-logo-mark svg { width: 32px; height: 32px; }
-
+ 
 .nav-wordmark {
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -225,14 +274,14 @@ nav.scrolled {
   letter-spacing: -0.01em;
   color: var(--white);
 }
-
+ 
 .nav-links {
   display: flex;
   align-items: center;
   gap: 40px;
   list-style: none;
 }
-
+ 
 .nav-links a {
   font-size: 0.82rem;
   font-weight: 400;
@@ -240,9 +289,9 @@ nav.scrolled {
   letter-spacing: 0.01em;
   transition: color 0.25s;
 }
-
+ 
 .nav-links a:hover { color: var(--white); }
-
+ 
 .nav-cta {
   font-family: var(--font-display);
   font-size: 0.82rem;
@@ -253,12 +302,12 @@ nav.scrolled {
   color: var(--white);
   transition: background 0.3s, border-color 0.3s;
 }
-
+ 
 .nav-cta:hover {
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.4);
 }
-
+ 
 /* ============================================================
    HERO
    ============================================================ */
@@ -270,13 +319,13 @@ nav.scrolled {
   padding: 140px 60px 100px;
   overflow: hidden;
 }
-
+ 
 .hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
 }
-
+ 
 .hero-grid {
   position: absolute; inset: 0;
   background-image:
@@ -285,24 +334,24 @@ nav.scrolled {
   background-size: 80px 80px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
 }
-
+ 
 .hero-gradient {
   position: absolute; inset: 0;
   background: radial-gradient(ellipse 60% 60% at 70% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
 }
-
+ 
 #hero-canvas {
   position: absolute;
   top: 0; right: 0;
   width: 55%; height: 100%;
 }
-
+ 
 .hero-content {
   position: relative;
   z-index: 5;
   max-width: 640px;
 }
-
+ 
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -314,13 +363,13 @@ nav.scrolled {
   color: var(--silver);
   margin-bottom: 36px;
 }
-
+ 
 .hero-eyebrow::before {
   content: '';
   width: 28px; height: 1px;
   background: var(--silver);
 }
-
+ 
 .hero-headline {
   font-family: var(--font-display);
   font-size: clamp(3rem, 5.5vw, 5rem);
@@ -330,13 +379,13 @@ nav.scrolled {
   color: var(--white);
   margin-bottom: 28px;
 }
-
+ 
 .hero-headline em {
   font-style: normal;
   color: transparent;
   -webkit-text-stroke: 1px rgba(255,255,255,0.4);
 }
-
+ 
 .hero-sub {
   font-size: 1.05rem;
   font-weight: 400;
@@ -345,13 +394,13 @@ nav.scrolled {
   max-width: 480px;
   margin-bottom: 52px;
 }
-
+ 
 .hero-actions {
   display: flex;
   align-items: center;
   gap: 20px;
 }
-
+ 
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -369,7 +418,7 @@ nav.scrolled {
   position: relative;
   overflow: hidden;
 }
-
+ 
 .btn-primary::after {
   content: '';
   position: absolute;
@@ -378,12 +427,12 @@ nav.scrolled {
   transition: background 0.3s;
   border-radius: inherit;
 }
-
+ 
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 20px 60px rgba(255,255,255,0.15);
 }
-
+ 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -397,9 +446,9 @@ nav.scrolled {
   border: none;
   background: none;
 }
-
+ 
 .btn-secondary:hover { color: var(--white); }
-
+ 
 .btn-arrow {
   width: 22px; height: 22px;
   border: 1px solid currentColor;
@@ -409,9 +458,9 @@ nav.scrolled {
   justify-content: center;
   transition: transform 0.3s var(--ease-premium);
 }
-
+ 
 .btn-secondary:hover .btn-arrow { transform: translate(3px, -3px); }
-
+ 
 /* hero phone number badge */
 .hero-contact {
   margin-top: 40px;
@@ -421,10 +470,10 @@ nav.scrolled {
   font-size: 0.8rem;
   color: var(--silver);
 }
-
+ 
 .hero-contact a { color: var(--ghost); transition: color 0.2s; }
 .hero-contact a:hover { color: var(--white); }
-
+ 
 /* ============================================================
    TRUST / STATS
    ============================================================ */
@@ -437,7 +486,7 @@ nav.scrolled {
   grid-template-columns: repeat(4, 1fr);
   gap: 2px;
 }
-
+ 
 .stat-item {
   padding: 48px 40px;
   border-right: 1px solid rgba(255,255,255,0.06);
@@ -445,9 +494,9 @@ nav.scrolled {
   overflow: hidden;
   transition: background 0.4s;
 }
-
+ 
 .stat-item:last-child { border-right: none; }
-
+ 
 .stat-item::before {
   content: '';
   position: absolute;
@@ -455,9 +504,9 @@ nav.scrolled {
   background: rgba(255,255,255,0);
   transition: background 0.4s;
 }
-
+ 
 .stat-item:hover::before { background: rgba(255,255,255,0.02); }
-
+ 
 .stat-num {
   font-family: var(--font-display);
   font-size: clamp(2.8rem, 4vw, 4rem);
@@ -467,7 +516,7 @@ nav.scrolled {
   line-height: 1;
   margin-bottom: 12px;
 }
-
+ 
 .stat-label {
   font-size: 0.8rem;
   font-weight: 400;
@@ -475,7 +524,7 @@ nav.scrolled {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-
+ 
 /* ============================================================
    SECTION SHARED
    ============================================================ */
@@ -484,7 +533,7 @@ nav.scrolled {
   position: relative;
   z-index: 2;
 }
-
+ 
 .section-tag {
   font-size: 0.7rem;
   font-weight: 600;
@@ -496,13 +545,13 @@ nav.scrolled {
   align-items: center;
   gap: 12px;
 }
-
+ 
 .section-tag::before {
   content: '';
   width: 20px; height: 1px;
   background: var(--ash);
 }
-
+ 
 .section-title {
   font-family: var(--font-display);
   font-size: clamp(2.2rem, 4vw, 3.4rem);
@@ -512,14 +561,14 @@ nav.scrolled {
   color: var(--white);
   margin-bottom: 20px;
 }
-
+ 
 .section-sub {
   font-size: 1rem;
   color: var(--mist);
   line-height: 1.7;
   max-width: 520px;
 }
-
+ 
 /* ============================================================
    SERVICES
    ============================================================ */
@@ -530,7 +579,7 @@ nav.scrolled {
   margin-bottom: 72px;
   gap: 40px;
 }
-
+ 
 .services-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -540,7 +589,7 @@ nav.scrolled {
   border-radius: 24px;
   overflow: hidden;
 }
-
+ 
 .service-card {
   background: var(--ink);
   padding: 44px 40px;
@@ -549,7 +598,7 @@ nav.scrolled {
   cursor: none;
   transition: background 0.4s var(--ease-smooth);
 }
-
+ 
 .service-card::before {
   content: '';
   position: absolute;
@@ -558,10 +607,10 @@ nav.scrolled {
   opacity: 0;
   transition: opacity 0.4s;
 }
-
+ 
 .service-card:hover::before { opacity: 1; }
 .service-card:hover { background: var(--charcoal); }
-
+ 
 .service-icon {
   width: 48px; height: 48px;
   border: 1px solid rgba(255,255,255,0.12);
@@ -572,12 +621,12 @@ nav.scrolled {
   margin-bottom: 28px;
   transition: border-color 0.3s, background 0.3s;
 }
-
+ 
 .service-card:hover .service-icon {
   border-color: rgba(255,255,255,0.3);
   background: rgba(255,255,255,0.05);
 }
-
+ 
 .service-name {
   font-family: var(--font-display);
   font-size: 1.15rem;
@@ -585,13 +634,13 @@ nav.scrolled {
   color: var(--white);
   margin-bottom: 12px;
 }
-
+ 
 .service-desc {
   font-size: 0.87rem;
   color: var(--silver);
   line-height: 1.65;
 }
-
+ 
 .service-link {
   display: inline-flex;
   align-items: center;
@@ -602,14 +651,14 @@ nav.scrolled {
   color: var(--ghost);
   transition: gap 0.3s, color 0.3s;
 }
-
+ 
 .service-card:hover .service-link { gap: 12px; color: var(--white); }
-
+ 
 /* ============================================================
    PROCESS TIMELINE
    ============================================================ */
 #process { background: var(--void); }
-
+ 
 .process-steps {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -617,7 +666,7 @@ nav.scrolled {
   margin-top: 72px;
   position: relative;
 }
-
+ 
 .process-line {
   position: absolute;
   top: 28px; left: 0; right: 0;
@@ -625,14 +674,14 @@ nav.scrolled {
   background: rgba(255,255,255,0.08);
   z-index: 0;
 }
-
+ 
 .process-line-progress {
   height: 100%;
   background: linear-gradient(90deg, var(--white), rgba(255,255,255,0.1));
   width: 0%;
   transition: width 1.5s var(--ease-premium);
 }
-
+ 
 .process-step {
   position: relative;
   z-index: 1;
@@ -645,9 +694,9 @@ nav.scrolled {
   transform: translateY(20px);
   transition: opacity 0.5s, transform 0.5s;
 }
-
+ 
 .process-step.visible { opacity: 1; transform: translateY(0); }
-
+ 
 .step-dot {
   width: 56px; height: 56px;
   border: 1px solid rgba(255,255,255,0.12);
@@ -666,14 +715,14 @@ nav.scrolled {
   position: relative;
   z-index: 2;
 }
-
+ 
 .process-step.active .step-dot,
 .process-step:hover .step-dot {
   border-color: var(--white);
   background: var(--white);
   color: var(--black);
 }
-
+ 
 .step-name {
   font-family: var(--font-display);
   font-size: 0.88rem;
@@ -681,14 +730,14 @@ nav.scrolled {
   color: var(--white);
   margin-bottom: 8px;
 }
-
+ 
 .step-desc {
   font-size: 0.75rem;
   color: var(--silver);
   line-height: 1.5;
   padding: 0 8px;
 }
-
+ 
 /* ============================================================
    PORTFOLIO
    ============================================================ */
@@ -698,7 +747,7 @@ nav.scrolled {
   gap: 20px;
   margin-top: 72px;
 }
-
+ 
 .portfolio-card {
   position: relative;
   border-radius: 20px;
@@ -710,11 +759,11 @@ nav.scrolled {
   transform-style: preserve-3d;
   will-change: transform;
 }
-
+ 
 .portfolio-card:hover {
   box-shadow: 0 40px 80px rgba(0,0,0,0.6);
 }
-
+ 
 .portfolio-card-inner {
   aspect-ratio: 4/3;
   background: var(--graphite);
@@ -724,11 +773,11 @@ nav.scrolled {
   position: relative;
   overflow: hidden;
 }
-
+ 
 .portfolio-vis {
   position: absolute; inset: 0;
 }
-
+ 
 .portfolio-overlay {
   position: absolute; inset: 0;
   background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
@@ -738,13 +787,13 @@ nav.scrolled {
   align-items: flex-end;
   padding: 28px;
 }
-
+ 
 .portfolio-card:hover .portfolio-overlay { opacity: 1; }
-
+ 
 .portfolio-info {
   padding: 24px 28px;
 }
-
+ 
 .portfolio-type {
   font-size: 0.68rem;
   font-weight: 600;
@@ -753,14 +802,14 @@ nav.scrolled {
   color: var(--silver);
   margin-bottom: 8px;
 }
-
+ 
 .portfolio-name {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
   color: var(--white);
 }
-
+ 
 /* ============================================================
    AI FLOW SECTION
    ============================================================ */
@@ -768,7 +817,7 @@ nav.scrolled {
   background: var(--void);
   overflow: hidden;
 }
-
+ 
 .ai-flow-canvas-wrap {
   margin-top: 80px;
   height: 380px;
@@ -778,9 +827,9 @@ nav.scrolled {
   overflow: hidden;
   background: var(--charcoal);
 }
-
+ 
 #ai-flow-canvas { width: 100%; height: 100%; }
-
+ 
 /* ============================================================
    WHY SECTION
    ============================================================ */
@@ -794,7 +843,7 @@ nav.scrolled {
   border: 1px solid rgba(255,255,255,0.06);
   margin-top: 72px;
 }
-
+ 
 .why-item {
   background: var(--ink);
   padding: 52px 48px;
@@ -802,9 +851,9 @@ nav.scrolled {
   overflow: hidden;
   transition: background 0.4s;
 }
-
+ 
 .why-item:hover { background: var(--charcoal); }
-
+ 
 .why-num {
   font-family: var(--font-display);
   font-size: 4rem;
@@ -814,7 +863,7 @@ nav.scrolled {
   margin-bottom: -16px;
   letter-spacing: -0.04em;
 }
-
+ 
 .why-title {
   font-family: var(--font-display);
   font-size: 1.3rem;
@@ -822,25 +871,128 @@ nav.scrolled {
   color: var(--white);
   margin-bottom: 14px;
 }
-
+ 
 .why-body {
   font-size: 0.9rem;
   color: var(--silver);
   line-height: 1.7;
 }
-
+ 
+/* ============================================================
+   FOUNDER
+   ============================================================ */
+#founder { background: var(--void); }
+ 
+.founder-wrap {
+  margin-top: 72px;
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 28px;
+  overflow: hidden;
+}
+ 
+.founder-photo-wrap {
+  position: relative;
+  overflow: hidden;
+  background: var(--charcoal);
+  aspect-ratio: 4/5;
+}
+ 
+.founder-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+  filter: grayscale(1) contrast(1.08) brightness(0.95);
+  transition: filter 0.5s, transform 0.6s var(--ease-premium);
+}
+ 
+.founder-photo-wrap:hover .founder-photo {
+  filter: grayscale(0.5) contrast(1.1) brightness(1);
+  transform: scale(1.03);
+}
+ 
+.founder-photo-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+ 
+.founder-content {
+  padding: 64px 64px 64px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+ 
+.founder-name {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+ 
+.founder-role {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--silver);
+  margin-bottom: 32px;
+}
+ 
+.founder-quote {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: var(--pearl);
+  margin-bottom: 28px;
+  padding-left: 20px;
+  border-left: 2px solid rgba(255,255,255,0.25);
+}
+ 
+.founder-body {
+  font-size: 0.92rem;
+  line-height: 1.85;
+  color: var(--silver);
+  margin-bottom: 16px;
+}
+ 
+.founder-highlight {
+  color: var(--ghost);
+}
+ 
+.founder-signature {
+  margin-top: 24px;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.02em;
+}
+ 
 /* ============================================================
    PRICING
    ============================================================ */
 #pricing { background: var(--void); }
-
+ 
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-top: 72px;
 }
-
+ 
 .pricing-card {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 24px;
@@ -851,19 +1003,19 @@ nav.scrolled {
   transition: transform 0.4s var(--ease-premium), border-color 0.4s;
   cursor: none;
 }
-
+ 
 .pricing-card:hover {
   transform: translateY(-6px);
   border-color: rgba(255,255,255,0.18);
 }
-
+ 
 .pricing-card.featured {
   background: var(--white);
   border-color: transparent;
 }
-
+ 
 .pricing-card.featured * { color: var(--black) !important; }
-
+ 
 .pricing-badge {
   position: absolute;
   top: -1px; right: 28px;
@@ -876,7 +1028,7 @@ nav.scrolled {
   padding: 6px 14px;
   border-radius: 0 0 10px 10px;
 }
-
+ 
 .pricing-plan {
   font-size: 0.72rem;
   font-weight: 600;
@@ -885,7 +1037,7 @@ nav.scrolled {
   color: var(--silver);
   margin-bottom: 20px;
 }
-
+ 
 .pricing-price {
   font-family: var(--font-display);
   font-size: 2.6rem;
@@ -895,24 +1047,24 @@ nav.scrolled {
   line-height: 1;
   margin-bottom: 6px;
 }
-
+ 
 .pricing-price small {
   font-size: 1rem;
   font-weight: 500;
   opacity: 0.6;
 }
-
+ 
 .pricing-cycle {
   font-size: 0.78rem;
   color: var(--silver);
   margin-bottom: 36px;
 }
-
+ 
 .pricing-features {
   list-style: none;
   margin-bottom: 40px;
 }
-
+ 
 .pricing-features li {
   display: flex;
   align-items: flex-start;
@@ -922,9 +1074,9 @@ nav.scrolled {
   padding: 10px 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-
+ 
 .pricing-features li:last-child { border-bottom: none; }
-
+ 
 .pricing-check {
   width: 16px; height: 16px;
   border: 1px solid rgba(255,255,255,0.2);
@@ -935,9 +1087,9 @@ nav.scrolled {
   flex-shrink: 0;
   margin-top: 2px;
 }
-
+ 
 .pricing-card.featured .pricing-check { border-color: rgba(0,0,0,0.2); }
-
+ 
 .pricing-btn {
   display: block;
   text-align: center;
@@ -950,20 +1102,20 @@ nav.scrolled {
   color: var(--white);
   transition: background 0.3s, border-color 0.3s;
 }
-
+ 
 .pricing-btn:hover {
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.3);
 }
-
+ 
 .pricing-card.featured .pricing-btn {
   background: var(--black);
   color: var(--white);
   border-color: transparent;
 }
-
+ 
 .pricing-card.featured .pricing-btn:hover { background: var(--graphite); }
-
+ 
 /* ============================================================
    FAQ
    ============================================================ */
@@ -971,12 +1123,12 @@ nav.scrolled {
   margin-top: 72px;
   max-width: 760px;
 }
-
+ 
 .faq-item {
   border-bottom: 1px solid rgba(255,255,255,0.07);
   cursor: none;
 }
-
+ 
 .faq-q {
   display: flex;
   justify-content: space-between;
@@ -989,9 +1141,9 @@ nav.scrolled {
   transition: color 0.25s;
   gap: 20px;
 }
-
+ 
 .faq-item:hover .faq-q { color: var(--pearl); }
-
+ 
 .faq-icon {
   width: 28px; height: 28px;
   border: 1px solid rgba(255,255,255,0.15);
@@ -1003,12 +1155,12 @@ nav.scrolled {
   transition: transform 0.3s var(--ease-smooth), background 0.3s;
   font-size: 0.8rem;
 }
-
+ 
 .faq-item.open .faq-icon {
   transform: rotate(45deg);
   background: rgba(255,255,255,0.08);
 }
-
+ 
 .faq-a {
   max-height: 0;
   overflow: hidden;
@@ -1017,9 +1169,9 @@ nav.scrolled {
   line-height: 1.7;
   transition: max-height 0.5s var(--ease-premium), padding 0.3s;
 }
-
+ 
 .faq-item.open .faq-a { max-height: 200px; padding-bottom: 28px; }
-
+ 
 /* ============================================================
    FINAL CTA
    ============================================================ */
@@ -1029,15 +1181,15 @@ nav.scrolled {
   position: relative;
   overflow: hidden;
 }
-
+ 
 .cta-bg {
   position: absolute; inset: 0;
   background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
   transition: opacity 0.5s;
 }
-
+ 
 #final-cta:hover .cta-bg { opacity: 1.5; }
-
+ 
 .cta-title {
   font-family: var(--font-display);
   font-size: clamp(2.4rem, 5vw, 4.2rem);
@@ -1049,14 +1201,14 @@ nav.scrolled {
   margin: 0 auto 20px;
   position: relative;
 }
-
+ 
 .cta-sub {
   font-size: 1rem;
   color: var(--mist);
   margin-bottom: 56px;
   position: relative;
 }
-
+ 
 .btn-mega {
   display: inline-flex;
   align-items: center;
@@ -1073,21 +1225,21 @@ nav.scrolled {
   overflow: hidden;
   transition: transform 0.4s var(--ease-premium), box-shadow 0.4s;
 }
-
+ 
 .btn-mega:hover {
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 30px 80px rgba(255,255,255,0.2);
 }
-
+ 
 .cta-contact {
   margin-top: 32px;
   font-size: 0.85rem;
   color: var(--silver);
 }
-
+ 
 .cta-contact a { color: var(--ghost); transition: color 0.2s; }
 .cta-contact a:hover { color: var(--white); }
-
+ 
 /* ============================================================
    FOOTER
    ============================================================ */
@@ -1098,32 +1250,32 @@ footer {
   align-items: center;
   justify-content: space-between;
 }
-
+ 
 .footer-logo {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
+ 
 .footer-copy {
   font-size: 0.78rem;
   color: var(--ash);
 }
-
+ 
 .footer-links {
   display: flex;
   gap: 32px;
   list-style: none;
 }
-
+ 
 .footer-links a {
   font-size: 0.78rem;
   color: var(--ash);
   transition: color 0.25s;
 }
-
+ 
 .footer-links a:hover { color: var(--white); }
-
+ 
 /* ============================================================
    SCROLL REVEAL
    ============================================================ */
@@ -1132,22 +1284,22 @@ footer {
   transform: translateY(32px);
   transition: opacity 0.8s var(--ease-premium), transform 0.8s var(--ease-premium);
 }
-
+ 
 .reveal.visible { opacity: 1; transform: translateY(0); }
-
+ 
 .reveal-delay-1 { transition-delay: 0.1s; }
 .reveal-delay-2 { transition-delay: 0.2s; }
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
 .reveal-delay-5 { transition-delay: 0.5s; }
-
+ 
 /* ============================================================
    GRADIENT BORDER UTILITY
    ============================================================ */
 .grad-border {
   position: relative;
 }
-
+ 
 .grad-border::before {
   content: '';
   position: absolute;
@@ -1156,7 +1308,7 @@ footer {
   background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.04), rgba(255,255,255,0.12));
   z-index: -1;
 }
-
+ 
 /* ============================================================
    MOBILE
    ============================================================ */
@@ -1164,52 +1316,56 @@ footer {
   nav { padding: 20px 24px; }
   nav.scrolled { padding: 14px 24px; }
   .nav-links { display: none; }
-
+ 
   #hero { padding: 120px 24px 80px; }
   #hero-canvas { display: none; }
-
+ 
   #stats {
     grid-template-columns: repeat(2, 1fr);
     padding: 60px 24px;
   }
   .stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
-
+ 
   .section { padding: 80px 24px; }
-
+ 
   .services-grid { grid-template-columns: 1fr; }
   .services-header { flex-direction: column; align-items: flex-start; }
-
+ 
   .process-steps { grid-template-columns: repeat(4, 1fr); }
-
+ 
   .portfolio-grid { grid-template-columns: 1fr; }
   .why-grid { grid-template-columns: 1fr; }
   .pricing-grid { grid-template-columns: 1fr; }
-
+ 
+  .founder-wrap { grid-template-columns: 1fr; }
+  .founder-photo-wrap { aspect-ratio: 1/1; }
+  .founder-content { padding: 44px 28px; }
+ 
   footer { flex-direction: column; gap: 24px; text-align: center; }
   .footer-links { flex-wrap: wrap; justify-content: center; }
-
+ 
   #final-cta { padding: 100px 24px; }
 }
 </style>
 </head>
 <body class="intro-active">
-
+ 
 <!-- ============================================================
      CURSOR
      ============================================================ -->
 <div id="cursor-dot"></div>
 <div id="cursor-ring"></div>
-
+ 
 <!-- ============================================================
      NOISE TEXTURE
      ============================================================ -->
 <div id="noise"></div>
-
+ 
 <!-- ============================================================
      MOUSE SPOTLIGHT
      ============================================================ -->
 <div id="spotlight"></div>
-
+ 
 <!-- ============================================================
      INTRO EXPERIENCE
      ============================================================ -->
@@ -1224,12 +1380,12 @@ footer {
   <div id="intro-tagline">AI &amp; Web Engineering</div>
   <div id="intro-progress"><div id="intro-progress-bar"></div></div>
 </div>
-
+ 
 <!-- ============================================================
      SITE
      ============================================================ -->
 <div id="site">
-
+ 
   <!-- NAV -->
   <nav id="nav">
     <div class="nav-logo">
@@ -1244,12 +1400,13 @@ footer {
       <li><a href="#services">Services</a></li>
       <li><a href="#process">Process</a></li>
       <li><a href="#portfolio">Work</a></li>
+      <li><a href="#founder">Founder</a></li>
       <li><a href="#pricing">Pricing</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
     <a href="tel:+919520626830" class="nav-cta">+91 95206 26830</a>
   </nav>
-
+ 
   <!-- HERO -->
   <section id="hero">
     <div class="hero-bg">
@@ -1283,7 +1440,7 @@ footer {
       </div>
     </div>
   </section>
-
+ 
   <!-- STATS -->
   <section id="stats">
     <div class="stat-item reveal">
@@ -1303,7 +1460,7 @@ footer {
       <div class="stat-label">Businesses Served</div>
     </div>
   </section>
-
+ 
   <!-- SERVICES -->
   <section id="services" class="section">
     <div class="services-header">
@@ -1370,7 +1527,7 @@ footer {
       </div>
     </div>
   </section>
-
+ 
   <!-- PROCESS -->
   <section id="process" class="section">
     <div class="section-tag reveal">How We Work</div>
@@ -1414,7 +1571,7 @@ footer {
       </div>
     </div>
   </section>
-
+ 
   <!-- PORTFOLIO -->
   <section id="portfolio" class="section">
     <div class="section-tag reveal">Selected Work</div>
@@ -1458,7 +1615,7 @@ footer {
       </div>
     </div>
   </section>
-
+ 
   <!-- AI FLOW -->
   <section id="ai-flow" class="section">
     <div class="section-tag reveal">AI in Action</div>
@@ -1467,7 +1624,7 @@ footer {
       <canvas id="ai-flow-canvas"></canvas>
     </div>
   </section>
-
+ 
   <!-- WHY SOLVORIZ -->
   <section id="why" class="section">
     <div class="section-tag reveal">Why Us</div>
@@ -1495,7 +1652,27 @@ footer {
       </div>
     </div>
   </section>
-
+ 
+  <!-- FOUNDER -->
+  <section id="founder" class="section">
+    <div class="section-tag reveal">Leadership</div>
+    <h2 class="section-title reveal reveal-delay-1">Meet the Founder</h2>
+    <div class="founder-wrap reveal reveal-delay-2">
+      <div class="founder-photo-wrap">
+        <img src="founder.jpg" alt="Aryan Jindal, Founder of Solvoriz" class="founder-photo">
+      </div>
+      <div class="founder-content">
+        <div class="founder-name">Aryan Jindal</div>
+        <div class="founder-role">Founder, Solvoriz</div>
+        <p class="founder-quote">Technology has never interested me because it is "cool." It interests me because it solves problems.</p>
+        <p class="founder-body">While many agencies focus on building websites, I became obsessed with understanding how businesses actually operate — how leads are generated, how customers are managed, and where businesses lose valuable time every single day.</p>
+        <p class="founder-body"><span class="founder-highlight">That obsession became Solvoriz.</span></p>
+        <p class="founder-body">Today, we build intelligent systems that combine premium web engineering, AI automation, CRM infrastructure and workflow automation into one seamless business operating system.</p>
+        <div class="founder-signature">Every solution is designed with one objective: Generate measurable business growth.</div>
+      </div>
+    </div>
+  </section>
+ 
   <!-- PRICING -->
   <section id="pricing" class="section">
     <div class="section-tag reveal">Investment</div>
@@ -1564,7 +1741,7 @@ footer {
       </div>
     </div>
   </section>
-
+ 
   <!-- FAQ -->
   <section id="faq" class="section">
     <div class="section-tag reveal">FAQ</div>
@@ -1596,7 +1773,7 @@ footer {
       </div>
     </div>
   </section>
-
+ 
   <!-- FINAL CTA -->
   <section id="final-cta">
     <div class="cta-bg"></div>
@@ -1608,7 +1785,7 @@ footer {
     </a>
     <div class="cta-contact reveal reveal-delay-3">or call directly: <a href="tel:+919520626830">+91 95206 26830</a></div>
   </section>
-
+ 
   <!-- FOOTER -->
   <footer>
     <div class="footer-logo">
@@ -1625,9 +1802,9 @@ footer {
       <li><a href="#faq">FAQ</a></li>
     </ul>
   </footer>
-
+ 
 </div><!-- /#site -->
-
+ 
 <script>
 /* ============================================================
    INTRO EXPERIENCE
@@ -1640,17 +1817,17 @@ footer {
   const progressBar = document.getElementById('intro-progress-bar');
   const intro = document.getElementById('intro');
   const site = document.getElementById('site');
-
+ 
   let W, H, particles = [], frame = 0, introPhase = 0;
   const PARTICLE_COUNT = 300;
-
+ 
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
   }
   resize();
   window.addEventListener('resize', resize);
-
+ 
   // Logo target points (lightning bolt shape, centered)
   function getBoltPoints(cx, cy, scale) {
     return [
@@ -1662,7 +1839,7 @@ footer {
       [cx + (2)*scale, cy - (6)*scale],
     ];
   }
-
+ 
   function createParticle(i) {
     const pts = getBoltPoints(W/2, H/2, 2.8);
     const target = pts[i % pts.length];
@@ -1678,38 +1855,38 @@ footer {
       color: `hsl(0,0%,${80 + Math.random()*20}%)`
     };
   }
-
+ 
   for (let i = 0; i < PARTICLE_COUNT; i++) {
     particles.push(createParticle(i));
   }
-
+ 
   let startTime = Date.now();
   const INTRO_DURATION = 3200; // ms
-
+ 
   function lerp(a, b, t) { return a + (b - a) * t; }
-
+ 
   function easeOutExpo(t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
-
+ 
   function drawIntro() {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / INTRO_DURATION, 1);
-
+ 
     progressBar.style.width = (progress * 100) + '%';
-
+ 
     ctx.clearRect(0, 0, W, H);
-
+ 
     // Phase 1: particles gather (0→0.6)
     // Phase 2: logo breathes + pulse (0.6→1)
-
+ 
     if (progress < 0.7) {
       const gatherP = easeOutExpo(progress / 0.7);
       particles.forEach(p => {
         p.trail.push({ x: p.x, y: p.y });
         if (p.trail.length > 6) p.trail.shift();
-
+ 
         p.x = lerp(p.x, p.tx, p.speed * (1 + gatherP * 2));
         p.y = lerp(p.y, p.ty, p.speed * (1 + gatherP * 2));
-
+ 
         // Draw trail
         for (let t = 0; t < p.trail.length - 1; t++) {
           const ta = p.trail[t], tb = p.trail[t+1];
@@ -1721,19 +1898,19 @@ footer {
           ctx.lineTo(tb.x, tb.y);
           ctx.stroke();
         }
-
+ 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255,255,255,${p.opacity * gatherP})`;
         ctx.fill();
       });
-
+ 
       if (gatherP > 0.5) {
         logoWrap.style.opacity = ((gatherP - 0.5) / 0.5).toFixed(3);
       }
     } else {
       const postP = (progress - 0.7) / 0.3;
-
+ 
       // All particles locked to bolt, glowing
       particles.forEach(p => {
         const glow = 0.5 + Math.sin(frame * 0.08 + p.size) * 0.2;
@@ -1742,10 +1919,10 @@ footer {
         ctx.fillStyle = `rgba(255,255,255,${p.opacity * 0.6})`;
         ctx.fill();
       });
-
+ 
       logoWrap.style.opacity = '1';
       tagline.style.color = `rgba(255,255,255,${Math.min(postP * 2, 1)})`;
-
+ 
       // Pulse rings
       const rings = Math.floor(postP * 4);
       for (let r = 0; r < rings; r++) {
@@ -1760,9 +1937,9 @@ footer {
         ctx.stroke();
       }
     }
-
+ 
     frame++;
-
+ 
     if (progress < 1) {
       requestAnimationFrame(drawIntro);
     } else {
@@ -1779,10 +1956,10 @@ footer {
       }, 400);
     }
   }
-
+ 
   requestAnimationFrame(drawIntro);
 })();
-
+ 
 /* ============================================================
    SITE INITIALISATION (runs after intro)
    ============================================================ */
@@ -1800,7 +1977,7 @@ function startSite() {
   initServiceCards();
   initMagneticButtons();
 }
-
+ 
 /* ============================================================
    CURSOR
    ============================================================ */
@@ -1808,13 +1985,13 @@ function initCursor() {
   const dot = document.getElementById('cursor-dot');
   const ring = document.getElementById('cursor-ring');
   let mx = 0, my = 0, rx = 0, ry = 0;
-
+ 
   document.addEventListener('mousemove', e => {
     mx = e.clientX; my = e.clientY;
     dot.style.left = mx + 'px';
     dot.style.top = my + 'px';
   });
-
+ 
   function animRing() {
     rx += (mx - rx) * 0.14;
     ry += (my - ry) * 0.14;
@@ -1823,13 +2000,13 @@ function initCursor() {
     requestAnimationFrame(animRing);
   }
   animRing();
-
+ 
   document.querySelectorAll('a, button, .service-card, .portfolio-card, .faq-item, .pricing-card').forEach(el => {
     el.addEventListener('mouseenter', () => ring.classList.add('hover'));
     el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
   });
 }
-
+ 
 /* ============================================================
    SPOTLIGHT
    ============================================================ */
@@ -1840,7 +2017,7 @@ function initSpotlight() {
     sp.style.top = e.clientY + 'px';
   });
 }
-
+ 
 /* ============================================================
    NAV SCROLL
    ============================================================ */
@@ -1850,7 +2027,7 @@ function initNav() {
     nav.classList.toggle('scrolled', window.scrollY > 40);
   });
 }
-
+ 
 /* ============================================================
    HERO CANVAS — Floating particle network
    ============================================================ */
@@ -1859,7 +2036,7 @@ function initHeroCanvas() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H;
-
+ 
   function resize() {
     const rect = canvas.parentElement.getBoundingClientRect();
     W = canvas.width = rect.width;
@@ -1867,7 +2044,7 @@ function initHeroCanvas() {
   }
   resize();
   window.addEventListener('resize', resize);
-
+ 
   const NODES = 60;
   const nodes = Array.from({length: NODES}, () => ({
     x: Math.random(), y: Math.random(),
@@ -1876,30 +2053,30 @@ function initHeroCanvas() {
     r: Math.random()*2+1,
     pulse: Math.random()*Math.PI*2
   }));
-
+ 
   let mx = 0.7, my = 0.5;
   document.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
     mx = (e.clientX - rect.left) / W;
     my = (e.clientY - rect.top) / H;
   });
-
+ 
   function draw() {
     ctx.clearRect(0,0,W,H);
     const t = Date.now() * 0.001;
-
+ 
     nodes.forEach(n => {
       n.x += n.vx; n.y += n.vy;
       if (n.x<0||n.x>1) n.vx*=-1;
       if (n.y<0||n.y>1) n.vy*=-1;
-
+ 
       const pulse = 0.7 + Math.sin(t*1.5+n.pulse)*0.3;
       ctx.beginPath();
       ctx.arc(n.x*W, n.y*H, n.r*pulse, 0, Math.PI*2);
       ctx.fillStyle = `rgba(255,255,255,${0.35*pulse})`;
       ctx.fill();
     });
-
+ 
     for (let i=0; i<NODES; i++) {
       for (let j=i+1; j<NODES; j++) {
         const a=nodes[i], b=nodes[j];
@@ -1915,19 +2092,19 @@ function initHeroCanvas() {
         }
       }
     }
-
+ 
     // Mouse attractor
     const grd = ctx.createRadialGradient(mx*W,my*H,0,mx*W,my*H,220);
     grd.addColorStop(0,'rgba(255,255,255,0.06)');
     grd.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=grd;
     ctx.fillRect(0,0,W,H);
-
+ 
     requestAnimationFrame(draw);
   }
   draw();
 }
-
+ 
 /* ============================================================
    PORTFOLIO CARDS — Tilt + procedural preview
    ============================================================ */
@@ -1944,13 +2121,13 @@ function initPortfolioCards() {
       card.style.transform = '';
     });
   });
-
+ 
   // Portfolio visual — canvas 1: CRM flow
   drawPortfolioVis1();
   drawPortfolioVis2();
   drawPortfolioVis3();
 }
-
+ 
 function drawPortfolioVis1() {
   const c = document.getElementById('pv1');
   if (!c) return;
@@ -1970,7 +2147,7 @@ function drawPortfolioVis1() {
     ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
     for(let i=0;i<W;i+=40){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
     for(let i=0;i<H;i+=40){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
-
+ 
     edges.forEach(([a,b])=>{
       const na=nodes[a],nb=nodes[b];
       const grd=ctx.createLinearGradient(na.x*W,na.y*H,nb.x*W,nb.y*H);
@@ -1987,7 +2164,7 @@ function drawPortfolioVis1() {
       ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);
       ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fill();
     });
-
+ 
     nodes.forEach(n=>{
       ctx.beginPath();ctx.arc(n.x*W,n.y*H,18,0,Math.PI*2);
       ctx.fillStyle='rgba(30,30,30,0.95)';ctx.fill();
@@ -2001,7 +2178,7 @@ function drawPortfolioVis1() {
   }
   draw();
 }
-
+ 
 function drawPortfolioVis2() {
   const c = document.getElementById('pv2');
   if (!c) return;
@@ -2032,7 +2209,7 @@ function drawPortfolioVis2() {
   }
   draw();
 }
-
+ 
 function drawPortfolioVis3() {
   const c=document.getElementById('pv3');
   if(!c)return;
@@ -2069,7 +2246,7 @@ function drawPortfolioVis3() {
   }
   draw();
 }
-
+ 
 /* ============================================================
    AI FLOW CANVAS
    ============================================================ */
@@ -2080,27 +2257,27 @@ function initAIFlowCanvas() {
   canvas.height = canvas.offsetHeight;
   const ctx = canvas.getContext('2d');
   const W=canvas.width, H=canvas.height;
-
+ 
   const steps = [
     {label:'Visitor',icon:'👤'},{label:'Website',icon:'🌐'},
     {label:'AI Assistant',icon:'🤖'},{label:'CRM',icon:'📊'},
     {label:'Team',icon:'👥'},{label:'Customer',icon:'🏆'}
   ];
-
+ 
   let t = 0;
   const particles = [];
-
+ 
   function addParticle() {
     particles.push({ pos: 0, speed: 0.003 + Math.random()*0.002, life: 1 });
   }
   setInterval(addParticle, 500);
-
+ 
   function draw() {
     ctx.clearRect(0,0,W,H);
-
+ 
     const pad = 80;
     const stepW = (W - pad*2) / (steps.length - 1);
-
+ 
     // Connecting lines
     for (let i=0;i<steps.length-1;i++) {
       const x1=pad+i*stepW, x2=pad+(i+1)*stepW;
@@ -2110,7 +2287,7 @@ function initAIFlowCanvas() {
       ctx.strokeStyle='rgba(255,255,255,0.1)';
       ctx.lineWidth=1.5;ctx.stroke();
     }
-
+ 
     // Particles along path
     particles.forEach((p,i) => {
       p.pos += p.speed;
@@ -2123,24 +2300,24 @@ function initAIFlowCanvas() {
       ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
       ctx.fillStyle=grd;ctx.fill();
     });
-
+ 
     // Step nodes
     steps.forEach((s,i) => {
       const x=pad+i*stepW, y=H/2;
       const pulse = 0.8+Math.sin(t*1.5+i*0.8)*0.2;
-
+ 
       ctx.beginPath();ctx.arc(x,y,28*pulse,0,Math.PI*2);
       ctx.fillStyle='rgba(20,20,20,0.95)';ctx.fill();
       ctx.strokeStyle=`rgba(255,255,255,${0.25+Math.sin(t+i)*0.1})`;
       ctx.lineWidth=1;ctx.stroke();
-
+ 
       ctx.font='16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(s.icon,x,y);
-
+ 
       ctx.font=`600 11px Inter,sans-serif`;
       ctx.fillStyle='rgba(255,255,255,0.6)';
       ctx.fillText(s.label,x,y+46);
-
+ 
       if(i<steps.length-1){
         const ax=x+48, ay=H/2;
         ctx.beginPath();
@@ -2148,13 +2325,13 @@ function initAIFlowCanvas() {
         ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.2;ctx.stroke();
       }
     });
-
+ 
     t+=0.018;
     requestAnimationFrame(draw);
   }
   draw();
 }
-
+ 
 /* ============================================================
    ANIMATED COUNTERS
    ============================================================ */
@@ -2183,7 +2360,7 @@ function initCounters() {
   }, {threshold:0.5});
   counters.forEach(c => observer.observe(c));
 }
-
+ 
 /* ============================================================
    SCROLL REVEAL
    ============================================================ */
@@ -2199,7 +2376,7 @@ function initReveal() {
   }, {threshold:0.12});
   els.forEach(el => observer.observe(el));
 }
-
+ 
 /* ============================================================
    PROCESS STEPS
    ============================================================ */
@@ -2219,7 +2396,7 @@ function initProcess() {
   const section = document.getElementById('process');
   if (section) observer.observe(section);
 }
-
+ 
 /* ============================================================
    FAQ ACCORDION
    ============================================================ */
@@ -2232,7 +2409,7 @@ function initFAQ() {
     });
   });
 }
-
+ 
 /* ============================================================
    SERVICE CARD MOUSE GLOW
    ============================================================ */
@@ -2247,7 +2424,7 @@ function initServiceCards() {
     });
   });
 }
-
+ 
 /* ============================================================
    MAGNETIC BUTTONS
    ============================================================ */
@@ -2266,7 +2443,7 @@ function initMagneticButtons() {
     });
   });
 }
-
+ 
 /* ============================================================
    CSS roundRect polyfill (Safari)
    ============================================================ */
@@ -2288,3 +2465,6 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 </script>
 </body>
 </html>
+ 
+
+
